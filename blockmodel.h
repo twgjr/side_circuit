@@ -7,14 +7,21 @@
 #define BLOCKMODEL_H
 
 #include <QObject>
-#include <QAbstractListModel>
+#include <QAbstractItemModel>
 #include <QDebug>
-#include "blockdatasource.h"
+#include <QFile>
+#include <QUrl>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
+#include "blockitem.h"
+#include "equationsolver.h"
 
-class BlockModel : public QAbstractListModel
+class BlockModel : public QAbstractItemModel
 {
     Q_OBJECT
-    Q_PROPERTY(BlockDataSource* blockDataSource READ blockDataSource WRITE setBlockDataSource)
+    //Q_PROPERTY(BlockDataSource* blockDataSource READ blockDataSource WRITE setBlockDataSource)
+    Q_PROPERTY(QVariantList roles READ roles WRITE setRoles NOTIFY rolesChanged)
 
     enum ModelRoles{
         CategoryDataRole = Qt::UserRole + 1,
@@ -26,39 +33,57 @@ class BlockModel : public QAbstractListModel
 
 public:
     explicit BlockModel(QObject *parent = nullptr);
+    ~BlockModel() override;
 
-
-    /* REQUIRED FUNCTIONS FOR QABSTRACTLISTMODEL */
+    /* REQUIRED FUNCTIONS FOR QABSTRACTITEMMODEL */
     // Basic functionality:
-    int rowCount(const QModelIndex &parent = QModelIndex()) const;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     // Editable:
-    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole);
-    Qt::ItemFlags flags(const QModelIndex& index) const;
-    QHash<int,QByteArray> roleNames() const;
+    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
+    Qt::ItemFlags flags(const QModelIndex& index) const override;
+    QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
+    QModelIndex parent(const QModelIndex &index) const override;
+    QHash<int,QByteArray> roleNames() const override;
+
+    QVariantList roles() const;
+    void setRoles(QVariantList roles);
+
+    Q_INVOKABLE QModelIndex indexFromElement(BlockItem *item);
+    Q_INVOKABLE bool insertElement(BlockItem *item, const QModelIndex &parent = QModelIndex(), int pos = -1);
+
+    BlockItem *elementFromIndex(const QModelIndex &index) const;
 
     /* FUNCTIONS FOR SETTING BLOCKDATASOURCE */
-    BlockDataSource* blockDataSource() const;
-    void setBlockDataSource(BlockDataSource* blockDataSource);
+    //BlockDataSource* blockDataSource() const;
+    //void setBlockDataSource(BlockDataSource* blockDataSource);
 
     /* EXPOSING BLOCKDATASOURCE FUNCTIONS AS SLOTS TO QML VIA BLOCKMODEL */
-    Q_INVOKABLE bool loadBlockItems(QVariant loadLocation){return m_blockDataSource->loadBlockItems(loadLocation);};
-    Q_INVOKABLE bool saveBlockItems(QVariant saveLocation){return m_blockDataSource->saveBlockItems(saveLocation);};
-    Q_INVOKABLE void appendBlockItem(){m_blockDataSource->appendBlockItem();};
-    Q_INVOKABLE void clearBlockItems(){m_blockDataSource->clearBlockItems();};
-    Q_INVOKABLE void removeLastBlockItem(){m_blockDataSource->removeLastBlockItem();};
+    //Q_INVOKABLE bool loadBlockItems(QVariant loadLocation);
+   // Q_INVOKABLE bool saveBlockItems(QVariant saveLocation);
+    Q_INVOKABLE void appendBlockItem();
+    //Q_INVOKABLE void clearBlockItems();
+    //Q_INVOKABLE void removeLastBlockItem();
 
     /* EXPOSING EQUATIONSOLVER FUNCTIONS AS SLOTS TO QML VIA BLOCKDATASOURCE->BLOCKMODEL */
-    Q_INVOKABLE void solveEquations(){m_blockDataSource->solveEquations();};
+    //Q_INVOKABLE void solveEquations();
 
     /* FUNCTIONS AS SLOTS TO QML TO AID IN QUI OPERATIONS */
-    Q_INVOKABLE int maxBlockX(){return m_blockDataSource->maxBlockX();};
-    Q_INVOKABLE int maxBlockY(){return m_blockDataSource->maxBlockY();};
+    //Q_INVOKABLE int maxBlockX();
+    //Q_INVOKABLE int maxBlockY();
+
+signals:
+    void rolesChanged();
 
 private:
     /* VARIABLES FOR SETTING BLOCKDATASOURCE */
-    BlockDataSource* m_blockDataSource;
-    bool connectedtoBlockDataSourceSignals;
+    //BlockDataSource* m_blockDataSource;
+    //bool connectedtoBlockDataSourceSignals;
+    BlockItem * m_root;
+    //QVariantList m_roles;
+    QHash<int, QByteArray> m_roles;
+    z3::context m_context;
 };
 
 #endif // BLOCKMODEL_H

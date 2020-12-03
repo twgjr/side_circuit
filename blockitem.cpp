@@ -8,9 +8,53 @@ BlockItem::BlockItem(z3::context *context, QObject *parent) : QObject(parent),
     m_blockXPosition(0),
     m_blockYPosition(0),
     m_equation(context),
-    m_solverContextReference(context)
+    m_solverContextReference(context),
+    m_parent(nullptr)
 {
     qDebug()<<"Block Item created.";
+}
+
+BlockItem *BlockItem::parentItem() const
+{
+    return m_parent;
+}
+
+bool BlockItem::insertItem(BlockItem *item, int pos)
+{
+    if(pos > m_children.count())
+        return false;
+    if(pos < 0)
+        pos = m_children.count();
+    item->m_parent = this;
+    item->setParent(this);
+    m_children.insert(pos, item);
+    return true;
+}
+
+BlockItem *BlockItem::child(int index) const
+{
+    if(index < 0 || index >= m_children.length())
+        return nullptr;
+    return m_children.at(index);
+}
+
+void BlockItem::clear()
+{
+    qDeleteAll(m_children);
+    m_children.clear();
+}
+
+int BlockItem::pos() const
+{
+    BlockItem *parent = parentItem();
+    if(parent)
+        return parent->m_children.indexOf(const_cast<BlockItem *>(this));
+    return 0;
+}
+
+int BlockItem::count() const
+{
+    return m_children.size();
 }
 
 void BlockItem::jsonRead(QJsonObject &json)
@@ -97,4 +141,18 @@ void BlockItem::setEquation(QString equationString)
 {
     m_equation.setEquationString(equationString);
     emit equationChanged(equationString);
+}
+
+QString BlockItem::equationString()
+{
+    return m_equation.getEquationString();
+}
+
+void BlockItem::setEquationString(QString equationString)
+{
+    if (m_equation.getEquationString() == equationString)
+        return;
+
+    m_equation.setEquationString(equationString);
+    emit equationStringChanged(equationString);
 }
