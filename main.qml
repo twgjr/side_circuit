@@ -10,12 +10,10 @@ Window {
     visible: true
     width: 640
     height: 480
-    title: qsTr("Model and Storage Example V3")
+    title: qsTr("Diagram Solver")
     visibility: "Maximized"
 
-    BlockModel{
-        id:myBlockModel
-    }
+    BlockModel{id:myBlockModel}
 
     ColumnLayout{
         id:columnLayoutId
@@ -30,8 +28,9 @@ Window {
 
             Flickable{
                 id:flickableId
-                property int maxFlickX: Math.max(myBlockModel.maxBlockX()+width*2,parent.width)
-                property int maxFlickY: Math.max(myBlockModel.maxBlockY()+height*2,parent.height)
+                property int maxFlickX: parent.width//Math.max(myBlockModel.maxBlockX()+width*2,parent.width)
+                property int maxFlickY: parent.height//Math.max(myBlockModel.maxBlockY()+height*2,parent.height)
+                
 
                 flickableDirection: Flickable.HorizontalAndVerticalFlick
                 height: parent.height
@@ -41,6 +40,19 @@ Window {
                 clip: true
                 ScrollBar.horizontal: ScrollBar { id: hbar ; active: true; visible: true ; policy: ScrollBar.AsNeeded }
                 ScrollBar.vertical: ScrollBar { id: vbar; active: true; visible: true ; policy: ScrollBar.AsNeeded }
+
+                MouseArea{
+                    acceptedButtons: Qt.RightButton
+                    anchors.fill: parent
+
+                    onClicked: {
+                        if(mouse.button & Qt.RightButton){
+                            //go up a level
+                            print("Right Clicked")
+                            myBlockModel.upLevel()
+                        }
+                    }
+                }
 
                 Repeater{
                     height: parent.height
@@ -54,6 +66,9 @@ Window {
                         property int xPosition: 0
                         property int yPosition: 0
                         property string equationText: ""
+                        property int levelIdText: 0
+                        property int numChildrenText: 0
+                        property bool selected: false
 
                         color: "beige"
                         border.color: "yellowgreen"
@@ -67,34 +82,58 @@ Window {
                             yPosition = model.blockYPosition
                             idText = model.id
                             categoryText = model.category
-                            equationText = model.equation
+                            equationText = model.equationString
+                            levelIdText = model.levelId
+                            numChildrenText = model.numChildren
                         }
 
                         onXChanged: {
                             model.blockXPosition = rectangleDelegateId.x
                             xPosition = model.blockXPosition
-                            flickableId.maxFlickX = myBlockModel.maxBlockX()+width*2
+                            //flickableId.maxFlickX = myBlockModel.maxBlockX()+width*2
                         }
                         onYChanged: {
                             model.blockYPosition = rectangleDelegateId.y
                             yPosition = model.blockYPosition
-                            flickableId.maxFlickY = myBlockModel.maxBlockY() + height*2
+                            //flickableId.maxFlickY = myBlockModel.maxBlockY() + height*2
                         }
                         Component.onDestruction: {
                         }
 
                         MouseArea{
+                            acceptedButtons: Qt.LeftButton | Qt.RightButton
                             anchors.fill: parent
                             drag.target: parent
+
+                            onDoubleClicked: {
+                                // go down a level into the clicked block
+                                // need a c++ function that shift the proxy model
+                                print("Double Clicked: "+model.index)
+                                myBlockModel.downLevel(model.index)
+                            }
                         }
 
                         ColumnLayout{
                             anchors.fill: parent
-                            Text {
-                                Layout.fillWidth: true
-                                text : "Block ID:" + idText
-                                horizontalAlignment: Text.AlignHCenter
+                            RowLayout{
+                                Text {
+                                    Layout.fillWidth: true
+                                    text : "Level ID:" + levelIdText
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+                                Text {
+                                    Layout.fillWidth: true
+                                    text : "Block ID:" + idText
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+                                Text {
+                                    Layout.fillWidth: true
+                                    text : "# Children:" + numChildrenText
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
                             }
+
+
                             TextField {
                                 Layout.fillWidth: true
                                 placeholderText: "Enter an category"
@@ -116,18 +155,25 @@ Window {
                                 text: equationText
                                 horizontalAlignment: Text.AlignHCenter
                                 onEditingFinished: {
-                                    model.equation = text
-                                    equationText = model.equation
+                                    model.equationString = text
+                                    equationText = model.equationString
                                 }
                             }
                             Button {
                                 text : "Print C++ Model"
                                 Layout.fillWidth: true
                                 onClicked: {
+                                    myBlockModel.printBlock(index)
+                                }
+                            }
+                            Button {
+                                text : "Print Proxy Model"
+                                Layout.fillWidth: true
+                                onClicked: {
                                     print("ID: " + model.id)
                                     print("Category: " + model.category)
                                     print("Position: " + model.blockXPosition + " x " + model.blockYPosition)
-                                    print("Equation: " + model.equation)
+                                    print("Equation: " + model.equationString)
                                 }
                             }
                             Button {
@@ -179,7 +225,10 @@ Window {
                 id : mButton3
                 text : "Add New Block"
                 Layout.fillWidth: true
-                onClicked: myBlockModel.appendBlockItem()
+                onClicked: myBlockModel.appendBlock() // adds to the active "root"
+                // there should be a main root node node (not changed) and a changeable root node
+                // for changing the visible children
+                // the children of the active root node are visible
             }
             Button {
                 id : mButton4

@@ -1,96 +1,128 @@
 #include "blockmodel.h"
 
-BlockModel::BlockModel(QObject *parent) : QAbstractItemModel(parent)//,
-  //connectedtoBlockDataSourceSignals(false)
+BlockModel::BlockModel(QObject *parent) : QAbstractItemModel(parent)
 {
-    //setBlockDataSource(new BlockDataSource(this)); //connects the signals between datasource and model
     qDebug()<<"BlockModel object created.";
-    m_root = new BlockItem(&m_context);
 
-    m_roles[CategoryDataRole]="category";
-    m_roles[IDDataRole]="id";
-    m_roles[BlockXPositionRole]="blockXPosition";
-    m_roles[BlockYPositionRole]="blockYPosition";
-    m_roles[EquationRole]="equationString";
+    m_root = new BlockItem(&m_context,nullptr,this);  // real root is empty
+    m_proxyRoot = new BlockItem(&m_context,nullptr,this);
+    newProxyRoot(m_root);  //clone real root into proxy root
+
+    //set the basic roles for access of item properties in QML
+    m_roles[BlockItem::CategoryDataRole]="category";
+    m_roles[BlockItem::IDDataRole]="id";
+    m_roles[BlockItem::BlockXPositionRole]="blockXPosition";
+    m_roles[BlockItem::BlockYPositionRole]="blockYPosition";
+    m_roles[BlockItem::EquationRole]="equationString";
+    m_roles[BlockItem::LevelIdRole]="levelId";
+    m_roles[BlockItem::NumChildrenRole]="numChildren";
 }
 
 BlockModel::~BlockModel()
 {
     delete m_root;
+    delete m_proxyRoot;
+    qDebug()<<"Block Model destroyed.";
+
 }
 
 //counts the number of data items in the data source
 int BlockModel::rowCount(const QModelIndex &parent) const
 {
-    if (parent.column() > 0)
-        return 0;
-    BlockItem *parentItem = elementFromIndex(parent);
-    return parentItem->count();
+    const BlockItem *parentItem = getItemFromQIndex(parent);
+
+    return parentItem ? parentItem->childCount() : 0;
 }
 
 int BlockModel::columnCount(const QModelIndex &parent) const
 {
-    Q_UNUSED(parent)
-    return 1;
+    Q_UNUSED(parent);
+    return 1; //columns not used in this tree structure, dummy 1 to tell it data exists
 }
 
-//gets data from the data source
+//gets data from a block to display in QML model view
 QVariant BlockModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid())
         return QVariant();
 
-    BlockItem * item = static_cast<BlockItem*>(index.internalPointer());
+    //BlockItem * item = static_cast<BlockItem*>(index.internalPointer());
+    BlockItem * item = getItemFromQIndex(index);
     QByteArray roleName = m_roles[role];
     QVariant name = item->property(roleName.data());
     return name;
-
-    //    BlockItem * blockItem = m_blockDataSource->dataItems().at(index.row());
-    //    if(role == CategoryDataRole){return blockItem->category();}
-    //    if(role == IDDataRole){return blockItem->id();}
-    //    if(role == BlockXPositionRole){return blockItem->blockXPosition();}
-    //    if(role == BlockYPositionRole){return blockItem->blockYPosition();}
-    //    if(role == EquationRole){return blockItem->equation()->getEquationString();}
-    //    return QVariant();
 }
 
+//sets data from changing it in QML model view
 bool BlockModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     if (data(index, role) != value) {
         //don't do anything if the data being submitted did not change
-        BlockItem * blockItem = static_cast<BlockItem*>(index.internalPointer());
+        BlockItem * proxyBlockItem = getItemFromQIndex(index);
         switch (role) {
-        case CategoryDataRole:
-            if(blockItem->category() != value.toString()){
-                blockItem->setCategory(value.toString());
+        case BlockItem::CategoryDataRole:
+            if(proxyBlockItem->category() != value.toString()){
+                proxyBlockItem->setCategory(value.toString());
             }
             break;
-        case IDDataRole:
-            if(blockItem->id() != value.toInt()){
-                blockItem->setId(value.toInt());
+        case BlockItem::IDDataRole: break;
+        case BlockItem::BlockXPositionRole:
+            if(proxyBlockItem->blockXPosition() != value.toInt()){
+                proxyBlockItem->setBlockXPosition(value.toInt());
             }
             break;
-        case BlockXPositionRole:
-            if(blockItem->blockXPosition() != value.toInt()){
-                blockItem->setBlockXPosition(value.toInt());
+        case BlockItem::BlockYPositionRole:
+            if(proxyBlockItem->blockYPosition() != value.toInt()){
+                proxyBlockItem->setBlockYPosition(value.toInt());
             }
             break;
-        case BlockYPositionRole:
-            if(blockItem->blockYPosition() != value.toInt()){
-                blockItem->setBlockYPosition(value.toInt());
+        case BlockItem::EquationRole:
+            if(proxyBlockItem->equation()->getEquationString() != value.toString()){
+                proxyBlockItem->equation()->setEquationString(value.toString());
             }
             break;
-        case EquationRole:
-            if(blockItem->equation()->getEquationString() != value.toString()){
-                blockItem->equation()->setEquationString(value.toString());
-            }
-            break;
+        case BlockItem::LevelIdRole: break;
+        case BlockItem::NumChildrenRole: break;
         }
-        //tell the QAbstractListModel that the data has changed
+        //tell the QAbstractItemModel that the data has changed
         emit dataChanged(index, index, QVector<int>() << role);
         return true;
     }
     return false;
+}
+
+bool BlockModel::insertRows(int position, int rows, const QModelIndex &parent)
+{
+    BlockItem *parentItem = getItemFromQIndex(parent);
+    if (!parentItem)
+        return false;
+    beginInsertRows(parent, position, position + rows - 1);
+    const bool success = parentItem->insertChildren(position,
+                                                    rows,
+                                                    m_root->columnCount());
+    endInsertRows();
+    return success;
+}
+
+bool BlockModel::removeRows(int position, int rows, const QModelIndex &parent)
+{
+    BlockItem *parentItem = getItemFromQIndex(parent);
+    if (!parentItem)
+        return false;
+    beginRemoveRows(parent, position, position + rows - 1);
+    const bool success = parentItem->removeChildren(position, rows);
+    endRemoveRows();
+    return success;
+}
+
+BlockItem *BlockModel::getItemFromQIndex(const QModelIndex &index) const
+{
+    if (index.isValid()) {
+        BlockItem *item = static_cast<BlockItem*>(index.internalPointer());
+        //if (item)
+        return item;
+    }
+    return m_proxyRoot;
 }
 
 Qt::ItemFlags BlockModel::flags(const QModelIndex &index) const
@@ -98,30 +130,38 @@ Qt::ItemFlags BlockModel::flags(const QModelIndex &index) const
     if (!index.isValid())
         return Qt::NoItemFlags;
 
-    return QAbstractItemModel::flags(index);
+    return Qt::ItemIsEditable | QAbstractItemModel::flags(index);
 }
 
 QModelIndex BlockModel::index(int row, int column, const QModelIndex &parent) const
 {
+    //if (parent.isValid() && parent.column() != 0)
     if (!hasIndex(row, column, parent))
         return QModelIndex();
-    BlockItem *parentItem = elementFromIndex(parent);
+
+    BlockItem *parentItem = getItemFromQIndex(parent);
+    if (!parentItem)
+        return QModelIndex();
+
     BlockItem *childItem = parentItem->child(row);
     if (childItem)
         return createIndex(row, column, childItem);
-    else
-        return QModelIndex();
+
+    return QModelIndex();
 }
 
 QModelIndex BlockModel::parent(const QModelIndex &index) const
 {
     if (!index.isValid())
         return QModelIndex();
-    BlockItem *childItem = static_cast<BlockItem*>(index.internalPointer());
-    BlockItem *parentItem = static_cast<BlockItem *>(childItem->parentItem());
-    if (parentItem == m_root)
+
+    BlockItem *childItem = getItemFromQIndex(index);
+    BlockItem *parentItem = childItem ? childItem->parentItem() : nullptr;
+
+    if (parentItem == /*m_root*/m_proxyRoot || !parentItem)
         return QModelIndex();
-    return createIndex(parentItem->pos(), 0, parentItem);
+
+    return createIndex(parentItem->childNumber(), 0, parentItem);
 }
 
 QHash<int, QByteArray> BlockModel::roleNames() const
@@ -132,44 +172,6 @@ QHash<int, QByteArray> BlockModel::roleNames() const
     return m_roles;
 }
 
-/*
-BlockDataSource *BlockModel::blockDataSource() const
-{
-    return m_blockDataSource;
-}
-
-void BlockModel::setBlockDataSource(BlockDataSource *dataSource)
-{
-    // tell QAbstractListModel that the model is about to get
-    // a new set of data from a new data source
-    beginResetModel();
-
-    //Disconnect any previously connected datasources
-    if( m_blockDataSource && connectedtoBlockDataSourceSignals){
-        m_blockDataSource->disconnect(this);
-    }
-    m_blockDataSource = dataSource;
-
-    //Connect the datasource signals for adding and removing rows from the model to
-    //QAbstractListModel
-    connect(m_blockDataSource,&BlockDataSource::preItemAdded,this,[=](){
-        const int index = m_blockDataSource->dataItems().count();
-        beginInsertRows(QModelIndex(),index,index);
-    });
-    connect(m_blockDataSource,&BlockDataSource::postItemAdded,this,[=](){
-        endInsertRows();
-    });
-    connect(m_blockDataSource,&BlockDataSource::preItemRemoved,this,[=](int index){
-        beginRemoveRows(QModelIndex(),index,index);
-    });
-    connect(m_blockDataSource,&BlockDataSource::postItemRemoved,this,[=](){
-        endRemoveRows();
-    });
-
-    endResetModel();
-}
-*/
-
 QVariantList BlockModel::roles() const
 {
     QVariantList list;
@@ -179,14 +181,14 @@ QVariantList BlockModel::roles() const
         list.append(i.value());
         qDebug()<<i.value();
     }
-
     return list;
 }
 
+//May not be necessary unless need to create roles dynamically
 void BlockModel::setRoles(QVariantList roles)
 {
     //static int nextRole = Qt::UserRole + 1;
-    static int nextRole = ModelRoles::EquationRole + 1;
+    static int nextRole = BlockItem::ModelRoles::EquationRole + 1;
     for(QVariant role : roles) {
         qDebug()<<role;
         m_roles.insert(nextRole, role.toByteArray());
@@ -195,13 +197,13 @@ void BlockModel::setRoles(QVariantList roles)
     emit rolesChanged();
 }
 
-QModelIndex BlockModel::indexFromElement(BlockItem *item)
+QModelIndex BlockModel::qIndexOfBlock(BlockItem *item)
 {
     QVector<int> positions;
     QModelIndex result;
     if(item) {
         do{
-            int pos = item->pos();
+            int pos = item->childNumber();
             positions.append(pos);
             item = item->parentItem();
         } while(item != nullptr);
@@ -212,55 +214,137 @@ QModelIndex BlockModel::indexFromElement(BlockItem *item)
     return result;
 }
 
-bool BlockModel::insertElement(BlockItem *item, const QModelIndex &parent, int pos)
+//bool BlockModel::insertBlockAtRow(BlockItem *item, const QModelIndex &parent, int pos)
+//{
+//    BlockItem *parentElement = blockFromQIndex(parent);
+//    if(pos >= parentElement->childCount())
+//        return false;
+//    if(pos < 0)
+//        pos = parentElement->childCount();
+//    beginInsertRows(parent, pos, pos);
+//    bool retValue = parentElement->insertChildren(item, pos);
+//    endInsertRows();
+//    return retValue;
+//}
+
+void BlockModel::appendBlock()
 {
-    BlockItem *parentElement = elementFromIndex(parent);
-    if(pos >= parentElement->count())
-        return false;
-    if(pos < 0)
-        pos = parentElement->count();
-    beginInsertRows(parent, pos, pos);
-    bool retValue = parentElement->insertItem(item, pos);
+    //append new block to real model
+    BlockItem *realChild = new BlockItem(&m_context,nullptr,this);
+    BlockItem *realParentItem = m_proxyRoot->realModelPointer();
+    realParentItem->appendChild(realChild);
+
+    //append copy of new block (row) to proxy model and update the gui tree model
+    int nextAvailableProxyPos = m_proxyRoot->childCount();
+    QModelIndex proxyParentIndex = qIndexOfBlock(m_proxyRoot);
+    beginInsertRows(proxyParentIndex, nextAvailableProxyPos, nextAvailableProxyPos);
+    newProxyRoot(realParentItem);  // reset the proxy model
     endInsertRows();
-    return retValue;
 }
 
-BlockItem *BlockModel::elementFromIndex(const QModelIndex &index) const
+void BlockModel::downLevel(int childClicked)
+{
+    //set child clicked as new proxy root
+    qDebug()<<"Going down one level to child: "<<childClicked;
+    beginResetModel();
+    newProxyRoot(m_proxyRoot->realModelPointer()->child(childClicked));
+    endResetModel();
+    //printDebugTree(m_root,0);
+}
+
+void BlockModel::upLevel()
+{
+    //retrieve real parent and copy to proxy unless already at real root
+    if(m_proxyRoot->realModelPointer()->parentItem()!=nullptr){
+        qDebug()<<"Going up one level";
+        // parent is valid, cannot go higher than root
+        beginResetModel();
+        // set parent of proxy root as new root
+        newProxyRoot(m_proxyRoot->realModelPointer()->parentItem());
+        endResetModel();
+        //printDebugTree(m_root,0);
+        qDebug()<<"Number of proxy children: "<<m_proxyRoot->childCount();
+    }
+}
+
+void BlockModel::merge(QVector<int> selectedChildren)
+{
+    
+}
+
+void BlockModel::printDebugTree(BlockItem *parentItem, int depth)
+{
+    //qDebug()<<"number of children: " << parentItem->childCount();
+    //iterate through all children and load equations then recurse to children
+
+    if(parentItem->parentItem() == nullptr){
+        qDebug() << "ROOT at level:"<<depth;
+    }
+
+    for (int i = 0 ; i < parentItem->childCount() ; i++) {
+        if( parentItem->child(i)->childCount() == 0 ){
+            //is a leaf, then print and return, else continue to traverse the tree
+            qDebug()<<"equation: "<<parentItem->child(i)->equation()->getEquationString()
+                   << "at depth: "<<depth+1;
+        } else{
+            printDebugTree(parentItem->child(i),depth+1);
+        }
+    }
+}
+
+void BlockModel::printBlock(int childClicked)
+{
+    qDebug()<<"ID: " << m_proxyRoot->child(childClicked)->id();
+    qDebug()<<"Category: " << m_proxyRoot->child(childClicked)->category();
+    qDebug()<<"Position: " << m_proxyRoot->child(childClicked)->blockXPosition()
+                            << " x "
+                            << m_proxyRoot->child(childClicked)->blockYPosition();
+    qDebug()<<"Equation: " << m_proxyRoot->child(childClicked)->equationString();
+}
+
+BlockItem *BlockModel::blockFromQIndex(const QModelIndex &index) const
 {
     if(index.isValid())
         return static_cast<BlockItem *>(index.internalPointer());
     return m_root;
 }
 
-//bool BlockModel::loadBlockItems(QVariant loadLocation){
-//    return m_blockDataSource->loadBlockItems(loadLocation);
-//}
+void BlockModel::newProxyRoot(BlockItem *newRealModelPointer)
+{
+    delete m_proxyRoot; // destroy old proxy root
 
-//bool BlockModel::saveBlockItems(QVariant saveLocation){
-//    return m_blockDataSource->saveBlockItems(saveLocation);
-//}
+    // create a new empty proxy root pointer
+    BlockItem* newProxyItem = new BlockItem(&m_context,nullptr,this);
+    m_proxyRoot = newProxyItem;
 
-void BlockModel::appendBlockItem(){
-    BlockItem * item = new BlockItem(&m_context);
-    insertElement(item);
+    newProxyItem->setCategory(newRealModelPointer->category());
+    newProxyItem->setBlockXPosition(newRealModelPointer->blockXPosition());
+    newProxyItem->setBlockYPosition(newRealModelPointer->blockYPosition());
+    newProxyItem->equation()->setEquationExpression(newRealModelPointer->equation()->getEquationExpression());
+    //copy original true parent pointer for reference to real model
+    newProxyItem->setRealModelPointer(newRealModelPointer);
+
+    //copy new child data
+    for ( int i = 0 ; i < newRealModelPointer->childCount() ; i++ ) {
+        BlockItem * childItem = new BlockItem(&m_context,newProxyItem,this);
+        childItem->setCategory(newRealModelPointer->child(i)->category());
+        childItem->setBlockXPosition(newRealModelPointer->child(i)->blockXPosition());
+        childItem->setBlockYPosition(newRealModelPointer->child(i)->blockYPosition());
+        childItem->equation()->setEquationString(
+                    newRealModelPointer->child(i)->equation()->getEquationString()
+                    );
+        childItem->setRealModelPointer(newRealModelPointer->child(i));
+        m_proxyRoot->appendChild(childItem);
+    }
 }
 
-//void BlockModel::clearBlockItems(){
-//    m_blockDataSource->clearBlockItems();
-//}
+void BlockModel::solveEquations(){
+    try {
 
-//void BlockModel::solveEquations(){
-//    m_blockDataSource->solveEquations();
-//}
-
-//int BlockModel::maxBlockX(){
-//    return m_blockDataSource->maxBlockX();
-//}
-
-//int BlockModel::maxBlockY(){
-//    return m_blockDataSource->maxBlockY();
-//}
-
-//void BlockModel::removeLastBlockItem(){
-//    m_blockDataSource->removeLastBlockItem();
-//}
+    }  catch (...) {
+        qDebug()<<"Solver Error";
+    }
+    EquationSolver equationSolver(&m_context);
+    printDebugTree(m_root,0);
+    equationSolver.solveEquations(m_root);
+}

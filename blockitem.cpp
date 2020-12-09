@@ -2,157 +2,212 @@
 
 
 
-BlockItem::BlockItem(z3::context *context, QObject *parent) : QObject(parent),
+BlockItem::BlockItem(z3::context *context,
+                     //const QVector<QVariant> &data,
+                     BlockItem *parent,
+                     QObject * qobjparent) :
+    QObject(qobjparent),
     m_category(""),
-    m_id(0),
     m_blockXPosition(0),
     m_blockYPosition(0),
     m_equation(context),
-    m_solverContextReference(context),
-    m_parent(nullptr)
+    m_context(context),
+    m_parent(parent),
+    m_realModelPointer(nullptr)
 {
     qDebug()<<"Block Item created.";
 }
 
-BlockItem *BlockItem::parentItem() const
+BlockItem::~BlockItem()
+{
+    qDeleteAll(m_children);
+    m_children.clear();
+    qDebug()<<"Block Item destroyed.";
+}
+
+BlockItem *BlockItem::parentItem()
 {
     return m_parent;
 }
 
-bool BlockItem::insertItem(BlockItem *item, int pos)
-{
-    if(pos > m_children.count())
-        return false;
-    if(pos < 0)
-        pos = m_children.count();
-    item->m_parent = this;
-    item->setParent(this);
-    m_children.insert(pos, item);
-    return true;
+//distance from the root
+int BlockItem::levelId() const {
+
+    BlockItem * realItem = const_cast<BlockItem *>(this);
+
+    if(m_realModelPointer){
+        realItem = m_realModelPointer;
+    }
+
+    int count = 0;
+    if(m_parent->parentItem()==nullptr){
+        return count;
+    } else {
+        realItem = m_parent;
+        count+=1;
+        while(realItem->parentItem()!=nullptr){
+            realItem = m_parent;
+            count+=1;
+        }
+        return count;
+    }
 }
 
-BlockItem *BlockItem::child(int index) const
+BlockItem *BlockItem::child(int index)
 {
     if(index < 0 || index >= m_children.length())
         return nullptr;
     return m_children.at(index);
 }
 
-void BlockItem::clear()
+int BlockItem::childNumber() const
 {
-    qDeleteAll(m_children);
-    m_children.clear();
-}
-
-int BlockItem::pos() const
-{
-    BlockItem *parent = parentItem();
-    if(parent)
-        return parent->m_children.indexOf(const_cast<BlockItem *>(this));
+    if (m_parent)
+        return m_parent->m_children.indexOf(const_cast<BlockItem*>(this));
     return 0;
 }
 
-int BlockItem::count() const
+int BlockItem::childCount() const
 {
-    return m_children.size();
+    return m_children.count();
 }
 
-void BlockItem::jsonRead(QJsonObject &json)
+bool BlockItem::insertChildren(int position, int count, int columns)
 {
-    if (json.contains("category") && json["category"].isString()){
-        m_category = json["category"].toString();
-    }else{
-        qDebug()<<"Could not load category";
-    }
+    if (position < 0 || position > m_children.size())
+        return false;
 
-    if (json.contains("Block_ID") && json["Block_ID"].isDouble()){
-        m_id = json["Block_ID"].toInt();
-    }else{
-        qDebug()<<"Could not load id";
+    for (int row = 0; row < count; ++row) {
+        QVector<QVariant> data(columns);
+        BlockItem *item = new BlockItem(m_context,this);
+        m_children.insert(position, item);
     }
-
-    if (json.contains("BlockXPosition") && json["BlockXPosition"].isDouble()){
-        m_blockXPosition = json["BlockXPosition"].toInt();
-    }else{
-        qDebug()<<"Could not load BlockXPosition";
-    }
-
-    if (json.contains("BlockYPosition") && json["BlockYPosition"].isDouble()){
-        m_blockYPosition = json["BlockYPosition"].toInt();
-    }else{
-        qDebug()<<"Could not load BlockYPosition";
-    }
-    if (json.contains("Equation") && json["Equation"].isString()){
-        m_equation.setEquationString(json["Equation"].toString());
-    }else{
-        qDebug()<<"Could not load Equation";
-    }
+    return true;
 }
 
-void BlockItem::jsonWrite(QJsonObject &json)
+bool BlockItem::removeChildren(int position, int count)
 {
-    json["Block_ID"] = m_id;
-    json["category"] = m_category;
-    json["BlockXPosition"] = m_blockXPosition;
-    json["BlockYPosition"] = m_blockYPosition;
-    json["Equation"] = m_equation.getEquationString();
-    //Commented code sample for how to add an array
-    /*
-    QJsonArray npcArray;
-    for (const Character &npc : mNpcs) {
-        QJsonObject npcObject;
-        npc.write(npcObject);
-        npcArray.append(npcObject);
-    }
-    json["npcs"] = npcArray;
-    */
+    if (position < 0 || position + count > m_children.size())
+        return false;
+
+    for (int row = 0; row < count; ++row)
+        delete m_children.takeAt(position);
+
+    return true;
 }
+
+int BlockItem::columnCount() const
+{
+    return 0; // 0 column is default size nothing stored as QVariantList data needing columns
+}
+
+bool BlockItem::appendChild(BlockItem *item)
+{
+    item->m_parent = this;
+    item->setParent(this);  //to automatically delete if QObject parent destroyed
+    m_children.append(item);
+    return true;
+}
+
+//void BlockItem::jsonRead(QJsonObject &json)
+//{
+//    if (json.contains("category") && json["category"].isString()){
+//        m_category = json["category"].toString();
+//    }else{
+//        qDebug()<<"Could not load category";
+//    }
+
+//    //    if (json.contains("Block_ID") && json["Block_ID"].isDouble()){
+//    //        m_id = json["Block_ID"].toInt();
+//    //    }else{
+//    //        qDebug()<<"Could not load id";
+//    //    }
+
+//    if (json.contains("BlockXPosition") && json["BlockXPosition"].isDouble()){
+//        m_blockXPosition = json["BlockXPosition"].toInt();
+//    }else{
+//        qDebug()<<"Could not load BlockXPosition";
+//    }
+
+//    if (json.contains("BlockYPosition") && json["BlockYPosition"].isDouble()){
+//        m_blockYPosition = json["BlockYPosition"].toInt();
+//    }else{
+//        qDebug()<<"Could not load BlockYPosition";
+//    }
+//    if (json.contains("Equation") && json["Equation"].isString()){
+//        m_equation.setEquationString(json["Equation"].toString());
+//    }else{
+//        qDebug()<<"Could not load Equation";
+//    }
+//}
+
+//void BlockItem::jsonWrite(QJsonObject &json)
+//{
+//    //json["Block_ID"] = m_id;
+//    json["category"] = m_category;
+//    json["BlockXPosition"] = m_blockXPosition;
+//    json["BlockYPosition"] = m_blockYPosition;
+//    json["Equation"] = m_equation.getEquationString();
+//    //Commented code sample for how to add an array
+//    /*
+//    QJsonArray npcArray;
+//    for (const Character &npc : mNpcs) {
+//        QJsonObject npcObject;
+//        npc.write(npcObject);
+//        npcArray.append(npcObject);
+//    }
+//    json["npcs"] = npcArray;
+//    */
+//}
 
 QString BlockItem::category() const {return m_category;}
-void BlockItem::setCategory(QString category)
-{
+void BlockItem::setCategory(QString category) {
     m_category = category;
-    emit categoryChanged(m_category);
+    if(m_realModelPointer!=nullptr){
+        m_realModelPointer->setCategory(category);
+    }
 }
 
-int BlockItem::id() const {return m_id;}
-void BlockItem::setId(int id)
-{
-    m_id = id;
-    emit idChanged(m_id);
-}
+int BlockItem::id() const {return childNumber();}
 
 int BlockItem::blockXPosition() const {return m_blockXPosition;}
-void BlockItem::setBlockXPosition(int blockXPosition)
-{
+void BlockItem::setBlockXPosition(int blockXPosition){
     m_blockXPosition = blockXPosition;
-    emit blockXPositionChanged(m_blockXPosition);
+    if(m_realModelPointer!=nullptr){
+        m_realModelPointer->setBlockXPosition(blockXPosition);
+        qDebug()<<"Set real model x: "<<m_blockXPosition;
+    }
 }
 
 int BlockItem::blockYPosition() const {return m_blockYPosition;}
-void BlockItem::setBlockYPosition(int blockYPosition)
-{
+void BlockItem::setBlockYPosition(int blockYPosition){
     m_blockYPosition = blockYPosition;
-    emit blockYPositionChanged(m_blockYPosition);
+    if(m_realModelPointer!=nullptr){
+        m_realModelPointer->setBlockYPosition(blockYPosition);
+        qDebug()<<"Set real model y: "<<m_blockYPosition;
+    }
 }
 
 Equation * BlockItem::equation(){return &m_equation;}
-void BlockItem::setEquation(QString equationString)
-{
-    m_equation.setEquationString(equationString);
-    emit equationChanged(equationString);
-}
 
-QString BlockItem::equationString()
-{
-    return m_equation.getEquationString();
-}
-
+QString BlockItem::equationString() {return m_equation.getEquationString();}
 void BlockItem::setEquationString(QString equationString)
 {
     if (m_equation.getEquationString() == equationString)
         return;
-
     m_equation.setEquationString(equationString);
-    emit equationStringChanged(equationString);
+    if(m_realModelPointer!=nullptr){
+        m_realModelPointer->equation()->setEquationString(equationString);
+        m_realModelPointer->equation()->eqStrToExpr();
+    }
+}
+
+BlockItem *BlockItem::realModelPointer()
+{
+    return m_realModelPointer;
+}
+
+void BlockItem::setRealModelPointer(BlockItem *realModelPointer)
+{
+    m_realModelPointer = realModelPointer;
 }

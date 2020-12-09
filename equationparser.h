@@ -20,7 +20,6 @@ public:
                            ExpressionItem * parentNode); //recursion for AST
 
     bool makeLeaf(QString matchString,
-                  //int depth,
                   int id,
                   ExpressionItem * parentNode);
 

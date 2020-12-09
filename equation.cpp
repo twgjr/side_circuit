@@ -2,6 +2,7 @@
 
 Equation::Equation(z3::context * context, QObject *parent) : QObject(parent),
     m_equationContext(context),
+    m_equationString(""),
     m_equationExpression(*context)
 {
 }
@@ -14,7 +15,6 @@ QString Equation::getEquationString()
 void Equation::setEquationString( QString value)
 {
     m_equationString = value;
-    eqStrToExpr();
 }
 
 void Equation::printExprInfo()
@@ -50,6 +50,10 @@ void Equation::setEquationExpression(z3::expr equationExpression)
 void Equation::eqStrToExpr()
 {
     EquationParser equationParser(m_equationContext);
-    equationParser.parseEquation(m_equationString);
+    try {
+        equationParser.parseEquation(m_equationString);
+    }  catch (...) {
+        qDebug()<<"Expression parsing error";
+    }
     m_equationExpression = equationParser.z3Expr();
 }

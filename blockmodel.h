@@ -20,54 +20,54 @@
 class BlockModel : public QAbstractItemModel
 {
     Q_OBJECT
-    //Q_PROPERTY(BlockDataSource* blockDataSource READ blockDataSource WRITE setBlockDataSource)
     Q_PROPERTY(QVariantList roles READ roles WRITE setRoles NOTIFY rolesChanged)
 
-    enum ModelRoles{
-        CategoryDataRole = Qt::UserRole + 1,
-        IDDataRole,
-        BlockXPositionRole,
-        BlockYPositionRole,
-        EquationRole
-    };
-
 public:
-    explicit BlockModel(QObject *parent = nullptr);
-    ~BlockModel() override;
+    explicit BlockModel(//const QStringList &headers,
+                        QObject *parent = nullptr);
+    ~BlockModel();
 
-    /* REQUIRED FUNCTIONS FOR QABSTRACTITEMMODEL */
-    // Basic functionality:
+    // QAbstractItemModel read-only functions
+    QVariant data(const QModelIndex &index, int role) const override;
+    QModelIndex index(int row,
+                      int column,
+                      const QModelIndex &parent = QModelIndex()) const override;
+    QModelIndex parent(const QModelIndex &index) const override;
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-    // Editable:
-    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
-    Qt::ItemFlags flags(const QModelIndex& index) const override;
-    QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
-    QModelIndex parent(const QModelIndex &index) const override;
-    QHash<int,QByteArray> roleNames() const override;
 
+
+    // QAbstractItemModel functions for editable model
+    Qt::ItemFlags flags(const QModelIndex &index) const override;
+    bool setData(const QModelIndex &index,
+                 const QVariant &value,
+                 int role) override;
+    bool insertRows(int position,
+                    int rows,
+                    const QModelIndex &parent = QModelIndex()) override;
+    bool removeRows(int position,
+                    int rows,
+                    const QModelIndex &parent = QModelIndex()) override;
+
+    //functions for working with roles
+    QHash<int,QByteArray> roleNames() const override;
     QVariantList roles() const;
     void setRoles(QVariantList roles);
 
-    Q_INVOKABLE QModelIndex indexFromElement(BlockItem *item);
-    Q_INVOKABLE bool insertElement(BlockItem *item, const QModelIndex &parent = QModelIndex(), int pos = -1);
+    QModelIndex qIndexOfBlock(BlockItem *item);
+    //bool insertBlockAtRow(BlockItem *item, const QModelIndex &parent, int pos);
+    BlockItem * blockFromQIndex(const QModelIndex &index) const;
 
-    BlockItem *elementFromIndex(const QModelIndex &index) const;
-
-    /* FUNCTIONS FOR SETTING BLOCKDATASOURCE */
-    //BlockDataSource* blockDataSource() const;
-    //void setBlockDataSource(BlockDataSource* blockDataSource);
-
-    /* EXPOSING BLOCKDATASOURCE FUNCTIONS AS SLOTS TO QML VIA BLOCKMODEL */
-    //Q_INVOKABLE bool loadBlockItems(QVariant loadLocation);
-   // Q_INVOKABLE bool saveBlockItems(QVariant saveLocation);
-    Q_INVOKABLE void appendBlockItem();
-    //Q_INVOKABLE void clearBlockItems();
-    //Q_INVOKABLE void removeLastBlockItem();
+    void newProxyRoot(BlockItem *newRealModelPointer);
+    Q_INVOKABLE void appendBlock();
+    Q_INVOKABLE void downLevel(int childClicked);
+    Q_INVOKABLE void upLevel();
+    Q_INVOKABLE void merge(QVector<int>);
+    Q_INVOKABLE void printDebugTree(BlockItem * parentItem, int depth);
+    Q_INVOKABLE void printBlock(int childClicked);
 
     /* EXPOSING EQUATIONSOLVER FUNCTIONS AS SLOTS TO QML VIA BLOCKDATASOURCE->BLOCKMODEL */
-    //Q_INVOKABLE void solveEquations();
+    Q_INVOKABLE void solveEquations();
 
     /* FUNCTIONS AS SLOTS TO QML TO AID IN QUI OPERATIONS */
     //Q_INVOKABLE int maxBlockX();
@@ -77,13 +77,16 @@ signals:
     void rolesChanged();
 
 private:
-    /* VARIABLES FOR SETTING BLOCKDATASOURCE */
-    //BlockDataSource* m_blockDataSource;
-    //bool connectedtoBlockDataSourceSignals;
+    //void setupModelData(const QStringList &lines, BlockItem *parent);
+    BlockItem * getItemFromQIndex(const QModelIndex &index) const;
+
     BlockItem * m_root;
-    //QVariantList m_roles;
+
     QHash<int, QByteArray> m_roles;
     z3::context m_context;
+
+    //proxy model to display in GUI; only one level of children at a time
+    BlockItem * m_proxyRoot;
 };
 
 #endif // BLOCKMODEL_H

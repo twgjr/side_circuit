@@ -1,4 +1,4 @@
-//PROVIDES STRUCTURE OF INDIVIDUAL JOKE ITEMS IN THE MODEL
+//PROVIDES STRUCTURE OF INDIVIDUAL BLOCK ITEMS IN THE MODEL
 
 #ifndef BLOCKITEM_H
 #define BLOCKITEM_H
@@ -16,57 +16,84 @@ class BlockItem : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(QString category READ category WRITE setCategory NOTIFY categoryChanged)
-    Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
-    Q_PROPERTY(int blockXPosition READ blockXPosition WRITE setBlockXPosition NOTIFY blockXPositionChanged)
-    Q_PROPERTY(int blockYPosition READ blockYPosition WRITE setBlockYPosition NOTIFY blockYPositionChanged)
-    Q_PROPERTY(QString equationString READ equationString WRITE setEquationString NOTIFY equationStringChanged)
+    //***TODO*** expand equation into list of equations using QVector<QVariant> dataList
+    Q_PROPERTY(QString category READ category WRITE setCategory)
+    Q_PROPERTY(int id READ id)
+    Q_PROPERTY(int blockXPosition READ blockXPosition WRITE setBlockXPosition)
+    Q_PROPERTY(int blockYPosition READ blockYPosition WRITE setBlockYPosition)
+    Q_PROPERTY(int levelId READ levelId)
+    Q_PROPERTY(int numChildren READ childCount)
+    Q_PROPERTY(QString equationString READ equationString WRITE setEquationString)
+    //Q_PROPERTY(QVector<QVariant> dataList READ dataList WRITE setDataList NOTIFY dataListChanged)
 
 public:
-    explicit BlockItem(z3::context * context, QObject *parent = nullptr);
+    explicit BlockItem(z3::context * context,
+                       BlockItem *parent = nullptr,
+                       QObject * qobjparent = nullptr);
+    ~BlockItem();
 
-    Q_INVOKABLE BlockItem * parentItem() const;
-    bool insertItem(BlockItem *item, int pos = -1);
-    BlockItem * child(int index) const;
-    void clear();
-    Q_INVOKABLE int pos() const;
-    Q_INVOKABLE int count() const;
+    enum ModelRoles{
+        CategoryDataRole = Qt::UserRole + 1,
+        IDDataRole,
+        BlockXPositionRole,
+        BlockYPositionRole,
+        EquationRole,
+        LevelIdRole,
+        NumChildrenRole
+    };
 
+    //parent
+    BlockItem * parentItem();
+    int levelId() const; //distance from root
+
+    //children
+    BlockItem * child(int index);
+    int childNumber() const;
+    int childCount() const;
+    bool insertChildren(int position, int count, int columns = 0);
+    bool removeChildren(int position, int count);
+    bool appendChild(BlockItem *item);
+
+    //// Generic dataList columns (do not need column data structure)
+    //// Good framework for maintaining lists inside this block (e.g. list
+    //// of QVector<Equation*>, variables, ports, etc.
+    int columnCount() const;
+
+    //data getters and setters
     void jsonWrite(QJsonObject &json);
     void jsonRead(QJsonObject &json);
 
     QString category() const;
     void setCategory(QString category);
+
     int id() const;
-    void setId(int id);
+
     int blockXPosition() const;
     void setBlockXPosition(int blockXPosition);
+
     int blockYPosition() const;
     void setBlockYPosition(int blockYPosition);
+
     Equation * equation();
-    void setEquation(QString equationString);
 
     QString equationString();
     void setEquationString(QString equationString);
 
-signals:
-    void categoryChanged(QString category);
-    void idChanged(int id);
-    void blockXPositionChanged(int blockXPosition);
-    void blockYPositionChanged(int blockYPosition);
-    void equationChanged(QString equation);
-    void equationStringChanged(QString equationString);
+    BlockItem *realModelPointer();
+    void setRealModelPointer(BlockItem *realModelPointer);
 
+signals:
 private:
     QString m_category;
-    int m_id;
     int m_blockXPosition;
     int m_blockYPosition;
     Equation m_equation;
-    z3::context* m_solverContextReference;
+    z3::context* m_context;
 
     QVector<BlockItem*> m_children;
     BlockItem * m_parent;
+
+    BlockItem * m_realModelPointer; //stores actual pointer to this item's complete model if proxy used
 };
 
 #endif // BLOCKITEM_H

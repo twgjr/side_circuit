@@ -10,6 +10,7 @@ class ExpressionItem : public QObject
     Q_OBJECT
 public:
     explicit ExpressionItem(QObject *parent = nullptr);
+    ~ExpressionItem();
 
     QString m_string="";
     int m_exprId=0;
