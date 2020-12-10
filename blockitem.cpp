@@ -3,7 +3,6 @@
 
 
 BlockItem::BlockItem(z3::context *context,
-                     //const QVector<QVariant> &data,
                      BlockItem *parent,
                      QObject * qobjparent) :
     QObject(qobjparent),
@@ -28,29 +27,6 @@ BlockItem::~BlockItem()
 BlockItem *BlockItem::parentItem()
 {
     return m_parent;
-}
-
-//distance from the root
-int BlockItem::levelId() const {
-
-    BlockItem * realItem = const_cast<BlockItem *>(this);
-
-    if(m_realModelPointer){
-        realItem = m_realModelPointer;
-    }
-
-    int count = 0;
-    if(m_parent->parentItem()==nullptr){
-        return count;
-    } else {
-        realItem = m_parent;
-        count+=1;
-        while(realItem->parentItem()!=nullptr){
-            realItem = m_parent;
-            count+=1;
-        }
-        return count;
-    }
 }
 
 BlockItem *BlockItem::child(int index)
@@ -163,9 +139,6 @@ bool BlockItem::appendChild(BlockItem *item)
 QString BlockItem::category() const {return m_category;}
 void BlockItem::setCategory(QString category) {
     m_category = category;
-    if(m_realModelPointer!=nullptr){
-        m_realModelPointer->setCategory(category);
-    }
 }
 
 int BlockItem::id() const {return childNumber();}
@@ -173,19 +146,11 @@ int BlockItem::id() const {return childNumber();}
 int BlockItem::blockXPosition() const {return m_blockXPosition;}
 void BlockItem::setBlockXPosition(int blockXPosition){
     m_blockXPosition = blockXPosition;
-    if(m_realModelPointer!=nullptr){
-        m_realModelPointer->setBlockXPosition(blockXPosition);
-        qDebug()<<"Set real model x: "<<m_blockXPosition;
-    }
 }
 
 int BlockItem::blockYPosition() const {return m_blockYPosition;}
 void BlockItem::setBlockYPosition(int blockYPosition){
     m_blockYPosition = blockYPosition;
-    if(m_realModelPointer!=nullptr){
-        m_realModelPointer->setBlockYPosition(blockYPosition);
-        qDebug()<<"Set real model y: "<<m_blockYPosition;
-    }
 }
 
 Equation * BlockItem::equation(){return &m_equation;}
@@ -196,10 +161,6 @@ void BlockItem::setEquationString(QString equationString)
     if (m_equation.getEquationString() == equationString)
         return;
     m_equation.setEquationString(equationString);
-    if(m_realModelPointer!=nullptr){
-        m_realModelPointer->equation()->setEquationString(equationString);
-        m_realModelPointer->equation()->eqStrToExpr();
-    }
 }
 
 BlockItem *BlockItem::realModelPointer()

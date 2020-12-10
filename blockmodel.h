@@ -55,23 +55,23 @@ public:
     void setRoles(QVariantList roles);
 
     QModelIndex qIndexOfBlock(BlockItem *item);
-    //bool insertBlockAtRow(BlockItem *item, const QModelIndex &parent, int pos);
     BlockItem * blockFromQIndex(const QModelIndex &index) const;
 
     void newProxyRoot(BlockItem *newRealModelPointer);
     Q_INVOKABLE void appendBlock();
-    Q_INVOKABLE void downLevel(int childClicked);
+    Q_INVOKABLE void downLevel(int modelIndex);
     Q_INVOKABLE void upLevel();
-    Q_INVOKABLE void merge(QVector<int>);
     Q_INVOKABLE void printDebugTree(BlockItem * parentItem, int depth);
-    Q_INVOKABLE void printBlock(int childClicked);
+    Q_INVOKABLE void printBlock(int modelIndex);
+    Q_INVOKABLE int distanceFromRoot() const;
+    Q_INVOKABLE int numChildren(int modelIndex);
 
     /* EXPOSING EQUATIONSOLVER FUNCTIONS AS SLOTS TO QML VIA BLOCKDATASOURCE->BLOCKMODEL */
     Q_INVOKABLE void solveEquations();
 
     /* FUNCTIONS AS SLOTS TO QML TO AID IN QUI OPERATIONS */
-    //Q_INVOKABLE int maxBlockX();
-    //Q_INVOKABLE int maxBlockY();
+    Q_INVOKABLE int maxBlockX();
+    Q_INVOKABLE int maxBlockY();
 
 signals:
     void rolesChanged();
@@ -79,12 +79,9 @@ signals:
 private:
     //void setupModelData(const QStringList &lines, BlockItem *parent);
     BlockItem * getItemFromQIndex(const QModelIndex &index) const;
-
     BlockItem * m_root;
-
     QHash<int, QByteArray> m_roles;
     z3::context m_context;
-
     //proxy model to display in GUI; only one level of children at a time
     BlockItem * m_proxyRoot;
 };

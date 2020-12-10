@@ -13,7 +13,9 @@ SOURCES += \
         equationparser.cpp \
         equationsolver.cpp \
         expressionitem.cpp \
+        link.cpp \
         main.cpp \
+        port.cpp \
         regexlist.cpp
 
 RESOURCES += qml.qrc
@@ -44,4 +46,6 @@ HEADERS += \
     equationparser.h \
     equationsolver.h \
     expressionitem.h \
+    link.h \
+    port.h \
     regexlist.h

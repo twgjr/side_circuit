@@ -20,6 +20,13 @@ Window {
         width: window.width
         height: window.height
 
+        Text {
+            id: distanceFromRootID
+            Layout.fillWidth: true
+            text : "Distance From Root:" + myBlockModel.distanceFromRoot()
+            horizontalAlignment: Text.AlignLeft
+        }
+
         // wrap Repeater in flickable to enable both h and v panning
         RowLayout{
             id: flickableRowLayoutId
@@ -28,9 +35,8 @@ Window {
 
             Flickable{
                 id:flickableId
-                property int maxFlickX: parent.width//Math.max(myBlockModel.maxBlockX()+width*2,parent.width)
-                property int maxFlickY: parent.height//Math.max(myBlockModel.maxBlockY()+height*2,parent.height)
-                
+                property int maxFlickX: Math.max(myBlockModel.maxBlockX()+width*2,parent.width)
+                property int maxFlickY: Math.max(myBlockModel.maxBlockY()+height*2,parent.height)
 
                 flickableDirection: Flickable.HorizontalAndVerticalFlick
                 height: parent.height
@@ -47,8 +53,6 @@ Window {
 
                     onClicked: {
                         if(mouse.button & Qt.RightButton){
-                            //go up a level
-                            print("Right Clicked")
                             myBlockModel.upLevel()
                         }
                     }
@@ -66,9 +70,10 @@ Window {
                         property int xPosition: 0
                         property int yPosition: 0
                         property string equationText: ""
-                        property int levelIdText: 0
                         property int numChildrenText: 0
                         property bool selected: false
+
+
 
                         color: "beige"
                         border.color: "yellowgreen"
@@ -77,27 +82,29 @@ Window {
                         x: xPosition
                         y: yPosition
 
+
                         Component.onCompleted: {
                             xPosition = model.blockXPosition
                             yPosition = model.blockYPosition
                             idText = model.id
                             categoryText = model.category
                             equationText = model.equationString
-                            levelIdText = model.levelId
-                            numChildrenText = model.numChildren
+                            numChildrenText = myBlockModel.numChildren(model.index)
+                            distanceFromRootID.text = "Distance From Root:" + myBlockModel.distanceFromRoot()
                         }
 
                         onXChanged: {
                             model.blockXPosition = rectangleDelegateId.x
                             xPosition = model.blockXPosition
-                            //flickableId.maxFlickX = myBlockModel.maxBlockX()+width*2
+                            flickableId.maxFlickX = myBlockModel.maxBlockX()+width*2
                         }
                         onYChanged: {
                             model.blockYPosition = rectangleDelegateId.y
                             yPosition = model.blockYPosition
-                            //flickableId.maxFlickY = myBlockModel.maxBlockY() + height*2
+                            flickableId.maxFlickY = myBlockModel.maxBlockY() + height*2
                         }
                         Component.onDestruction: {
+                            distanceFromRootID.text = "Distance From Root:" + myBlockModel.distanceFromRoot()
                         }
 
                         MouseArea{
@@ -106,21 +113,16 @@ Window {
                             drag.target: parent
 
                             onDoubleClicked: {
-                                // go down a level into the clicked block
-                                // need a c++ function that shift the proxy model
                                 print("Double Clicked: "+model.index)
                                 myBlockModel.downLevel(model.index)
+
                             }
                         }
 
                         ColumnLayout{
                             anchors.fill: parent
                             RowLayout{
-                                Text {
-                                    Layout.fillWidth: true
-                                    text : "Level ID:" + levelIdText
-                                    horizontalAlignment: Text.AlignHCenter
-                                }
+
                                 Text {
                                     Layout.fillWidth: true
                                     text : "Block ID:" + idText
@@ -226,9 +228,6 @@ Window {
                 text : "Add New Block"
                 Layout.fillWidth: true
                 onClicked: myBlockModel.appendBlock() // adds to the active "root"
-                // there should be a main root node node (not changed) and a changeable root node
-                // for changing the visible children
-                // the children of the active root node are visible
             }
             Button {
                 id : mButton4

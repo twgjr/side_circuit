@@ -14,8 +14,6 @@ BlockModel::BlockModel(QObject *parent) : QAbstractItemModel(parent)
     m_roles[BlockItem::BlockXPositionRole]="blockXPosition";
     m_roles[BlockItem::BlockYPositionRole]="blockYPosition";
     m_roles[BlockItem::EquationRole]="equationString";
-    m_roles[BlockItem::LevelIdRole]="levelId";
-    m_roles[BlockItem::NumChildrenRole]="numChildren";
 }
 
 BlockModel::~BlockModel()
@@ -59,30 +57,34 @@ bool BlockModel::setData(const QModelIndex &index, const QVariant &value, int ro
     if (data(index, role) != value) {
         //don't do anything if the data being submitted did not change
         BlockItem * proxyBlockItem = getItemFromQIndex(index);
+        BlockItem * realBlockItem = proxyBlockItem->realModelPointer();
         switch (role) {
         case BlockItem::CategoryDataRole:
             if(proxyBlockItem->category() != value.toString()){
                 proxyBlockItem->setCategory(value.toString());
+                realBlockItem->setCategory(value.toString());
             }
             break;
         case BlockItem::IDDataRole: break;
         case BlockItem::BlockXPositionRole:
             if(proxyBlockItem->blockXPosition() != value.toInt()){
                 proxyBlockItem->setBlockXPosition(value.toInt());
+                realBlockItem->setBlockXPosition(value.toInt());
             }
             break;
         case BlockItem::BlockYPositionRole:
             if(proxyBlockItem->blockYPosition() != value.toInt()){
                 proxyBlockItem->setBlockYPosition(value.toInt());
+                realBlockItem->setBlockYPosition(value.toInt());
             }
             break;
         case BlockItem::EquationRole:
             if(proxyBlockItem->equation()->getEquationString() != value.toString()){
                 proxyBlockItem->equation()->setEquationString(value.toString());
+                realBlockItem->equation()->setEquationString(value.toString());
+                realBlockItem->equation()->eqStrToExpr();
             }
             break;
-        case BlockItem::LevelIdRole: break;
-        case BlockItem::NumChildrenRole: break;
         }
         //tell the QAbstractItemModel that the data has changed
         emit dataChanged(index, index, QVector<int>() << role);
@@ -119,7 +121,6 @@ BlockItem *BlockModel::getItemFromQIndex(const QModelIndex &index) const
 {
     if (index.isValid()) {
         BlockItem *item = static_cast<BlockItem*>(index.internalPointer());
-        //if (item)
         return item;
     }
     return m_proxyRoot;
@@ -135,7 +136,6 @@ Qt::ItemFlags BlockModel::flags(const QModelIndex &index) const
 
 QModelIndex BlockModel::index(int row, int column, const QModelIndex &parent) const
 {
-    //if (parent.isValid() && parent.column() != 0)
     if (!hasIndex(row, column, parent))
         return QModelIndex();
 
@@ -166,9 +166,6 @@ QModelIndex BlockModel::parent(const QModelIndex &index) const
 
 QHash<int, QByteArray> BlockModel::roleNames() const
 {
-    //refer to the value of roles[] to access in QML
-    //for example, model.category would provide access
-    //to the category role to qml properties or JS scripts
     return m_roles;
 }
 
@@ -214,19 +211,6 @@ QModelIndex BlockModel::qIndexOfBlock(BlockItem *item)
     return result;
 }
 
-//bool BlockModel::insertBlockAtRow(BlockItem *item, const QModelIndex &parent, int pos)
-//{
-//    BlockItem *parentElement = blockFromQIndex(parent);
-//    if(pos >= parentElement->childCount())
-//        return false;
-//    if(pos < 0)
-//        pos = parentElement->childCount();
-//    beginInsertRows(parent, pos, pos);
-//    bool retValue = parentElement->insertChildren(item, pos);
-//    endInsertRows();
-//    return retValue;
-//}
-
 void BlockModel::appendBlock()
 {
     //append new block to real model
@@ -242,41 +226,29 @@ void BlockModel::appendBlock()
     endInsertRows();
 }
 
-void BlockModel::downLevel(int childClicked)
+void BlockModel::downLevel(int modelIndex)
 {
     //set child clicked as new proxy root
-    qDebug()<<"Going down one level to child: "<<childClicked;
     beginResetModel();
-    newProxyRoot(m_proxyRoot->realModelPointer()->child(childClicked));
+    newProxyRoot(m_proxyRoot->realModelPointer()->child(modelIndex));
     endResetModel();
-    //printDebugTree(m_root,0);
 }
 
 void BlockModel::upLevel()
 {
     //retrieve real parent and copy to proxy unless already at real root
     if(m_proxyRoot->realModelPointer()->parentItem()!=nullptr){
-        qDebug()<<"Going up one level";
         // parent is valid, cannot go higher than root
         beginResetModel();
         // set parent of proxy root as new root
         newProxyRoot(m_proxyRoot->realModelPointer()->parentItem());
         endResetModel();
-        //printDebugTree(m_root,0);
-        qDebug()<<"Number of proxy children: "<<m_proxyRoot->childCount();
     }
-}
-
-void BlockModel::merge(QVector<int> selectedChildren)
-{
-    
 }
 
 void BlockModel::printDebugTree(BlockItem *parentItem, int depth)
 {
-    //qDebug()<<"number of children: " << parentItem->childCount();
     //iterate through all children and load equations then recurse to children
-
     if(parentItem->parentItem() == nullptr){
         qDebug() << "ROOT at level:"<<depth;
     }
@@ -292,14 +264,37 @@ void BlockModel::printDebugTree(BlockItem *parentItem, int depth)
     }
 }
 
-void BlockModel::printBlock(int childClicked)
+void BlockModel::printBlock(int modelIndex)
 {
-    qDebug()<<"ID: " << m_proxyRoot->child(childClicked)->id();
-    qDebug()<<"Category: " << m_proxyRoot->child(childClicked)->category();
-    qDebug()<<"Position: " << m_proxyRoot->child(childClicked)->blockXPosition()
+    qDebug()<<"ID: " << m_proxyRoot->child(modelIndex)->realModelPointer()->id();
+    qDebug()<<"Category: " << m_proxyRoot->child(modelIndex)->realModelPointer()->category();
+    qDebug()<<"Position: " << m_proxyRoot->child(modelIndex)->realModelPointer()->blockXPosition()
                             << " x "
-                            << m_proxyRoot->child(childClicked)->blockYPosition();
-    qDebug()<<"Equation: " << m_proxyRoot->child(childClicked)->equationString();
+                            << m_proxyRoot->child(modelIndex)->realModelPointer()->blockYPosition();
+    qDebug()<<"Equation: " << m_proxyRoot->child(modelIndex)->realModelPointer()->equationString();
+}
+
+int BlockModel::distanceFromRoot() const {
+
+    BlockItem * realItem = m_proxyRoot->realModelPointer();
+
+    int count = 0;
+    if(realItem->parentItem()==nullptr){
+        return count;
+    } else {
+        realItem = realItem->parentItem();
+        count+=1;
+        while(realItem->parentItem()!=nullptr){
+            realItem = realItem->parentItem();
+            count+=1;
+        }
+        return count;
+    }
+}
+
+int BlockModel::numChildren(int modelIndex)
+{
+    return m_proxyRoot->child(modelIndex)->realModelPointer()->childCount();
 }
 
 BlockItem *BlockModel::blockFromQIndex(const QModelIndex &index) const
@@ -340,11 +335,34 @@ void BlockModel::newProxyRoot(BlockItem *newRealModelPointer)
 
 void BlockModel::solveEquations(){
     try {
-
+        EquationSolver equationSolver(&m_context);
+        equationSolver.solveEquations(m_root);
     }  catch (...) {
         qDebug()<<"Solver Error";
     }
-    EquationSolver equationSolver(&m_context);
-    printDebugTree(m_root,0);
-    equationSolver.solveEquations(m_root);
+
+}
+
+int BlockModel::maxBlockX()
+{
+    int blockX = 0;
+    for ( int i = 0 ; i < m_proxyRoot->childCount() ; i++ ) {
+        int newBlockX = m_proxyRoot->child(i)->blockXPosition();
+        if(blockX<newBlockX){
+            blockX = newBlockX;
+        }
+    }
+    return blockX;
+}
+
+int BlockModel::maxBlockY()
+{
+    int blockY = 0;
+    for ( int i = 0 ; i < m_proxyRoot->childCount() ; i++ ) {
+        int newBlockX = m_proxyRoot->child(i)->blockYPosition();
+        if(blockY<newBlockX){
+            blockY = newBlockX;
+        }
+    }
+    return blockY;
 }

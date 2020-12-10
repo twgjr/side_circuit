@@ -24,14 +24,10 @@ void EquationSolver::loadEquations(BlockItem *parentItem)
             loadEquations(parentItem->child(i));
         }
     }
-
-    qDebug()<<"number of children: " << parentItem->childCount();
     //iterate through all children and load equations then recurse to children
-
     if(parentItem->parent() == nullptr){
         qDebug() << "ROOT";
     }
-
     for (int i = 0 ; i < parentItem->childCount() ; i++) {
         if( parentItem->child(i)->childCount() == 0 ){
             //is a leaf, then print and return, else continue to traverse the tree

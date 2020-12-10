@@ -11,6 +11,8 @@
 #include "z3++.h"
 #include "equationparser.h"
 #include "equation.h"
+#include "link.h"
+#include "port.h"
 
 class BlockItem : public QObject
 {
@@ -21,10 +23,8 @@ class BlockItem : public QObject
     Q_PROPERTY(int id READ id)
     Q_PROPERTY(int blockXPosition READ blockXPosition WRITE setBlockXPosition)
     Q_PROPERTY(int blockYPosition READ blockYPosition WRITE setBlockYPosition)
-    Q_PROPERTY(int levelId READ levelId)
     Q_PROPERTY(int numChildren READ childCount)
     Q_PROPERTY(QString equationString READ equationString WRITE setEquationString)
-    //Q_PROPERTY(QVector<QVariant> dataList READ dataList WRITE setDataList NOTIFY dataListChanged)
 
 public:
     explicit BlockItem(z3::context * context,
@@ -38,13 +38,16 @@ public:
         BlockXPositionRole,
         BlockYPositionRole,
         EquationRole,
-        LevelIdRole,
-        NumChildrenRole
+    };
+
+    enum BlockType{
+        MainBlock,
+        EquationBlock,
+        CoreBlock
     };
 
     //parent
     BlockItem * parentItem();
-    int levelId() const; //distance from root
 
     //children
     BlockItem * child(int index);
@@ -92,6 +95,9 @@ private:
 
     QVector<BlockItem*> m_children;
     BlockItem * m_parent;
+
+    QVector<Port*> m_ports;
+    QVector<Link*> m_links;
 
     BlockItem * m_realModelPointer; //stores actual pointer to this item's complete model if proxy used
 };
