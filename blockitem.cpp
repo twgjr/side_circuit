@@ -6,27 +6,29 @@ BlockItem::BlockItem(z3::context *context,
                      BlockItem *parent,
                      QObject * qobjparent) :
     QObject(qobjparent),
-    m_category(""),
+    m_blockType(Block),
+    m_context(context),
+    m_parentItem(parent),
+    m_realModelPointer(nullptr),
+    m_description(""),
     m_blockXPosition(0),
     m_blockYPosition(0),
-    m_equation(context),
-    m_context(context),
-    m_parent(parent),
-    m_realModelPointer(nullptr)
+    m_equation(context)
+
 {
-    qDebug()<<"Block Item created.";
+    //qDebug()<<"Block Item created.";
 }
 
 BlockItem::~BlockItem()
 {
     qDeleteAll(m_children);
     m_children.clear();
-    qDebug()<<"Block Item destroyed.";
+    //qDebug()<<"Block Item destroyed.";
 }
 
 BlockItem *BlockItem::parentItem()
 {
-    return m_parent;
+    return m_parentItem;
 }
 
 BlockItem *BlockItem::child(int index)
@@ -38,8 +40,8 @@ BlockItem *BlockItem::child(int index)
 
 int BlockItem::childNumber() const
 {
-    if (m_parent)
-        return m_parent->m_children.indexOf(const_cast<BlockItem*>(this));
+    if (m_parentItem)
+        return m_parentItem->m_children.indexOf(const_cast<BlockItem*>(this));
     return 0;
 }
 
@@ -79,10 +81,16 @@ int BlockItem::columnCount() const
 
 bool BlockItem::appendChild(BlockItem *item)
 {
-    item->m_parent = this;
+    item->m_parentItem = this;
     item->setParent(this);  //to automatically delete if QObject parent destroyed
     m_children.append(item);
     return true;
+}
+
+void BlockItem::removeChild(int modelIndex)
+{
+    delete m_children[modelIndex];
+    m_children.remove(modelIndex);
 }
 
 //void BlockItem::jsonRead(QJsonObject &json)
@@ -136,9 +144,9 @@ bool BlockItem::appendChild(BlockItem *item)
 //    */
 //}
 
-QString BlockItem::category() const {return m_category;}
-void BlockItem::setCategory(QString category) {
-    m_category = category;
+QString BlockItem::description() const {return m_description;}
+void BlockItem::setDescription(QString category) {
+    m_description = category;
 }
 
 int BlockItem::id() const {return childNumber();}
@@ -171,4 +179,58 @@ BlockItem *BlockItem::realModelPointer()
 void BlockItem::setRealModelPointer(BlockItem *realModelPointer)
 {
     m_realModelPointer = realModelPointer;
+}
+
+void BlockItem::addPort(int side, int position){
+    Port * newPort = new Port(this);
+    BlockItem * thisItem = static_cast<BlockItem*>(this);
+    newPort->setBlockParent(thisItem);
+    newPort->setSide(side);
+    newPort->setPosition(position);
+    m_ports.append(newPort);
+}
+
+QVector<Port *> BlockItem::ports() const
+{
+    return m_ports;
+}
+
+void BlockItem::setPorts(const QVector<Port *> &ports)
+{
+    m_ports = ports;
+}
+
+void BlockItem::setBlockType(int blockType)
+{
+    m_blockType = blockType;
+}
+
+int BlockItem::blockType() const
+{
+    return m_blockType;
+}
+
+void BlockItem::setContext(z3::context *context)
+{
+    m_context = context;
+}
+
+z3::context *BlockItem::context() const
+{
+    return m_context;
+}
+
+QVector<BlockItem *> BlockItem::children() const
+{
+    return m_children;
+}
+
+void BlockItem::setChildren(const QVector<BlockItem *> &children)
+{
+    m_children = children;
+}
+
+void BlockItem::setParentItem(BlockItem *parentItem)
+{
+    m_parentItem = parentItem;
 }

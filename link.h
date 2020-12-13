@@ -2,6 +2,10 @@
 #define LINK_H
 
 #include <QObject>
+#include <QDebug>
+#include <QPainter>
+
+class Port; // added to remove circular reference error with blockport.h
 
 class Link : public QObject
 {
@@ -11,6 +15,10 @@ public:
 
 signals:
 
+private:
+    Port * m_start;
+    Port * m_end;
+    QVector<QPoint> points;
 };
 
 #endif // LINK_H

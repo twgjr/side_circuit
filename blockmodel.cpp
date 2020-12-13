@@ -2,14 +2,14 @@
 
 BlockModel::BlockModel(QObject *parent) : QAbstractItemModel(parent)
 {
-    qDebug()<<"BlockModel object created.";
+    //qDebug()<<"BlockModel object created.";
 
     m_root = new BlockItem(&m_context,nullptr,this);  // real root is empty
     m_proxyRoot = new BlockItem(&m_context,nullptr,this);
     newProxyRoot(m_root);  //clone real root into proxy root
 
     //set the basic roles for access of item properties in QML
-    m_roles[BlockItem::CategoryDataRole]="category";
+    m_roles[BlockItem::DescriptionDataRole]="description";
     m_roles[BlockItem::IDDataRole]="id";
     m_roles[BlockItem::BlockXPositionRole]="blockXPosition";
     m_roles[BlockItem::BlockYPositionRole]="blockYPosition";
@@ -20,7 +20,7 @@ BlockModel::~BlockModel()
 {
     delete m_root;
     delete m_proxyRoot;
-    qDebug()<<"Block Model destroyed.";
+    //qDebug()<<"Block Model destroyed.";
 
 }
 
@@ -59,10 +59,10 @@ bool BlockModel::setData(const QModelIndex &index, const QVariant &value, int ro
         BlockItem * proxyBlockItem = getItemFromQIndex(index);
         BlockItem * realBlockItem = proxyBlockItem->realModelPointer();
         switch (role) {
-        case BlockItem::CategoryDataRole:
-            if(proxyBlockItem->category() != value.toString()){
-                proxyBlockItem->setCategory(value.toString());
-                realBlockItem->setCategory(value.toString());
+        case BlockItem::DescriptionDataRole:
+            if(proxyBlockItem->description() != value.toString()){
+                proxyBlockItem->setDescription(value.toString());
+                realBlockItem->setDescription(value.toString());
             }
             break;
         case BlockItem::IDDataRole: break;
@@ -211,10 +211,12 @@ QModelIndex BlockModel::qIndexOfBlock(BlockItem *item)
     return result;
 }
 
-void BlockModel::appendBlock()
+void BlockModel::appendBlock(int x, int y)
 {
     //append new block to real model
     BlockItem *realChild = new BlockItem(&m_context,nullptr,this);
+    realChild->setBlockXPosition(x);
+    realChild->setBlockYPosition(y);
     BlockItem *realParentItem = m_proxyRoot->realModelPointer();
     realParentItem->appendChild(realChild);
 
@@ -267,7 +269,7 @@ void BlockModel::printDebugTree(BlockItem *parentItem, int depth)
 void BlockModel::printBlock(int modelIndex)
 {
     qDebug()<<"ID: " << m_proxyRoot->child(modelIndex)->realModelPointer()->id();
-    qDebug()<<"Category: " << m_proxyRoot->child(modelIndex)->realModelPointer()->category();
+    qDebug()<<"Category: " << m_proxyRoot->child(modelIndex)->realModelPointer()->description();
     qDebug()<<"Position: " << m_proxyRoot->child(modelIndex)->realModelPointer()->blockXPosition()
                             << " x "
                             << m_proxyRoot->child(modelIndex)->realModelPointer()->blockYPosition();
@@ -297,6 +299,49 @@ int BlockModel::numChildren(int modelIndex)
     return m_proxyRoot->child(modelIndex)->realModelPointer()->childCount();
 }
 
+void BlockModel::deleteBlock(int modelIndex)
+{
+    //remove block from real model
+    BlockItem *realParentItem = m_proxyRoot->realModelPointer();
+    realParentItem->removeChild(modelIndex);
+
+    //remove proxy block and update the gui tree model
+    QModelIndex proxyParentIndex = qIndexOfBlock(m_proxyRoot);
+    beginRemoveRows(proxyParentIndex, modelIndex, modelIndex);
+    newProxyRoot(realParentItem);  // reset the proxy model
+    endRemoveRows();
+}
+
+void BlockModel::addPort(int modelIndex, int side, int position)
+{
+
+//    deleteBlock(modelIndex);
+
+//    //append new block to real model
+//    BlockItem *realChild = new BlockItem(&m_context,nullptr,this);
+//    realChild->setBlockXPosition(x);
+//    realChild->setBlockYPosition(y);
+//    BlockItem *realParentItem = m_proxyRoot->realModelPointer();
+//    realParentItem->appendChild(realChild);
+
+//    //append copy of new block (row) to proxy model and update the gui tree model
+//    int nextAvailableProxyPos = m_proxyRoot->childCount();
+//    QModelIndex proxyParentIndex = qIndexOfBlock(m_proxyRoot);
+//    beginInsertRows(proxyParentIndex, nextAvailableProxyPos, nextAvailableProxyPos);
+//    newProxyRoot(realParentItem);  // reset the proxy model
+//    endInsertRows();
+
+
+
+    //append new port to real child block
+    m_proxyRoot->child(modelIndex)->realModelPointer()->addPort(side,position);
+    //append new port to proxy child block and update gui model
+    beginResetModel();
+    m_proxyRoot->child(modelIndex)->addPort(side,position);
+    endResetModel();
+    qDebug()<<"Added port on side:"<<side<<"at"<<position;
+}
+
 BlockItem *BlockModel::blockFromQIndex(const QModelIndex &index) const
 {
     if(index.isValid())
@@ -311,26 +356,40 @@ void BlockModel::newProxyRoot(BlockItem *newRealModelPointer)
     // create a new empty proxy root pointer
     BlockItem* newProxyItem = new BlockItem(&m_context,nullptr,this);
     m_proxyRoot = newProxyItem;
-
-    newProxyItem->setCategory(newRealModelPointer->category());
-    newProxyItem->setBlockXPosition(newRealModelPointer->blockXPosition());
-    newProxyItem->setBlockYPosition(newRealModelPointer->blockYPosition());
-    newProxyItem->equation()->setEquationExpression(newRealModelPointer->equation()->getEquationExpression());
-    //copy original true parent pointer for reference to real model
-    newProxyItem->setRealModelPointer(newRealModelPointer);
+    cloneItemData(newProxyItem,newRealModelPointer);
 
     //copy new child data
     for ( int i = 0 ; i < newRealModelPointer->childCount() ; i++ ) {
         BlockItem * childItem = new BlockItem(&m_context,newProxyItem,this);
-        childItem->setCategory(newRealModelPointer->child(i)->category());
-        childItem->setBlockXPosition(newRealModelPointer->child(i)->blockXPosition());
-        childItem->setBlockYPosition(newRealModelPointer->child(i)->blockYPosition());
-        childItem->equation()->setEquationString(
-                    newRealModelPointer->child(i)->equation()->getEquationString()
-                    );
-        childItem->setRealModelPointer(newRealModelPointer->child(i));
+        cloneItemData(childItem,newRealModelPointer->child(i));
         m_proxyRoot->appendChild(childItem);
     }
+}
+
+void BlockModel::cloneItemComplete(BlockItem *copyItem, BlockItem *originalItem)
+{
+    copyItem->setBlockType(originalItem->blockType());
+    copyItem->setContext(originalItem->context());
+    copyItem->setChildren(originalItem->children());
+    copyItem->setParentItem(originalItem->parentItem());
+    copyItem->setRealModelPointer(originalItem);
+    copyItem->setPorts(originalItem->ports());
+    copyItem->setDescription(originalItem->description());
+    copyItem->setBlockXPosition(originalItem->blockXPosition());
+    copyItem->setBlockYPosition(originalItem->blockYPosition());
+    copyItem->equation()->setEquationString(originalItem->equation()->getEquationString());
+}
+
+void BlockModel::cloneItemData(BlockItem *copyItem, BlockItem *originalItem)
+{
+    copyItem->setBlockType(originalItem->blockType());
+    copyItem->setContext(originalItem->context());
+    copyItem->setRealModelPointer(originalItem);
+    copyItem->setPorts(originalItem->ports());
+    copyItem->setDescription(originalItem->description());
+    copyItem->setBlockXPosition(originalItem->blockXPosition());
+    copyItem->setBlockYPosition(originalItem->blockYPosition());
+    copyItem->equation()->setEquationString(originalItem->equation()->getEquationString());
 }
 
 void BlockModel::solveEquations(){

@@ -58,13 +58,17 @@ public:
     BlockItem * blockFromQIndex(const QModelIndex &index) const;
 
     void newProxyRoot(BlockItem *newRealModelPointer);
-    Q_INVOKABLE void appendBlock();
+    void cloneItemComplete(BlockItem * newItem, BlockItem * oldItem);
+    void cloneItemData(BlockItem * newItem, BlockItem * oldItem);
+    Q_INVOKABLE void appendBlock(int x = 0, int y = 0);
     Q_INVOKABLE void downLevel(int modelIndex);
     Q_INVOKABLE void upLevel();
     Q_INVOKABLE void printDebugTree(BlockItem * parentItem, int depth);
     Q_INVOKABLE void printBlock(int modelIndex);
     Q_INVOKABLE int distanceFromRoot() const;
     Q_INVOKABLE int numChildren(int modelIndex);
+    Q_INVOKABLE void deleteBlock(int modelIndex);
+    Q_INVOKABLE void addPort(int modelIndex, int side, int position);
 
     /* EXPOSING EQUATIONSOLVER FUNCTIONS AS SLOTS TO QML VIA BLOCKDATASOURCE->BLOCKMODEL */
     Q_INVOKABLE void solveEquations();
@@ -83,7 +87,7 @@ private:
     QHash<int, QByteArray> m_roles;
     z3::context m_context;
     //proxy model to display in GUI; only one level of children at a time
-    BlockItem * m_proxyRoot;
+    BlockItem * m_proxyRoot; //proxy model is slow, need to implement show/hide for source model instead, but works for now
 };
 
 #endif // BLOCKMODEL_H
