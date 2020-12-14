@@ -5,57 +5,21 @@ import QtQuick.Layouts 1.12
 import QtQuick.Dialogs 1.2
 import com.company.models 1.0
 
-MouseArea{
-    acceptedButtons: Qt.LeftButton
+Rectangle{
+    opacity: 0
+    MouseArea{
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        hoverEnabled: true
+        drag.target: parent
+        onEntered: cursorShape = Qt.SizeFDiagCursor
 
-    property string borderRegion
-    property int oldMouseX
-    property int oldMouseY
-    property int mouseDX
-    property int mouseDY
-    property bool cornerClicked: false
 
-    // single click and while being held
-    onPressed: {
-        if(mouse.button & Qt.LeftButton){
-            if( borderRegion === "left" ){
-                cornerClicked=true
-                oldMouseX = mouseX
-            } else if ( borderRegion === "right") {
-                rightMarginClicked=true
-                oldMouseX = mouseX
-            } else if ( borderRegion === "top" ) {
-                topMarginClicked=true
-                oldMouseY = mouseY
-            } else if ( borderRegion === "bottom") {
-                bottomMarginClicked=true
-                oldMouseY = mouseY
+        onPositionChanged: {
+            if(pressed){
+                blkRectId.height = Math.max(blkRectId.height+mouseY,blkRectId.border.width*4)
+                blkRectId.width = Math.max(blkRectId.width+mouseX,blkRectId.border.width*4)
             }
         }
     }
-    onReleased: cornerClicked=false
-
-    onPositionChanged: {
-        if (pressed) { // things to do while pressing the mouse key
-//                var oldwidth = blkRectId.width
-//                var oldMousewidth = width
-//                mouseDX = mouseX - oldMouseX
-//                oldMouseX = mouseX
-//                blkRectId.width = oldwidth + mouseDX
-//                width = oldMousewidth + mouseDX
-
-                  blockScaleId.xScale = 1.1
-//                mouseDY = mouseY - oldMouseY
-//                oldMouseY = mouseY
-//                blkRectId.height = blkRectId.height + mouseDY
-
-        }
-//        model.blockXPosition = blkRectId.x
-//        model.blockYPosition = blkRectId.y
-//        xPosition = model.blockXPosition
-//        yPosition = model.blockYPosition
-//        flickableId.maxFlickX = Math.max(myBlockModel.maxBlockX() + width*2, flickableId.width)
-//        flickableId.maxFlickY = Math.max(myBlockModel.maxBlockY() + height*2, flickableId.height)
-    }
 }
-

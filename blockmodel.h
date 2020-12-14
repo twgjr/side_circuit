@@ -42,12 +42,12 @@ public:
     bool setData(const QModelIndex &index,
                  const QVariant &value,
                  int role) override;
-    bool insertRows(int position,
-                    int rows,
-                    const QModelIndex &parent = QModelIndex()) override;
-    bool removeRows(int position,
-                    int rows,
-                    const QModelIndex &parent = QModelIndex()) override;
+//    bool insertRows(int position,
+//                    int rows,
+//                    const QModelIndex &parent = QModelIndex()) override;
+//    bool removeRows(int position,
+//                    int rows,
+//                    const QModelIndex &parent = QModelIndex()) override;
 
     //functions for working with roles
     QHash<int,QByteArray> roleNames() const override;
@@ -57,13 +57,14 @@ public:
     QModelIndex qIndexOfBlock(BlockItem *item);
     BlockItem * blockFromQIndex(const QModelIndex &index) const;
 
-    void newProxyRoot(BlockItem *newRealModelPointer);
+    void newProxyRoot(BlockItem *newProxyRoot);
     void cloneItemComplete(BlockItem * newItem, BlockItem * oldItem);
     void cloneItemData(BlockItem * newItem, BlockItem * oldItem);
     Q_INVOKABLE void appendBlock(int x = 0, int y = 0);
     Q_INVOKABLE void downLevel(int modelIndex);
     Q_INVOKABLE void upLevel();
-    Q_INVOKABLE void printDebugTree(BlockItem * parentItem, int depth);
+    Q_INVOKABLE void printProxyTree(BlockItem * parentItem, int depth);
+    Q_INVOKABLE void printFullTree(BlockItem * rootItem, int depth);
     Q_INVOKABLE void printBlock(int modelIndex);
     Q_INVOKABLE int distanceFromRoot() const;
     Q_INVOKABLE int numChildren(int modelIndex);

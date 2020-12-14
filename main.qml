@@ -61,24 +61,6 @@ Window {
                             text: "Up Level"
                             onTriggered: myBlockModel.upLevel()
                         }
-                        MenuItem {
-                            text: "Set Background Color"
-                            onTriggered: diagramColorDialog.open()
-                        }
-                    }
-                    ColorDialog {
-                        id: diagramColorDialog
-                        currentColor: rectangleDelegateId.color
-                        title: "Please choose a block color"
-                        onAccepted: {
-                            console.log("You chose: " + color)
-                            rectangleDelegateId.color = color
-                            close()
-                        }
-                        onRejected: {
-                            console.log("Canceled")
-                            close()
-                        }
                     }
                 }
 
@@ -91,19 +73,6 @@ Window {
                 }
             } //Flickable
         } //RowLayout
-        RowLayout{
-            Frame{
-                Layout.fillWidth: parent
-                ColumnLayout {
-                    Label{text: "Solver Results"}
-                    ScrollView{
-                        TextArea{
-                            placeholderText: "Solver Result Displays Here"
-                        }
-                    }
-                }
-            }
-        }
 
         RowLayout{
             id: buttonRow
@@ -137,7 +106,6 @@ Window {
             }
         } //RowLayout
     } //ColumnLayout
-
 
     FileDialog {
         id: fileSaveDialog

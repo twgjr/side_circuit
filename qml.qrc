@@ -2,7 +2,6 @@
     <qresource prefix="/">
         <file>main.qml</file>
         <file>QBlock.qml</file>
-        <file>BlockBorderMouseArea.qml</file>
         <file>BlockCornerMouseArea.qml</file>
         <file>BlockMouseArea.qml</file>
     </qresource>

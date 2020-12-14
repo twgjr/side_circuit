@@ -28,7 +28,7 @@ Rectangle{
     Component.onCompleted: {}
     Component.onDestruction: {}
 
-    property int mouseBorder: 2*border.width
+    property int mouseBorder: 3*border.width
     BlockMouseArea{
         id: blockMouseAreaId
         anchors.centerIn: parent
@@ -37,10 +37,10 @@ Rectangle{
     }
     BlockCornerMouseArea {
         id: bottomRightCornerId
-        height: mouseBorder
-        width: mouseBorder
-        anchors.left: blockMouseAreaId.right
-        anchors.top: blockMouseAreaId.bottom
+        width: mouseBorder*2
+        height: width
+        anchors.horizontalCenter: parent.right
+        anchors.verticalCenter: parent.bottom
     }
 
     Menu {
@@ -49,10 +49,10 @@ Rectangle{
             text: "Add Port"
             onTriggered: {
                 //find position of port with lines crossing in an x
-                var posX=blockMouseArea.mouseX
-                var posY=blockMouseArea.mouseY
-                var dy = blockMouseArea.height
-                var dx = blockMouseArea.width
+                var posX=blockMouseAreaId.mouseX
+                var posY=blockMouseAreaId.mouseY
+                var dy = blockMouseAreaId.height
+                var dx = blockMouseAreaId.width
                 var xLine1 = dy/dx*posX
                 var xLine2 = -dy/dx*posX+posY
 
@@ -78,24 +78,6 @@ Rectangle{
         MenuItem {
             text: "Delete"
             onTriggered: myBlockModel.deleteBlock(model.index)
-        }
-        MenuItem {
-            text: "Set Block Color"
-            onTriggered: blockColorDialog.open()
-        }
-        ColorDialog {
-            id: blockColorDialog
-            currentColor: blkRectId.color
-            title: "Please choose a block color"
-            onAccepted: {
-                console.log("You chose: " + color)
-                blkRectId.color = color
-                close()
-            }
-            onRejected: {
-                console.log("Canceled")
-                close()
-            }
         }
     } //Menu
 
