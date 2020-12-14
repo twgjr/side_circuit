@@ -73,7 +73,10 @@ Rectangle{
         }//MenuItem
         MenuItem {
             text: "Down Level"
-            onTriggered: myBlockModel.downLevel(model.index)
+            onTriggered: {
+                flickableId.leveltext = myBlockModel.distanceFromRoot()+1
+                myBlockModel.downLevel(model.index)
+            }
         }
         MenuItem {
             text: "Delete"

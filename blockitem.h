@@ -57,20 +57,16 @@ public:
     BlockItem * child(int index);
     int childNumber() const;
     int childCount() const;
-    //bool insertChildren(int position, int count, int columns = 0);
-    //bool removeChildren(int position, int count);
     bool appendChild(BlockItem *item);
     void removeChild(int modelIndex);
     int columnCount() const;
 
     // proxy model for diagram view
     BlockItem *proxyParent();
-    void setProxyParent(BlockItem *proxyParent);
     void clearProxyParent();
     BlockItem * proxyChild(int index);
     int proxyChildNumber() const;
     int proxyChildCount() const;
-    QVector<BlockItem *> proxyChildren();
     void clearProxyChildren();
     void appendProxyChild(BlockItem * item);
     void removeProxyChild(int modelIndex);

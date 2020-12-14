@@ -31,6 +31,7 @@ Window {
                 id:flickableId
                 property int maxFlickX: width
                 property int maxFlickY: height
+                property int leveltext: myBlockModel.distanceFromRoot()
 
                 flickableDirection: Flickable.HorizontalAndVerticalFlick
                 height: parent.height
@@ -40,6 +41,11 @@ Window {
                 clip: true
                 ScrollBar.horizontal: ScrollBar { id: hbar ; active: true; visible: true ; policy: ScrollBar.AsNeeded }
                 ScrollBar.vertical: ScrollBar { id: vbar; active: true; visible: true ; policy: ScrollBar.AsNeeded }
+
+                Text {
+                    id: textLevelId
+                    text : "Model Level: " + flickableId.leveltext
+                }
 
                 MouseArea{
                     id: diagramMouseArea
@@ -59,7 +65,10 @@ Window {
                         }
                         MenuItem {
                             text: "Up Level"
-                            onTriggered: myBlockModel.upLevel()
+                            onTriggered: {
+                                flickableId.leveltext = Math.max(myBlockModel.distanceFromRoot()-1,0)
+                                myBlockModel.upLevel()
+                            }
                         }
                     }
                 }

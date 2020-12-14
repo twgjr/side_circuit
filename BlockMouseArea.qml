@@ -11,6 +11,7 @@ MouseArea{
 
     onDoubleClicked: {
         if(mouse.button & Qt.LeftButton){
+            flickableId.leveltext = myBlockModel.distanceFromRoot()+1
             myBlockModel.downLevel(model.index)
         }
     }

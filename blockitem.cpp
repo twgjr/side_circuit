@@ -43,30 +43,6 @@ int BlockItem::childNumber() const
 
 int BlockItem::childCount() const {return m_children.count();}
 
-//bool BlockItem::insertChildren(int position, int count, int columns)
-//{
-//    if (position < 0 || position > m_children.size())
-//        return false;
-
-//    for (int row = 0; row < count; ++row) {
-//        QVector<QVariant> data(columns);
-//        BlockItem *item = new BlockItem(m_context,this);
-//        m_children.insert(position, item);
-//    }
-//    return true;
-//}
-
-//bool BlockItem::removeChildren(int position, int count)
-//{
-//    if (position < 0 || position + count > m_children.size())
-//        return false;
-
-//    for (int row = 0; row < count; ++row)
-//        delete m_children.takeAt(position);
-
-//    return true;
-//}
-
 bool BlockItem::appendChild(BlockItem *item)
 {
     item->m_parentItem = this;
@@ -77,13 +53,23 @@ bool BlockItem::appendChild(BlockItem *item)
 
 void BlockItem::removeChild(int modelIndex)
 {
+//    // recursively delete all grandchildren
+//    if( proxyChild(modelIndex)->proxyChildCount()>0){
+//        for (int i = 0 ; i< proxyChild(modelIndex) ; i++){
+//            if(proxyChild(modelIndex)->proxyChildCount()>0){
+//               removeChild(i);
+//            } else {
+//                delete m_children[modelIndex];
+//                m_children.remove(modelIndex);
+//            }
+//        }
+//    }
+//    // finally delete the intended child
     delete m_children[modelIndex];
     m_children.remove(modelIndex);
 }
 
 int BlockItem::columnCount() const {return 1;} // columns not used
-
-void BlockItem::setProxyParent(BlockItem *proxyParent) {m_proxyParent = proxyParent;}
 
 void BlockItem::clearProxyParent()
 {
@@ -109,7 +95,6 @@ int BlockItem::proxyChildCount() const
     return m_proxyChildren.count();
 }
 BlockItem *BlockItem::proxyParent() {return m_proxyParent;}
-QVector<BlockItem *> BlockItem::proxyChildren() {return m_proxyChildren;}
 
 void BlockItem::clearProxyChildren()
 {
@@ -127,7 +112,7 @@ void BlockItem::appendProxyChild(BlockItem *item)
 
 void BlockItem::removeProxyChild(int modelIndex)
 {
-    delete m_proxyChildren[modelIndex];
+    //delete m_proxyChildren[modelIndex];
     m_proxyChildren.remove(modelIndex);
 }
 

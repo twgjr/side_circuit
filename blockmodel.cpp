@@ -192,8 +192,8 @@ void BlockModel::appendBlock(int x, int y)
     m_proxyRoot->appendChild(childItem);
     m_proxyRoot->appendProxyChild(childItem);
     endInsertRows();
-    printProxyTree(m_proxyRoot,0);
-    printFullTree(m_root,0);
+    //printProxyTree(m_proxyRoot,0);
+    //printFullTree(m_root,0);
 }
 
 void BlockModel::downLevel(int modelIndex)
@@ -201,8 +201,8 @@ void BlockModel::downLevel(int modelIndex)
     beginResetModel();
     newProxyRoot(m_proxyRoot->child(modelIndex));
     endResetModel();
-    printProxyTree(m_proxyRoot,0);
-    printFullTree(m_root,0);
+    //printProxyTree(m_proxyRoot,0);
+    //printFullTree(m_root,0);
 }
 
 void BlockModel::upLevel()
@@ -213,8 +213,8 @@ void BlockModel::upLevel()
         newProxyRoot(m_proxyRoot->parentItem());
         endResetModel();
     }
-    printProxyTree(m_proxyRoot,0);
-    printFullTree(m_root,0);
+    //printProxyTree(m_proxyRoot,0);
+    //printFullTree(m_root,0);
 }
 
 void BlockModel::printProxyTree(BlockItem *rootItem, int depth)
@@ -265,22 +265,26 @@ void BlockModel::printBlock(int modelIndex)
     qDebug()<<"Equation: " << m_proxyRoot->child(modelIndex)->equationString();
 }
 
-int BlockModel::distanceFromRoot() const {
+int BlockModel::distanceFromRoot() const
+{
+    int count = 0;
+
+    if(m_proxyRoot->parentItem()==nullptr){
+        qDebug()<<"root";
+        return count; //at the real root
+    }
 
     BlockItem * realItem = m_proxyRoot;
-
-    int count = 0;
-    if(realItem->parentItem()==nullptr){
-        return count;
-    } else {
+    realItem = realItem->parentItem();
+    count+=1;
+    while(realItem->parentItem()!=nullptr){
         realItem = realItem->parentItem();
         count+=1;
-        while(realItem->parentItem()!=nullptr){
-            realItem = realItem->parentItem();
-            count+=1;
-        }
-        return count;
     }
+    qDebug()<<"level is: "<<count;
+
+    return count;
+
 }
 
 int BlockModel::numChildren(int modelIndex)
@@ -290,13 +294,10 @@ int BlockModel::numChildren(int modelIndex)
 
 void BlockModel::deleteBlock(int modelIndex)
 {
-    QModelIndex proxyParentIndex = qIndexOfBlock(m_proxyRoot);
-    beginRemoveRows(proxyParentIndex, modelIndex, modelIndex);
-
+    beginResetModel();
     m_proxyRoot->removeChild(modelIndex);
     m_proxyRoot->removeProxyChild(modelIndex);
-
-    endRemoveRows();
+    endResetModel();
 }
 
 void BlockModel::addPort(int modelIndex, int side, int position)
