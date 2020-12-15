@@ -75,6 +75,9 @@ public:
     // connecting blocks
     QVector<Port *> ports() const;
     void addPort(int side, int position);
+    int portCount();
+    int portSide(int portNum);
+    int portPosition(int portNum);
 
     // solver
     void setContext(z3::context *context);

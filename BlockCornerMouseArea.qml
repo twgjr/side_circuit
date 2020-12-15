@@ -12,6 +12,7 @@ Rectangle{
         acceptedButtons: Qt.LeftButton
         hoverEnabled: true
         drag.target: parent
+        drag.threshold: 0
         onEntered: cursorShape = Qt.SizeFDiagCursor
 
 

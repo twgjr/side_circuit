@@ -20,6 +20,13 @@ Window {
         width: window.width
         height: window.height
 
+        RowLayout{
+            Text {
+                id: textLevelId
+                text : "Model Level: " + flickableId.leveltext
+            }
+        }
+
         // wrap Repeater in flickable to enable both h and v panning
         RowLayout{
             id: flickableRowLayoutId
@@ -39,13 +46,10 @@ Window {
                 contentWidth: maxFlickX
                 contentHeight: maxFlickY
                 clip: true
-                ScrollBar.horizontal: ScrollBar { id: hbar ; active: true; visible: true ; policy: ScrollBar.AsNeeded }
-                ScrollBar.vertical: ScrollBar { id: vbar; active: true; visible: true ; policy: ScrollBar.AsNeeded }
+                ScrollBar.horizontal: ScrollBar { id: hbar ; active: true; visible: true ; policy: ScrollBar.AlwaysOn }
+                ScrollBar.vertical: ScrollBar { id: vbar; active: true; visible: true ; policy: ScrollBar.AlwaysOn }
 
-                Text {
-                    id: textLevelId
-                    text : "Model Level: " + flickableId.leveltext
-                }
+
 
                 MouseArea{
                     id: diagramMouseArea

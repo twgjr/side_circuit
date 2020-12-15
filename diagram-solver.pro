@@ -18,7 +18,8 @@ SOURCES += \
         port.cpp \
         regexlist.cpp
 
-RESOURCES += qml.qrc
+RESOURCES += qml.qrc \
+    javascript.qrc
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
 QML_IMPORT_PATH =
@@ -49,3 +50,5 @@ HEADERS += \
     link.h \
     port.h \
     regexlist.h
+
+DISTFILES +=

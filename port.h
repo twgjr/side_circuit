@@ -20,11 +20,18 @@ public:
     };
 
     explicit Port(QObject *parent = nullptr);
+
+    ~Port();
+
     void setBlockParent(BlockItem * blockParent);
 
     void setSide(int side);
 
     void setPosition(int position);
+
+    int side() const;
+
+    int position() const;
 
 signals:
 

@@ -17,15 +17,15 @@
 #include "blockitem.h"
 #include "equationsolver.h"
 
-class BlockModel : public QAbstractItemModel
+class PortModel : public QAbstractItemModel
 {
     Q_OBJECT
     Q_PROPERTY(QVariantList roles READ roles WRITE setRoles NOTIFY rolesChanged)
 
 public:
-    explicit BlockModel(//const QStringList &headers,
+    explicit PortModel(//const QStringList &headers,
                         QObject *parent = nullptr);
-    ~BlockModel();
+    ~PortModel();
 
     // QAbstractItemModel read-only functions
     QVariant data(const QModelIndex &index, int role) const override;
@@ -70,6 +70,9 @@ public:
     Q_INVOKABLE int numChildren(int modelIndex);
     Q_INVOKABLE void deleteBlock(int modelIndex);
     Q_INVOKABLE void addPort(int modelIndex, int side, int position);
+    Q_INVOKABLE int portCount(int modelIndex);
+    Q_INVOKABLE int portSide(int modelIndex, int portNum);
+    Q_INVOKABLE int portPosition(int modelIndex, int portNum);
 
     /* EXPOSING EQUATIONSOLVER FUNCTIONS AS SLOTS TO QML VIA BLOCKDATASOURCE->BLOCKMODEL */
     Q_INVOKABLE void solveEquations();

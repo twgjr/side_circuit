@@ -8,7 +8,12 @@ Port::Port(QObject *parent) : QObject(parent),
     m_name(""),
     isConnected(false)
 {
-    qDebug()<<"Port created";
+    //qDebug()<<"Port created";
+}
+
+Port::~Port()
+{
+    //qDebug()<<"Port destroyed.";
 }
 
 void Port::setBlockParent(BlockItem *blockParent)
@@ -24,4 +29,14 @@ void Port::setSide(int side)
 void Port::setPosition(int position)
 {
     m_position = position;
+}
+
+int Port::side() const
+{
+    return m_side;
+}
+
+int Port::position() const
+{
+    return m_position;
 }

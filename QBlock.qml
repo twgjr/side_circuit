@@ -4,6 +4,7 @@ import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Dialogs 1.2
 import com.company.models 1.0
+import "portCreation.js" as PortScript
 
 Rectangle{
     id: blkRectId
@@ -14,18 +15,24 @@ Rectangle{
     property string equationText: model.equationString
     property bool selected: false
 
-
     color: "beige"
     border.color: "black"
     border.width: 2
-    radius: Math.min(height,width)*0.1
+    radius: 5
     height: 100; width:100
     x: xPosition
     y: yPosition
 
     transform: Scale{id:blockScaleId}
 
-    Component.onCompleted: {}
+    Component.onCompleted: {
+        var portCount = myBlockModel.portCount(model.index)
+        for( var i = 0 ; i < portCount ; i++){
+            var side = myBlockModel.portSide(model.index,i)
+            var position = myBlockModel.portPosition(model.index,i)
+            PortScript.createPortObjects(side,position);
+        }
+    }
     Component.onDestruction: {}
 
     property int mouseBorder: 3*border.width
@@ -43,47 +50,6 @@ Rectangle{
         anchors.verticalCenter: parent.bottom
     }
 
-    Menu {
-        id: blockContextMenu
-        MenuItem {
-            text: "Add Port"
-            onTriggered: {
-                //find position of port with lines crossing in an x
-                var posX=blockMouseAreaId.mouseX
-                var posY=blockMouseAreaId.mouseY
-                var dy = blockMouseAreaId.height
-                var dx = blockMouseAreaId.width
-                var xLine1 = dy/dx*posX
-                var xLine2 = -dy/dx*posX+posY
-
-                console.log("index: "+model.index)
-                console.log("x lines: "+xLine1+" x "+xLine2)
-                console.log("pointer: "+posX+" x "+posY)
-                console.log("area: "+dx+" x "+dy)
-
-                // top
-                if(posY>xLine1 && posY>xLine2){myBlockModel.addPort(model.index,0,posX)}
-                // bottom
-                if (posY<xLine1 && posY<xLine2){myBlockModel.addPort(model.index,1,posX)}
-                // left
-                if (posY<xLine1 && posY>xLine2){myBlockModel.addPort(model.index,2,posY)}
-                // right
-                if (posY>xLine1 && posY<xLine2){myBlockModel.addPort(model.index,3,posY)}
-            }
-        }//MenuItem
-        MenuItem {
-            text: "Down Level"
-            onTriggered: {
-                flickableId.leveltext = myBlockModel.distanceFromRoot()+1
-                myBlockModel.downLevel(model.index)
-            }
-        }
-        MenuItem {
-            text: "Delete"
-            onTriggered: myBlockModel.deleteBlock(model.index)
-        }
-    } //Menu
-
     ColumnLayout{
         anchors.fill: parent
         RowLayout{
@@ -94,4 +60,8 @@ Rectangle{
             }
         }
     }
+
+
+
+
 } //Rectangle

@@ -16,12 +16,12 @@ BlockItem::BlockItem(z3::context *context,
     m_equation(context)
 
 {
-    qDebug()<<"Block Item created.";
+    //qDebug()<<"Block Item created.";
 }
 
 BlockItem::~BlockItem()
 {
-    qDebug()<<"Block Item destroyed.";
+    //qDebug()<<"Block Item destroyed.";
 }
 
 BlockItem *BlockItem::parentItem() {return m_parentItem;}
@@ -53,18 +53,6 @@ bool BlockItem::appendChild(BlockItem *item)
 
 void BlockItem::removeChild(int modelIndex)
 {
-//    // recursively delete all grandchildren
-//    if( proxyChild(modelIndex)->proxyChildCount()>0){
-//        for (int i = 0 ; i< proxyChild(modelIndex) ; i++){
-//            if(proxyChild(modelIndex)->proxyChildCount()>0){
-//               removeChild(i);
-//            } else {
-//                delete m_children[modelIndex];
-//                m_children.remove(modelIndex);
-//            }
-//        }
-//    }
-//    // finally delete the intended child
     delete m_children[modelIndex];
     m_children.remove(modelIndex);
 }
@@ -124,6 +112,21 @@ void BlockItem::addPort(int side, int position){
     newPort->setSide(side);
     newPort->setPosition(position);
     m_ports.append(newPort);
+}
+
+int BlockItem::portCount()
+{
+    return m_ports.count();
+}
+
+int BlockItem::portSide(int portNum)
+{
+    return m_ports[portNum]->side();
+}
+
+int BlockItem::portPosition(int portNum)
+{
+    return m_ports[portNum]->position();
 }
 
 void BlockItem::setContext(z3::context *context) {m_context = context;}
