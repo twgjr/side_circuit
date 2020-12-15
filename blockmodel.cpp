@@ -1,6 +1,6 @@
 #include "blockmodel.h"
 
-PortModel::PortModel(QObject *parent) : QAbstractItemModel(parent)
+BlockModel::BlockModel(QObject *parent) : QAbstractItemModel(parent)
 {
     //qDebug()<<"BlockModel object created.";
 
@@ -18,13 +18,13 @@ PortModel::PortModel(QObject *parent) : QAbstractItemModel(parent)
     m_roles[BlockItem::EquationRole]="equationString";
 }
 
-PortModel::~PortModel()
+BlockModel::~BlockModel()
 {
     //qDebug()<<"Block Model destroyed.";
 }
 
 //counts the number of data items in the data source
-int PortModel::rowCount(const QModelIndex &parent) const
+int BlockModel::rowCount(const QModelIndex &parent) const
 {
     if (parent.column() > 0){
         return 0;
@@ -33,14 +33,14 @@ int PortModel::rowCount(const QModelIndex &parent) const
     return proxyParentItem->childCount();
 }
 
-int PortModel::columnCount(const QModelIndex &parent) const
+int BlockModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
     return 1; //columns not used in this tree structure; 1 tells model data exists
 }
 
 //gets data from a block to display in QML model view
-QVariant PortModel::data(const QModelIndex &index, int role) const
+QVariant BlockModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid()){
         return QVariant();
@@ -53,7 +53,7 @@ QVariant PortModel::data(const QModelIndex &index, int role) const
 }
 
 //sets data from changing it in QML model view
-bool PortModel::setData(const QModelIndex &index, const QVariant &value, int role)
+bool BlockModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     if (data(index, role) != value) {
         //don't do anything if the data being submitted did not change
@@ -89,7 +89,7 @@ bool PortModel::setData(const QModelIndex &index, const QVariant &value, int rol
     return false;
 }
 
-BlockItem *PortModel::blockFromQIndex(const QModelIndex &index) const
+BlockItem *BlockModel::blockFromQIndex(const QModelIndex &index) const
 {
     if(index.isValid()){
         return static_cast<BlockItem *>(index.internalPointer());
@@ -97,7 +97,7 @@ BlockItem *PortModel::blockFromQIndex(const QModelIndex &index) const
     return m_proxyRoot;
 }
 
-Qt::ItemFlags PortModel::flags(const QModelIndex &index) const
+Qt::ItemFlags BlockModel::flags(const QModelIndex &index) const
 {
     if (!index.isValid()){
         return Qt::NoItemFlags;
@@ -105,7 +105,7 @@ Qt::ItemFlags PortModel::flags(const QModelIndex &index) const
     return Qt::ItemIsEditable | QAbstractItemModel::flags(index);
 }
 
-QModelIndex PortModel::index(int row, int column, const QModelIndex &parent) const
+QModelIndex BlockModel::index(int row, int column, const QModelIndex &parent) const
 {
     if (!hasIndex(row, column, parent)){
         return QModelIndex();
@@ -122,7 +122,7 @@ QModelIndex PortModel::index(int row, int column, const QModelIndex &parent) con
 
 
 // gets QModelIndex of a child's parent
-QModelIndex PortModel::parent(const QModelIndex &index) const
+QModelIndex BlockModel::parent(const QModelIndex &index) const
 {
     if (!index.isValid()){
         // the root index
@@ -136,9 +136,9 @@ QModelIndex PortModel::parent(const QModelIndex &index) const
     return createIndex(proxyParentItem->childNumber(), 0, proxyParentItem);
 }
 
-QHash<int, QByteArray> PortModel::roleNames() const {return m_roles;}
+QHash<int, QByteArray> BlockModel::roleNames() const {return m_roles;}
 
-QVariantList PortModel::roles() const
+QVariantList BlockModel::roles() const
 {
     QVariantList list;
     QHashIterator<int, QByteArray> i(m_roles);
@@ -151,7 +151,7 @@ QVariantList PortModel::roles() const
 }
 
 //May not be necessary unless need to create roles dynamically
-void PortModel::setRoles(QVariantList roles)
+void BlockModel::setRoles(QVariantList roles)
 {
     static int nextRole = BlockItem::ModelRoles::EquationRole + 1;
     for(QVariant role : roles) {
@@ -162,7 +162,7 @@ void PortModel::setRoles(QVariantList roles)
     emit rolesChanged();
 }
 
-QModelIndex PortModel::qIndexOfBlock(BlockItem *item)
+QModelIndex BlockModel::qIndexOfBlock(BlockItem *item)
 {
     QVector<int> positions;
     QModelIndex result;
@@ -180,7 +180,7 @@ QModelIndex PortModel::qIndexOfBlock(BlockItem *item)
     return result;
 }
 
-void PortModel::appendBlock(int x, int y)
+void BlockModel::appendBlock(int x, int y)
 {
     int pos = m_proxyRoot->childCount();
     QModelIndex proxyParentIndex = qIndexOfBlock(m_proxyRoot);
@@ -196,7 +196,7 @@ void PortModel::appendBlock(int x, int y)
     //printFullTree(m_root,0);
 }
 
-void PortModel::downLevel(int modelIndex)
+void BlockModel::downLevel(int modelIndex)
 {
     beginResetModel();
     newProxyRoot(m_proxyRoot->child(modelIndex));
@@ -205,7 +205,7 @@ void PortModel::downLevel(int modelIndex)
     //printFullTree(m_root,0);
 }
 
-void PortModel::upLevel()
+void BlockModel::upLevel()
 {
     if(m_proxyRoot->parentItem()!=nullptr){
         // parent is valid, cannot go higher than actual root
@@ -217,7 +217,7 @@ void PortModel::upLevel()
     //printFullTree(m_root,0);
 }
 
-void PortModel::printProxyTree(BlockItem *rootItem, int depth)
+void BlockModel::printProxyTree(BlockItem *rootItem, int depth)
 {
     //iterate through all children and load equations then recurse to children
     if(rootItem->proxyParent() == nullptr){
@@ -234,7 +234,7 @@ void PortModel::printProxyTree(BlockItem *rootItem, int depth)
     }
 }
 
-void PortModel::printFullTree(BlockItem * rootItem, int depth)
+void BlockModel::printFullTree(BlockItem * rootItem, int depth)
 {
     //iterate through all children and load equations then recurse to children
     if(rootItem->parentItem() == nullptr){
@@ -255,7 +255,7 @@ void PortModel::printFullTree(BlockItem * rootItem, int depth)
     }
 }
 
-void PortModel::printBlock(int modelIndex)
+void BlockModel::printBlock(int modelIndex)
 {
     qDebug()<<"ID: " << m_proxyRoot->child(modelIndex)->id();
     qDebug()<<"Category: " << m_proxyRoot->child(modelIndex)->description();
@@ -265,7 +265,7 @@ void PortModel::printBlock(int modelIndex)
     qDebug()<<"Equation: " << m_proxyRoot->child(modelIndex)->equationString();
 }
 
-int PortModel::distanceFromRoot() const
+int BlockModel::distanceFromRoot() const
 {
     int count = 0;
 
@@ -284,12 +284,12 @@ int PortModel::distanceFromRoot() const
 
 }
 
-int PortModel::numChildren(int modelIndex)
+int BlockModel::numChildren(int modelIndex)
 {
     return m_proxyRoot->child(modelIndex)->childCount();
 }
 
-void PortModel::deleteBlock(int modelIndex)
+void BlockModel::deleteBlock(int modelIndex)
 {
     beginResetModel();
     m_proxyRoot->removeChild(modelIndex);
@@ -297,7 +297,7 @@ void PortModel::deleteBlock(int modelIndex)
     endResetModel();
 }
 
-void PortModel::addPort(int modelIndex, int side, int position)
+void BlockModel::addPort(int modelIndex, int side, int position)
 {
     //delete row then insert to reset only the affect block
     QModelIndex proxyParentIndex = qIndexOfBlock(m_proxyRoot);
@@ -309,22 +309,22 @@ void PortModel::addPort(int modelIndex, int side, int position)
     endInsertRows();
 }
 
-int PortModel::portCount( int modelIndex )
+int BlockModel::portCount( int modelIndex )
 {
     return m_proxyRoot->proxyChild(modelIndex)->portCount();
 }
 
-int PortModel::portSide(int modelIndex, int portNum)
+int BlockModel::portSide(int modelIndex, int portNum)
 {
     return m_proxyRoot->proxyChild(modelIndex)->portSide(portNum);
 }
 
-int PortModel::portPosition(int modelIndex, int portNum)
+int BlockModel::portPosition(int modelIndex, int portNum)
 {
     return m_proxyRoot->proxyChild(modelIndex)->portPosition(portNum);
 }
 
-void PortModel::newProxyRoot(BlockItem *newProxyRoot)
+void BlockModel::newProxyRoot(BlockItem *newProxyRoot)
 {
     // set old proxy children parents to nullptr (point to nothing)
     for ( int i = 0 ; i < m_proxyRoot->proxyChildCount() ; i++ ) {
@@ -348,7 +348,7 @@ void PortModel::newProxyRoot(BlockItem *newProxyRoot)
     }
 }
 
-void PortModel::solveEquations(){
+void BlockModel::solveEquations(){
     try {
         EquationSolver equationSolver(&m_context);
         equationSolver.solveEquations(m_root);
@@ -358,7 +358,7 @@ void PortModel::solveEquations(){
 
 }
 
-int PortModel::maxBlockX()
+int BlockModel::maxBlockX()
 {
     int blockX = 0;
     for ( int i = 0 ; i < m_proxyRoot->childCount() ; i++ ) {
@@ -370,7 +370,7 @@ int PortModel::maxBlockX()
     return blockX;
 }
 
-int PortModel::maxBlockY()
+int BlockModel::maxBlockY()
 {
     int blockY = 0;
     for ( int i = 0 ; i < m_proxyRoot->childCount() ; i++ ) {

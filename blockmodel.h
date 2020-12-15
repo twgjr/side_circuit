@@ -17,15 +17,15 @@
 #include "blockitem.h"
 #include "equationsolver.h"
 
-class PortModel : public QAbstractItemModel
+class BlockModel : public QAbstractItemModel
 {
     Q_OBJECT
     Q_PROPERTY(QVariantList roles READ roles WRITE setRoles NOTIFY rolesChanged)
 
 public:
-    explicit PortModel(//const QStringList &headers,
+    explicit BlockModel(//const QStringList &headers,
                         QObject *parent = nullptr);
-    ~PortModel();
+    ~BlockModel();
 
     // QAbstractItemModel read-only functions
     QVariant data(const QModelIndex &index, int role) const override;
