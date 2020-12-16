@@ -4,7 +4,7 @@ import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Dialogs 1.2
 import com.company.models 1.0
-import "portCreation.js" as PortScript
+//import "portCreation.js" as PortScript
 
 MouseArea{
     acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -15,8 +15,8 @@ MouseArea{
 
     onDoubleClicked: {
         if(mouse.button & Qt.LeftButton){
-            flickableId.leveltext = myBlockModel.distanceFromRoot()+1
-            myBlockModel.downLevel(model.index)
+            flickableId.leveltext = blockModel.distanceFromRoot()+1
+            blockModel.downLevel(model.index)
         }
     }
     // single click and release
@@ -33,8 +33,8 @@ MouseArea{
         model.blockYPosition = blkRectId.y
         xPosition = model.blockXPosition
         yPosition = model.blockYPosition
-        flickableId.maxFlickX = Math.max(myBlockModel.maxBlockX() + width*2, flickableId.width)
-        flickableId.maxFlickY = Math.max(myBlockModel.maxBlockY() + height*2, flickableId.height)
+        flickableId.maxFlickX = Math.max(blockModel.maxBlockX() + width*2, flickableId.width)
+        flickableId.maxFlickY = Math.max(blockModel.maxBlockY() + height*2, flickableId.height)
     }
 
     Menu {
@@ -77,19 +77,19 @@ MouseArea{
                     position = posY
                 }
                 //PortScript.createPortObjects(side,position)
-                myBlockModel.addPort(model.index,side,position)
+                portModel.addPort(side,position)
             }
         }//MenuItem
         MenuItem {
             text: "Down Level"
             onTriggered: {
-                flickableId.leveltext = myBlockModel.distanceFromRoot()+1
-                myBlockModel.downLevel(model.index)
+                flickableId.leveltext = blockModel.distanceFromRoot()+1
+                blockModel.downLevel(model.index)
             }
         }
         MenuItem {
             text: "Delete"
-            onTriggered: myBlockModel.deleteBlock(model.index)
+            onTriggered: blockModel.deleteBlock(model.index)
         }
     } //Menu
 }

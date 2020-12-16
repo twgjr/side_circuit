@@ -16,6 +16,7 @@ SOURCES += \
         link.cpp \
         main.cpp \
         port.cpp \
+        portmodel.cpp \
         regexlist.cpp
 
 RESOURCES += qml.qrc \
@@ -49,6 +50,7 @@ HEADERS += \
     expressionitem.h \
     link.h \
     port.h \
+    portmodel.h \
     regexlist.h
 
 DISTFILES +=

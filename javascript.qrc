@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>portCreation.js</file>
+        <file>portScript.js</file>
     </qresource>
 </RCC>

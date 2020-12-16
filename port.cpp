@@ -40,3 +40,13 @@ int Port::position() const
 {
     return m_position;
 }
+
+QString Port::name() const
+{
+    return m_name;
+}
+
+void Port::setName(QString name)
+{
+    m_name = name;
+}

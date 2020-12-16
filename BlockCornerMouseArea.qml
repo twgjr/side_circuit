@@ -15,7 +15,6 @@ Rectangle{
         drag.threshold: 0
         onEntered: cursorShape = Qt.SizeFDiagCursor
 
-
         onPositionChanged: {
             if(pressed){
                 blkRectId.height = Math.max(blkRectId.height+mouseY,blkRectId.border.width*4)

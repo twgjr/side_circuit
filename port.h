@@ -11,27 +11,23 @@ class BlockItem;  //added to remove circular include with blockitem.h
 class Port : public QObject
 {
     Q_OBJECT
+
+    Q_PROPERTY(int side READ side WRITE setSide)
+    Q_PROPERTY(int position READ position WRITE setPosition)
+    Q_PROPERTY(QString name READ name WRITE setName)
+
 public:
-    enum PortSide {
-        Top,
-        Bottom,
-        Left,
-        Right
-    };
 
     explicit Port(QObject *parent = nullptr);
-
     ~Port();
 
     void setBlockParent(BlockItem * blockParent);
-
-    void setSide(int side);
-
-    void setPosition(int position);
-
     int side() const;
-
+    void setSide(int side);
     int position() const;
+    void setPosition(int position);
+    QString name() const;
+    void setName(QString name);
 
 signals:
 

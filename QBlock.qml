@@ -4,7 +4,6 @@ import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Dialogs 1.2
 import com.company.models 1.0
-import "portCreation.js" as PortScript
 
 Rectangle{
     id: blkRectId
@@ -23,15 +22,7 @@ Rectangle{
     x: xPosition
     y: yPosition
 
-    transform: Scale{id:blockScaleId}
-
     Component.onCompleted: {
-        var portCount = myBlockModel.portCount(model.index)
-        for( var i = 0 ; i < portCount ; i++){
-            var side = myBlockModel.portSide(model.index,i)
-            var position = myBlockModel.portPosition(model.index,i)
-            PortScript.createPortObjects(side,position);
-        }
     }
     Component.onDestruction: {}
 
@@ -50,6 +41,15 @@ Rectangle{
         anchors.verticalCenter: parent.bottom
     }
 
+    PortModel{ id: portModel}
+    Repeater{
+        id : portRepeater
+        height: parent.height
+        width: parent.width
+        model : portModel
+        delegate: Port{}
+    }
+
     ColumnLayout{
         anchors.fill: parent
         RowLayout{
@@ -60,8 +60,4 @@ Rectangle{
             }
         }
     }
-
-
-
-
 } //Rectangle
