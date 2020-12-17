@@ -1,26 +1,29 @@
 #include "blockmodel.h"
 
-BlockModel::BlockModel(QObject *parent) : QAbstractItemModel(parent)
+BlockModel::BlockModel(QObject *parent) : QAbstractItemModel(parent),
+    m_signalConnected(false)
 {
-    //qDebug()<<"BlockModel object created.";
+    qDebug()<<"BlockModel object created.";
 
-    m_root = new BlockItem(&m_context,nullptr,this);  // real root is empty
-    m_proxyRoot = m_root;//new BlockItem(&m_context,nullptr,this);
+    //    m_root = new BlockItem(&m_context,nullptr,this);  // real root is empty
+    //    m_proxyRoot = m_root;//new BlockItem(&m_context,nullptr,this);
     //newProxyRoot(m_root);  //clone real root into proxy root
 
     //set the basic roles for access of item properties in QML
-    m_roles[BlockItem::DescriptionDataRole]="description";
-    m_roles[BlockItem::IDDataRole]="id";
-    m_roles[BlockItem::BlockXPositionRole]="blockXPosition";
-    m_roles[BlockItem::BlockYPositionRole]="blockYPosition";
-    m_roles[BlockItem::blockHeightRole]="blockHeight";
-    m_roles[BlockItem::blockWidthRole]="blockWidth";
-    m_roles[BlockItem::EquationRole]="equationString";
+    m_roles[DescriptionDataRole]="description";
+    m_roles[IDDataRole]="id";
+    m_roles[BlockXPositionRole]="blockXPosition";
+    m_roles[BlockYPositionRole]="blockYPosition";
+    m_roles[blockHeightRole]="blockHeight";
+    m_roles[blockWidthRole]="blockWidth";
+    m_roles[EquationRole]="equationString";
+    m_roles[ThisRole]="thisBlock";
+    qDebug()<<this;
 }
 
 BlockModel::~BlockModel()
 {
-    //qDebug()<<"Block Model destroyed.";
+    qDebug()<<"Block Model destroyed.";
 }
 
 //counts the number of data items in the data source
@@ -59,23 +62,23 @@ bool BlockModel::setData(const QModelIndex &index, const QVariant &value, int ro
         //don't do anything if the data being submitted did not change
         BlockItem * blockItem = blockFromQIndex(index);
         switch (role) {
-        case BlockItem::DescriptionDataRole:
+        case DescriptionDataRole:
             if(blockItem->description() != value.toString()){
                 blockItem->setDescription(value.toString());
             }
             break;
-        case BlockItem::IDDataRole: break;
-        case BlockItem::BlockXPositionRole:
+        case IDDataRole: break;
+        case BlockXPositionRole:
             if(blockItem->blockXPosition() != value.toInt()){
                 blockItem->setBlockXPosition(value.toInt());
             }
             break;
-        case BlockItem::BlockYPositionRole:
+        case BlockYPositionRole:
             if(blockItem->blockYPosition() != value.toInt()){
                 blockItem->setBlockYPosition(value.toInt());
             }
             break;
-        case BlockItem::EquationRole:
+        case EquationRole:
             if(blockItem->equation()->getEquationString() != value.toString()){
                 blockItem->equation()->setEquationString(value.toString());
                 blockItem->equation()->eqStrToExpr();
@@ -94,7 +97,50 @@ BlockItem *BlockModel::blockFromQIndex(const QModelIndex &index) const
     if(index.isValid()){
         return static_cast<BlockItem *>(index.internalPointer());
     }
-    return m_proxyRoot;
+    return m_diagramDataSource->proxyRoot();
+}
+
+DiagramDataSource *BlockModel::diagramDataSource() const
+{
+    return m_diagramDataSource;
+}
+
+void BlockModel::setDiagramDataSource(DiagramDataSource *newDiagramDataSource)
+{
+    //    if (m_diagramDataSource == diagramDataSource)
+    //        return;
+
+    //    m_diagramDataSource = diagramDataSource;
+    //    emit diagramDataSourceChanged(m_diagramDataSource);
+    beginResetModel();
+    if(m_diagramDataSource && m_signalConnected){
+        m_diagramDataSource->disconnect(this);
+    }
+
+    m_diagramDataSource = newDiagramDataSource;
+
+    connect(m_diagramDataSource,&DiagramDataSource::beginResetBlockModel,this,[=](){
+        beginResetModel();
+    });
+    connect(m_diagramDataSource,&DiagramDataSource::endResetBlockModel,this,[=](){
+        endResetModel();
+    });
+    connect(m_diagramDataSource,&DiagramDataSource::beginInsertBlock,this,[=](){
+        const int index = m_diagramDataSource->proxyRoot()->childCount();
+        beginInsertRows(QModelIndex(),index,index);
+    });
+    connect(m_diagramDataSource,&DiagramDataSource::endInsertBlock,this,[=](){
+        endInsertRows();
+    });
+    connect(m_diagramDataSource,&DiagramDataSource::beginRemoveBlock,this,[=](int index){
+        beginRemoveRows(QModelIndex(),index,index);
+    });
+    connect(m_diagramDataSource,&DiagramDataSource::endRemoveBlock,this,[=](){
+        endRemoveRows();
+    });
+
+    m_signalConnected = true;
+    endResetModel();
 }
 
 Qt::ItemFlags BlockModel::flags(const QModelIndex &index) const
@@ -130,7 +176,7 @@ QModelIndex BlockModel::parent(const QModelIndex &index) const
     }
     BlockItem *proxyChildItem = static_cast<BlockItem*>(index.internalPointer());
     BlockItem *proxyParentItem = static_cast<BlockItem *>(proxyChildItem->proxyParent());
-    if (proxyParentItem == m_proxyRoot){
+    if (proxyParentItem == m_diagramDataSource->proxyRoot()){
         return QModelIndex();
     }
     return createIndex(proxyParentItem->childNumber(), 0, proxyParentItem);
@@ -153,7 +199,7 @@ QVariantList BlockModel::roles() const
 //May not be necessary unless need to create roles dynamically
 void BlockModel::setRoles(QVariantList roles)
 {
-    static int nextRole = BlockItem::ModelRoles::EquationRole + 1;
+    static int nextRole = EquationRole + 1;
     for(QVariant role : roles) {
         qDebug()<<role;
         m_roles.insert(nextRole, role.toByteArray());
@@ -180,6 +226,7 @@ QModelIndex BlockModel::qIndexOfBlock(BlockItem *item)
     return result;
 }
 
+/*
 void BlockModel::appendBlock(int x, int y)
 {
     int pos = m_proxyRoot->childCount();
@@ -195,7 +242,13 @@ void BlockModel::appendBlock(int x, int y)
     //printProxyTree(m_proxyRoot,0);
     //printFullTree(m_root,0);
 }
-
+*/
+/*
+BlockItem *BlockModel::thisBlock(int modelIndex){
+    return m_proxyRoot->child(modelIndex);
+}
+*/
+/*
 void BlockModel::downLevel(int modelIndex)
 {
     beginResetModel();
@@ -204,7 +257,8 @@ void BlockModel::downLevel(int modelIndex)
     //printProxyTree(m_proxyRoot,0);
     //printFullTree(m_root,0);
 }
-
+*/
+/*
 void BlockModel::upLevel()
 {
     if(m_proxyRoot->parentItem()!=nullptr){
@@ -216,7 +270,8 @@ void BlockModel::upLevel()
     //printProxyTree(m_proxyRoot,0);
     //printFullTree(m_root,0);
 }
-
+*/
+/*
 void BlockModel::printProxyTree(BlockItem *rootItem, int depth)
 {
     //iterate through all children and load equations then recurse to children
@@ -233,7 +288,8 @@ void BlockModel::printProxyTree(BlockItem *rootItem, int depth)
         printProxyTree(rootItem->proxyChild(i),depth+1);
     }
 }
-
+*/
+/*
 void BlockModel::printFullTree(BlockItem * rootItem, int depth)
 {
     //iterate through all children and load equations then recurse to children
@@ -254,7 +310,8 @@ void BlockModel::printFullTree(BlockItem * rootItem, int depth)
         printFullTree(rootItem->child(i),depth+1);
     }
 }
-
+*/
+/*
 void BlockModel::printBlock(int modelIndex)
 {
     qDebug()<<"ID: " << m_proxyRoot->child(modelIndex)->id();
@@ -264,7 +321,8 @@ void BlockModel::printBlock(int modelIndex)
            << m_proxyRoot->child(modelIndex)->blockYPosition();
     qDebug()<<"Equation: " << m_proxyRoot->child(modelIndex)->equationString();
 }
-
+*/
+/*
 int BlockModel::distanceFromRoot() const
 {
     int count = 0;
@@ -283,12 +341,14 @@ int BlockModel::distanceFromRoot() const
     return count;
 
 }
-
+*/
+/*
 int BlockModel::numChildren(int modelIndex)
 {
     return m_proxyRoot->child(modelIndex)->childCount();
 }
-
+*/
+/*
 void BlockModel::deleteBlock(int modelIndex)
 {
     beginResetModel();
@@ -296,7 +356,8 @@ void BlockModel::deleteBlock(int modelIndex)
     m_proxyRoot->removeProxyChild(modelIndex);
     endResetModel();
 }
-
+*/
+/*
 void BlockModel::addPort(int modelIndex, int side, int position)
 {
     //delete row then insert to reset only the affect block
@@ -308,22 +369,26 @@ void BlockModel::addPort(int modelIndex, int side, int position)
     m_proxyRoot->child(modelIndex)->addPort(side,position);
     endInsertRows();
 }
-
+*/
+/*
 int BlockModel::portCount( int modelIndex )
 {
     return m_proxyRoot->proxyChild(modelIndex)->portCount();
 }
-
+*/
+/*
 int BlockModel::portSide(int modelIndex, int portNum)
 {
     return m_proxyRoot->proxyChild(modelIndex)->portSide(portNum);
 }
-
+*/
+/*
 int BlockModel::portPosition(int modelIndex, int portNum)
 {
     return m_proxyRoot->proxyChild(modelIndex)->portPosition(portNum);
 }
-
+*/
+/*
 void BlockModel::newProxyRoot(BlockItem *newProxyRoot)
 {
     // set old proxy children parents to nullptr (point to nothing)
@@ -347,7 +412,8 @@ void BlockModel::newProxyRoot(BlockItem *newProxyRoot)
         m_proxyRoot->proxyChild(i)->clearProxyChildren();
     }
 }
-
+*/
+/*
 void BlockModel::solveEquations(){
     try {
         EquationSolver equationSolver(&m_context);
@@ -357,7 +423,8 @@ void BlockModel::solveEquations(){
     }
 
 }
-
+*/
+/*
 int BlockModel::maxBlockX()
 {
     int blockX = 0;
@@ -369,7 +436,8 @@ int BlockModel::maxBlockX()
     }
     return blockX;
 }
-
+*/
+/*
 int BlockModel::maxBlockY()
 {
     int blockY = 0;
@@ -381,3 +449,4 @@ int BlockModel::maxBlockY()
     }
     return blockY;
 }
+*/

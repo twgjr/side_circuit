@@ -6,13 +6,12 @@ import QtQuick.Dialogs 1.2
 import com.company.models 1.0
 
 Rectangle{
-    id: blkRectId
+    id:blkRectId
     property int idText: model.id
     property string descriptionText: model.description
     property int xPosition: model.blockXPosition
     property int yPosition: model.blockYPosition
     property string equationText: model.equationString
-    property bool selected: false
 
     color: "beige"
     border.color: "black"
@@ -21,8 +20,13 @@ Rectangle{
     height: 100; width:100
     x: xPosition
     y: yPosition
-
     Component.onCompleted: {
+        //console.log(blockModel.thisBlock(model.index))
+        //console.log(blockModel)
+        //console.log(portModel)
+        //console.log(model.index)
+        //portModel.setBlockParent(blockModel.thisBlock(model.index))
+
     }
     Component.onDestruction: {}
 
@@ -41,7 +45,17 @@ Rectangle{
         anchors.verticalCenter: parent.bottom
     }
 
-    PortModel{ id: portModel}
+    PortModel{
+        id: portModel
+        Component.onCompleted: {
+//            console.log(blockModel.thisBlock(model.index))
+//            console.log(blockModel)
+//            console.log(portModel)
+//            portModel.setBlockParent(blockModel.thisBlock(model.index))
+            console.log(model.thisBlock)
+            portModel.setBlockParent(model.thisBlock)
+        }
+    }
     Repeater{
         id : portRepeater
         height: parent.height
@@ -61,3 +75,4 @@ Rectangle{
         }
     }
 } //Rectangle
+

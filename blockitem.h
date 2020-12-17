@@ -25,22 +25,13 @@ class BlockItem : public QObject
     Q_PROPERTY(int blockHeight READ blockHeight WRITE setblockHeight)
     Q_PROPERTY(int numChildren READ childCount)
     Q_PROPERTY(QString equationString READ equationString WRITE setEquationString)
+    Q_PROPERTY(BlockItem * thisBlock READ thisBlock)
 
 public:
     explicit BlockItem(z3::context * context,
                        BlockItem *parent = nullptr,
                        QObject * qobjparent = nullptr);
     ~BlockItem();
-
-    enum ModelRoles{
-        DescriptionDataRole = Qt::UserRole + 1,
-        IDDataRole,
-        BlockXPositionRole,
-        BlockYPositionRole,
-        blockWidthRole,
-        blockHeightRole,
-        EquationRole,
-    };
 
     enum BlockType{
         Block,
@@ -106,6 +97,11 @@ public:
     void setblockHeight(int blockHeight);
 
 
+    BlockItem* thisBlock() const
+    {
+        return m_thisBlock;
+    }
+
 signals:
 private:
     //object pointers
@@ -125,6 +121,8 @@ private:
     Equation m_equation;
     int m_blockWidth;
     int m_blockHeight;
+
+    BlockItem* m_thisBlock;
 };
 
 #endif // BLOCKITEM_H

@@ -13,7 +13,12 @@ Window {
     title: qsTr("Diagram Solver")
     visibility: "Maximized"
 
-    BlockModel{id:blockModel}
+    DiagramDataSource{ id: diagramDataSourceId }
+
+    BlockModel{
+        id:blockModel
+        diagramDataSource: diagramDataSourceId
+    }
 
     ColumnLayout{
         id:columnLayoutId
@@ -25,7 +30,7 @@ Window {
                 id: textLevelId
                 text : "Model Level: " + flickableId.leveltext
             }
-        }
+        }//RowLayout
 
         // wrap Repeater in flickable to enable both h and v panning
         RowLayout{
@@ -48,8 +53,6 @@ Window {
                 clip: true
                 ScrollBar.horizontal: ScrollBar { id: hbar ; active: true; visible: true ; policy: ScrollBar.AlwaysOn }
                 ScrollBar.vertical: ScrollBar { id: vbar; active: true; visible: true ; policy: ScrollBar.AlwaysOn }
-
-
 
                 MouseArea{
                     id: diagramMouseArea
@@ -82,7 +85,8 @@ Window {
                     height: parent.height
                     width: parent.width
                     model : blockModel
-                    delegate: QBlock{}
+                    delegate: Block{}
+
                 }
             } //Flickable
         } //RowLayout

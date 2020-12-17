@@ -14,17 +14,33 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
-#include "blockitem.h"
-#include "equationsolver.h"
+//#include "blockitem.h"
+//#include "equationsolver.h"
+#include "diagramdatasource.h"
 
 class BlockModel : public QAbstractItemModel
 {
     Q_OBJECT
-    Q_PROPERTY(QVariantList roles READ roles WRITE setRoles NOTIFY rolesChanged)
+   // Q_PROPERTY(QVariantList roles READ roles WRITE setRoles NOTIFY rolesChanged)
+    Q_PROPERTY(DiagramDataSource* diagramDataSource
+               READ diagramDataSource
+               WRITE setDiagramDataSource
+               NOTIFY diagramDataSourceChanged)
 
 public:
-    explicit BlockModel(//const QStringList &headers,
-                        QObject *parent = nullptr);
+
+    enum ModelRoles{
+        DescriptionDataRole = Qt::UserRole + 1,
+        IDDataRole,
+        BlockXPositionRole,
+        BlockYPositionRole,
+        blockWidthRole,
+        blockHeightRole,
+        EquationRole,
+        ThisRole
+    };
+
+    explicit BlockModel(QObject *parent = nullptr);
     ~BlockModel();
 
     // QAbstractItemModel read-only functions
@@ -42,12 +58,6 @@ public:
     bool setData(const QModelIndex &index,
                  const QVariant &value,
                  int role) override;
-//    bool insertRows(int position,
-//                    int rows,
-//                    const QModelIndex &parent = QModelIndex()) override;
-//    bool removeRows(int position,
-//                    int rows,
-//                    const QModelIndex &parent = QModelIndex()) override;
 
     //functions for working with roles
     QHash<int,QByteArray> roleNames() const override;
@@ -57,41 +67,48 @@ public:
     QModelIndex qIndexOfBlock(BlockItem *item);
     BlockItem * blockFromQIndex(const QModelIndex &index) const;
 
-    void newProxyRoot(BlockItem *newProxyRoot);
-    void cloneItemComplete(BlockItem * newItem, BlockItem * oldItem);
-    void cloneItemData(BlockItem * newItem, BlockItem * oldItem);
-    Q_INVOKABLE void appendBlock(int x = 0, int y = 0);
-    Q_INVOKABLE void downLevel(int modelIndex);
-    Q_INVOKABLE void upLevel();
-    Q_INVOKABLE void printProxyTree(BlockItem * parentItem, int depth);
-    Q_INVOKABLE void printFullTree(BlockItem * rootItem, int depth);
-    Q_INVOKABLE void printBlock(int modelIndex);
-    Q_INVOKABLE int distanceFromRoot() const;
-    Q_INVOKABLE int numChildren(int modelIndex);
-    Q_INVOKABLE void deleteBlock(int modelIndex);
-    Q_INVOKABLE void addPort(int modelIndex, int side, int position);
-    Q_INVOKABLE int portCount(int modelIndex);
-    Q_INVOKABLE int portSide(int modelIndex, int portNum);
-    Q_INVOKABLE int portPosition(int modelIndex, int portNum);
+//    void newProxyRoot(BlockItem *newProxyRoot);
 
-    /* EXPOSING EQUATIONSOLVER FUNCTIONS AS SLOTS TO QML VIA BLOCKDATASOURCE->BLOCKMODEL */
-    Q_INVOKABLE void solveEquations();
+//    Q_INVOKABLE void appendBlock(int x = 0, int y = 0);
+//    Q_INVOKABLE BlockItem *thisBlock(int modelIndex);
+//    Q_INVOKABLE void downLevel(int modelIndex);
+//    Q_INVOKABLE void upLevel();
+//    Q_INVOKABLE void printProxyTree(BlockItem * parentItem, int depth);
+//    Q_INVOKABLE void printFullTree(BlockItem * rootItem, int depth);
+//    Q_INVOKABLE void printBlock(int modelIndex);
+//    Q_INVOKABLE int distanceFromRoot() const;
+//    Q_INVOKABLE int numChildren(int modelIndex);
+//    Q_INVOKABLE void deleteBlock(int modelIndex);
+//    Q_INVOKABLE void addPort(int modelIndex, int side, int position);
+//    Q_INVOKABLE int portCount(int modelIndex);
+//    Q_INVOKABLE int portSide(int modelIndex, int portNum);
+//    Q_INVOKABLE int portPosition(int modelIndex, int portNum);
 
-    /* FUNCTIONS AS SLOTS TO QML TO AID IN QUI OPERATIONS */
-    Q_INVOKABLE int maxBlockX();
-    Q_INVOKABLE int maxBlockY();
+//    /* EXPOSING EQUATIONSOLVER FUNCTIONS AS SLOTS TO QML VIA BLOCKDATASOURCE->BLOCKMODEL */
+//    Q_INVOKABLE void solveEquations();
+
+//    /* FUNCTIONS AS SLOTS TO QML TO AID IN QUI OPERATIONS */
+//    Q_INVOKABLE int maxBlockX();
+//    Q_INVOKABLE int maxBlockY();
+
+    DiagramDataSource* diagramDataSource() const;
+
+
+    void setDiagramDataSource(DiagramDataSource* diagramDataSource);
 
 signals:
     void rolesChanged();
 
+    void diagramDataSourceChanged(DiagramDataSource* newDiagramDataSource);
+
 private:
-    //void setupModelData(const QStringList &lines, BlockItem *parent);
-    BlockItem * getItemFromQIndex(const QModelIndex &index) const;
-    BlockItem * m_root;
+//    BlockItem * m_root;
     QHash<int, QByteArray> m_roles;
-    z3::context m_context;
+//    z3::context m_context;
     //proxy model to display in GUI; only one level of children at a time
-    BlockItem * m_proxyRoot; //proxy model is slow, need to implement show/hide for source model instead, but works for now
+//    BlockItem * m_proxyRoot; //proxy model is slow, need to implement show/hide for source model instead, but works for now
+    DiagramDataSource * m_diagramDataSource;
+    bool m_signalConnected;
 };
 
 #endif // BLOCKMODEL_H

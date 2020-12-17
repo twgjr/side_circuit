@@ -9,6 +9,7 @@ CONFIG += c++11
 SOURCES += \
         blockitem.cpp \
         blockmodel.cpp \
+        diagramdatasource.cpp \
         equation.cpp \
         equationparser.cpp \
         equationsolver.cpp \
@@ -44,6 +45,7 @@ else:win32-g++: PRE_TARGETDEPS += $$PWD/../libbuilds/z3/z3-4.8.9-x64-win/bin/lib
 HEADERS += \
     blockitem.h \
     blockmodel.h \
+    diagramdatasource.h \
     equation.h \
     equationparser.h \
     equationsolver.h \

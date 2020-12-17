@@ -2,12 +2,14 @@
 
 PortModel::PortModel(QObject *parent)
     : QAbstractListModel(parent),
-      m_parent(nullptr)
+      m_blockParent(nullptr)
 {
     //set the basic roles for access of item properties in QML
     m_roles[PortModel::SideRole]="side";
     m_roles[PortModel::PositionRole]="position";
     m_roles[PortModel::NameRole]="name";
+
+    qDebug()<<"Port model created";
 }
 
 int PortModel::rowCount(const QModelIndex &parent) const
@@ -76,12 +78,27 @@ QHash<int, QByteArray> PortModel::roleNames() const
 void PortModel::addPort(int side, int position)
 {
     Port * portItem = new Port();
-    portItem->setBlockParent(m_parent);
-    portItem->setParent(m_parent);
+    portItem->setBlockParent(m_blockParent);
+    portItem->setParent(m_blockParent);
     portItem->setSide(side);
     portItem->setPosition(position);
     const int index = m_ports.size();
     beginInsertRows(QModelIndex(),index,index);
     m_ports.append(portItem);
     endInsertRows();
+}
+
+BlockItem *PortModel::blockParent() const
+{
+    return m_blockParent;
+}
+
+void PortModel::setBlockParent(BlockItem *blockParent)
+{
+    if (m_blockParent == blockParent)
+        qDebug()<<"Port model parent: "<<m_blockParent;
+        return;
+
+    m_blockParent = blockParent;
+    qDebug()<<"Port model parent: "<<m_blockParent;
 }

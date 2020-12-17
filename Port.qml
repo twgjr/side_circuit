@@ -8,9 +8,11 @@ import "portScript.js" as PortScript
 
 Rectangle {
     id: portId
+
     property int sideNum: model.side
     property int positionNum: model.position
     property string nameText: model.name
+
 
     width: 10
     height: width
@@ -23,9 +25,6 @@ Rectangle {
     property int rightBound: blkRectId.width - offSet
     property int topBound: -offSet
     property int bottomBound: blkRectId.height - offSet
-
-    property var oldWidth
-    property var oldHeight
 
     Component.onCompleted: {
         switch (sideNum){
@@ -49,6 +48,7 @@ Rectangle {
             portId.y = positionNum
             portId.anchors.horizontalCenter = blkRectId.right
             break;
+
         }
     }
 
@@ -62,5 +62,21 @@ Rectangle {
         drag.maximumX: rightBound-offSet
         drag.minimumY: topBound+offSet
         drag.maximumY: bottomBound-offSet
+
+        onClicked: {
+            console.log("c++...")
+            console.log("model.side: "+model.side)
+            console.log("model.position: "+model.position)
+            console.log("model.name: "+model.name)
+            console.log("QML...")
+            console.log("sideNum: "+sideNum)
+            console.log("positionNum: "+positionNum)
+            console.log("nameText: "+nameText)
+        }
+    }
+    Label{
+        text: nameText
+        anchors.top: parent.bottom
+        anchors.left: parent.right
     }
 }

@@ -1,5 +1,6 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include "diagramdatasource.h"
 #include "blockmodel.h"
 #include "portmodel.h"
 
@@ -14,6 +15,7 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
 
+    qmlRegisterType<DiagramDataSource>("com.company.models",1,0,"DiagramDataSource");
     qmlRegisterType<BlockModel>("com.company.models",1,0,"BlockModel");
     qmlRegisterType<PortModel>("com.company.models",1,0,"PortModel");
 

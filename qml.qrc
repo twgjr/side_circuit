@@ -1,7 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>main.qml</file>
-        <file>QBlock.qml</file>
+        <file>Block.qml</file>
         <file>BlockCornerMouseArea.qml</file>
         <file>BlockMouseArea.qml</file>
         <file>Port.qml</file>

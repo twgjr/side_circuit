@@ -13,15 +13,17 @@ BlockItem::BlockItem(z3::context *context,
     m_description(""),
     m_blockXPosition(0),
     m_blockYPosition(0),
-    m_equation(context)
+    m_equation(context),
+    m_thisBlock(this)
 
 {
-    //qDebug()<<"Block Item created.";
+    qDebug()<<"Block Item created";
+    qDebug()<<this;
 }
 
 BlockItem::~BlockItem()
 {
-    //qDebug()<<"Block Item destroyed.";
+    qDebug()<<"Block Item destroyed";
 }
 
 BlockItem *BlockItem::parentItem() {return m_parentItem;}

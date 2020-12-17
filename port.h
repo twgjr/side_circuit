@@ -29,6 +29,8 @@ public:
     QString name() const;
     void setName(QString name);
 
+
+
 signals:
 
 private:
@@ -38,6 +40,7 @@ private:
     int m_position;
     QString m_name;
     bool isConnected;
+    int m_id;
 };
 
 #endif // PORT_H
