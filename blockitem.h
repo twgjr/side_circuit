@@ -64,7 +64,7 @@ public:
 
 
     // connecting blocks
-    QVector<Port *> ports() const;
+    QVector<Port *> ports();
     void addPort(int side, int position);
     int portCount();
     int portSide(int portNum);
@@ -96,13 +96,19 @@ public:
     void setBlockWidth(int blockWidth);
     void setblockHeight(int blockHeight);
 
-
     BlockItem* thisBlock() const
     {
         return m_thisBlock;
     }
 
 signals:
+    void beginResetPortModel();
+    void endResetPortModel();
+    void beginInsertPort();
+    void endInsertPort();
+    void beginRemovePort(int blockIndex);
+    void endRemovePort();
+
 private:
     //object pointers
     BlockItem * m_parentItem;

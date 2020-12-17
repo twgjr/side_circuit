@@ -14,6 +14,8 @@ public:
 
     BlockItem * proxyRoot();
 
+    Q_INVOKABLE BlockItem * blockDataSource(int index);
+
     void newProxyRoot(BlockItem *newProxyRoot);
 
     Q_INVOKABLE void appendBlock(int x = 0, int y = 0);

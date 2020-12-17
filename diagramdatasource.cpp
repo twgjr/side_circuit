@@ -8,6 +8,8 @@ DiagramDataSource::DiagramDataSource(QObject *parent) : QObject(parent)
 
     appendBlock(50,50);
     appendBlock(200,200);
+    addPort(0,0,50);
+    addPort(1,3,50);
 }
 
 DiagramDataSource::~DiagramDataSource()
@@ -17,6 +19,11 @@ DiagramDataSource::~DiagramDataSource()
 
 BlockItem *DiagramDataSource::proxyRoot(){
     return m_proxyRoot;
+}
+
+BlockItem *DiagramDataSource::blockDataSource(int index)
+{
+    return m_proxyRoot->child(index);
 }
 
 void DiagramDataSource::newProxyRoot(BlockItem *newProxyRoot)

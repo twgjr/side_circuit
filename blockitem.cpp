@@ -106,7 +106,7 @@ void BlockItem::removeProxyChild(int modelIndex)
     m_proxyChildren.remove(modelIndex);
 }
 
-QVector<Port *> BlockItem::ports() const {return m_ports;}
+QVector<Port *> BlockItem::ports() {return m_ports;}
 void BlockItem::addPort(int side, int position){
     Port * newPort = new Port(this);
     BlockItem * thisItem = static_cast<BlockItem*>(this);

@@ -47,14 +47,15 @@ Rectangle{
 
     PortModel{
         id: portModel
-        Component.onCompleted: {
-//            console.log(blockModel.thisBlock(model.index))
-//            console.log(blockModel)
-//            console.log(portModel)
-//            portModel.setBlockParent(blockModel.thisBlock(model.index))
-            console.log(model.thisBlock)
-            portModel.setBlockParent(model.thisBlock)
-        }
+        blockDataSource: diagramDataSourceId.blockDataSource(model.index)
+//        Component.onCompleted: {
+////            console.log(blockModel.thisBlock(model.index))
+////            console.log(blockModel)
+////            console.log(portModel)
+////            portModel.setBlockParent(blockModel.thisBlock(model.index))
+//            console.log(model.thisBlock)
+//            portModel.setBlockParent(model.thisBlock)
+//        }
     }
     Repeater{
         id : portRepeater
