@@ -13,7 +13,6 @@ Rectangle {
     property int positionNum: model.position
     property string nameText: model.name
 
-
     width: 10
     height: width
     radius: width/2
@@ -48,12 +47,12 @@ Rectangle {
             portId.y = positionNum
             portId.anchors.horizontalCenter = blkRectId.right
             break;
-
         }
     }
 
     MouseArea {
         id: portMouseArea
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
         anchors.fill: parent
         drag.target: parent
         drag.threshold: 0
@@ -64,14 +63,9 @@ Rectangle {
         drag.maximumY: bottomBound-offSet
 
         onClicked: {
-            console.log("c++...")
-            console.log("model.side: "+model.side)
-            console.log("model.position: "+model.position)
-            console.log("model.name: "+model.name)
-            console.log("QML...")
-            console.log("sideNum: "+sideNum)
-            console.log("positionNum: "+positionNum)
-            console.log("nameText: "+nameText)
+            if(mouse.button & Qt.RightButton){
+                portContextMenu.popup()
+            }
         }
     }
     Label{
@@ -79,4 +73,13 @@ Rectangle {
         anchors.top: parent.bottom
         anchors.left: parent.right
     }
+    Menu {
+        id: portContextMenu
+        MenuItem {
+            text: "Delete"
+            onTriggered: {
+                portDataSourceId.deletePort(model.index)
+            }
+        }
+    } //Menu
 }

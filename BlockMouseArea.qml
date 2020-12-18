@@ -15,8 +15,8 @@ MouseArea{
 
     onDoubleClicked: {
         if(mouse.button & Qt.LeftButton){
-            flickableId.leveltext = diagramDataSourceId.distanceFromRoot()+1
-            diagramDataSourceId.downLevel(model.index)
+            flickableId.leveltext = blockDataSourceId.distanceFromRoot()+1
+            blockDataSourceId.downLevel(model.index)
         }
     }
     // single click and release
@@ -33,8 +33,8 @@ MouseArea{
         model.blockYPosition = blkRectId.y
         xPosition = model.blockXPosition
         yPosition = model.blockYPosition
-        flickableId.maxFlickX = Math.max(diagramDataSourceId.maxBlockX() + width*2, flickableId.width)
-        flickableId.maxFlickY = Math.max(diagramDataSourceId.maxBlockY() + height*2, flickableId.height)
+        flickableId.maxFlickX = Math.max(blockDataSourceId.maxBlockX() + width*2, flickableId.width)
+        flickableId.maxFlickY = Math.max(blockDataSourceId.maxBlockY() + height*2, flickableId.height)
     }
 
     Menu {
@@ -77,19 +77,22 @@ MouseArea{
                     position = posY
                 }
                 //PortScript.createPortObjects(side,position)
-                portModel.addPort(side,position)
+                blockDataSourceId.addPort(model.index,side,position)
             }
         }//MenuItem
         MenuItem {
             text: "Down Level"
             onTriggered: {
-                flickableId.leveltext = diagramDataSourceId.distanceFromRoot()+1
-                diagramDataSourceId.downLevel(model.index)
+                flickableId.leveltext = blockDataSourceId.distanceFromRoot()+1
+                blockDataSourceId.downLevel(model.index)
             }
         }
         MenuItem {
             text: "Delete"
-            onTriggered: diagramDataSourceId.deleteBlock(model.index)
+            onTriggered: {
+                console.log(model.index)
+                blockDataSourceId.deleteBlock(model.index)
+            }
         }
     } //Menu
 }

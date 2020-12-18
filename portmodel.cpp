@@ -2,8 +2,7 @@
 
 PortModel::PortModel(QObject *parent)
     : QAbstractListModel(parent),
-      m_signalConnected(false)//,
-      //m_blockParent(nullptr)
+      m_signalConnected(false)
 {
     //set the basic roles for access of item properties in QML
     m_roles[PortModel::SideRole]="side";
@@ -13,6 +12,11 @@ PortModel::PortModel(QObject *parent)
     qDebug()<<"Port model created";
 }
 
+PortModel::~PortModel()
+{
+    qDebug()<<"Port model destroyed";
+}
+
 int PortModel::rowCount(const QModelIndex &parent) const
 {
     // For list models only the root node (an invalid parent) should return the list's size. For all
@@ -20,8 +24,7 @@ int PortModel::rowCount(const QModelIndex &parent) const
     if (parent.isValid())
         return 0;
 
-    // FIXME: Implement me!
-    return m_blockDataSource->portCount();
+    return m_portDataSource->parentBlock()->portCount();
 }
 
 QVariant PortModel::data(const QModelIndex &index, int role) const
@@ -29,7 +32,7 @@ QVariant PortModel::data(const QModelIndex &index, int role) const
     if (!index.isValid())
         return QVariant();
 
-    Port * portItem = m_blockDataSource->ports()[index.row()];
+    Port * portItem = m_portDataSource->parentBlock()->ports()[index.row()];
     QByteArray roleName = m_roles[role];
     QVariant name = portItem->property(roleName.data());
     return name;
@@ -38,25 +41,25 @@ QVariant PortModel::data(const QModelIndex &index, int role) const
 bool PortModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     if (data(index, role) != value) {
-            //don't do anything if the data being submitted did not change
-            Port * portItem = m_blockDataSource->ports()[index.row()];
-            switch (role) {
-            case SideRole:
-                if(portItem->side() != value.toInt()){
-                    portItem->setSide(value.toInt());
-                }
-                break;
-            case PositionRole:
-                if(portItem->position() != value.toInt()){
-                    portItem->setPosition(value.toInt());
-                }
-                break;
-            case NameRole:
-                if(portItem->name() != value.toString()){
-                    portItem->setName(value.toString());
-                }
-                break;
+        //don't do anything if the data being submitted did not change
+        Port * portItem = m_portDataSource->parentBlock()->ports()[index.row()];
+        switch (role) {
+        case SideRole:
+            if(portItem->side() != value.toInt()){
+                portItem->setSide(value.toInt());
             }
+            break;
+        case PositionRole:
+            if(portItem->position() != value.toInt()){
+                portItem->setPosition(value.toInt());
+            }
+            break;
+        case NameRole:
+            if(portItem->name() != value.toString()){
+                portItem->setName(value.toString());
+            }
+            break;
+        }
         emit dataChanged(index, index, QVector<int>() << role);
         return true;
     }
@@ -68,7 +71,7 @@ Qt::ItemFlags PortModel::flags(const QModelIndex &index) const
     if (!index.isValid())
         return Qt::NoItemFlags;
 
-    return Qt::ItemIsEditable; // FIXME: Implement me!
+    return Qt::ItemIsEditable;
 }
 
 QHash<int, QByteArray> PortModel::roleNames() const
@@ -76,42 +79,37 @@ QHash<int, QByteArray> PortModel::roleNames() const
     return m_roles;
 }
 
-BlockItem *PortModel::blockDataSource() const
+PortDataSource *PortModel::portDataSource()
 {
-    return m_blockDataSource;
+    return m_portDataSource;
 }
 
-void PortModel::setBlockDataSource(BlockItem *newBlockDataSource)
+void PortModel::setPortDataSource(PortDataSource* portDataSource)
 {
-//    if (m_blockDataSource == blockDataSource)
-//        return;
-
-//    m_blockDataSource = blockDataSource;
-//    emit blockDataSourceChanged(m_blockDataSource);
     beginResetModel();
-    if(m_blockDataSource && m_signalConnected){
-        m_blockDataSource->disconnect(this);
+    if(m_portDataSource && m_signalConnected){
+        m_portDataSource->disconnect(this);
     }
 
-    m_blockDataSource = newBlockDataSource;
+    m_portDataSource = portDataSource;
 
-    connect(m_blockDataSource,&BlockItem::beginResetPortModel,this,[=](){
+    connect(m_portDataSource,&PortDataSource::beginResetPortModel,this,[=](){
         beginResetModel();
     });
-    connect(m_blockDataSource,&BlockItem::endResetPortModel,this,[=](){
+    connect(m_portDataSource,&PortDataSource::endResetPortModel,this,[=](){
         endResetModel();
     });
-    connect(m_blockDataSource,&BlockItem::beginInsertPort,this,[=](){
-        const int index = m_blockDataSource->portCount();
+    connect(m_portDataSource,&PortDataSource::beginInsertPort,this,[=](int index){
+        //const int index = m_portDataSource->parentBlock()->portCount();
         beginInsertRows(QModelIndex(),index,index);
     });
-    connect(m_blockDataSource,&BlockItem::endInsertPort,this,[=](){
+    connect(m_portDataSource,&PortDataSource::endInsertPort,this,[=](){
         endInsertRows();
     });
-    connect(m_blockDataSource,&BlockItem::beginRemovePort,this,[=](int index){
+    connect(m_portDataSource,&PortDataSource::beginRemovePort,this,[=](int index){
         beginRemoveRows(QModelIndex(),index,index);
     });
-    connect(m_blockDataSource,&BlockItem::endRemovePort,this,[=](){
+    connect(m_portDataSource,&PortDataSource::endRemovePort,this,[=](){
         endRemoveRows();
     });
 

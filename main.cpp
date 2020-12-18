@@ -1,7 +1,8 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include "diagramdatasource.h"
+#include "blockdatasource.h"
 #include "blockmodel.h"
+#include "portdatasource.h"
 #include "portmodel.h"
 
 int main(int argc, char *argv[])
@@ -15,9 +16,10 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
 
-    qmlRegisterType<DiagramDataSource>("com.company.models",1,0,"DiagramDataSource");
+    qmlRegisterType<BlockDataSource>("com.company.models",1,0,"BlockDataSource");
     qmlRegisterType<BlockModel>("com.company.models",1,0,"BlockModel");
     qmlRegisterType<PortModel>("com.company.models",1,0,"PortModel");
+    qmlRegisterType<PortDataSource>("com.company.models",1,0,"PortDataSource");
 
 
     const QUrl url(QStringLiteral("qrc:/main.qml"));

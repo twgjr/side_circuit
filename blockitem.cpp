@@ -13,12 +13,10 @@ BlockItem::BlockItem(z3::context *context,
     m_description(""),
     m_blockXPosition(0),
     m_blockYPosition(0),
-    m_equation(context),
-    m_thisBlock(this)
-
+    m_equation(context)
 {
     qDebug()<<"Block Item created";
-    qDebug()<<this;
+    //qDebug()<<this;
 }
 
 BlockItem::~BlockItem()
@@ -114,6 +112,12 @@ void BlockItem::addPort(int side, int position){
     newPort->setSide(side);
     newPort->setPosition(position);
     m_ports.append(newPort);
+}
+
+void BlockItem::removePort(int portIndex)
+{
+    delete m_ports[portIndex];
+    m_ports.remove(portIndex);
 }
 
 int BlockItem::portCount()

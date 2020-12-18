@@ -3,7 +3,7 @@
 BlockModel::BlockModel(QObject *parent) : QAbstractItemModel(parent),
     m_signalConnected(false)
 {
-    qDebug()<<"BlockModel object created.";
+    //qDebug()<<"BlockModel object created.";
 
     //    m_root = new BlockItem(&m_context,nullptr,this);  // real root is empty
     //    m_proxyRoot = m_root;//new BlockItem(&m_context,nullptr,this);
@@ -23,7 +23,7 @@ BlockModel::BlockModel(QObject *parent) : QAbstractItemModel(parent),
 
 BlockModel::~BlockModel()
 {
-    qDebug()<<"Block Model destroyed.";
+    //qDebug()<<"Block Model destroyed.";
 }
 
 //counts the number of data items in the data source
@@ -97,45 +97,40 @@ BlockItem *BlockModel::blockFromQIndex(const QModelIndex &index) const
     if(index.isValid()){
         return static_cast<BlockItem *>(index.internalPointer());
     }
-    return m_diagramDataSource->proxyRoot();
+    return m_blockDataSource->proxyRoot();
 }
 
-DiagramDataSource *BlockModel::diagramDataSource() const
+BlockDataSource *BlockModel::blockDataSource() const
 {
-    return m_diagramDataSource;
+    return m_blockDataSource;
 }
 
-void BlockModel::setDiagramDataSource(DiagramDataSource *newDiagramDataSource)
+void BlockModel::setBlockDataSource(BlockDataSource *newBlockDataSource)
 {
-    //    if (m_diagramDataSource == diagramDataSource)
-    //        return;
-
-    //    m_diagramDataSource = diagramDataSource;
-    //    emit diagramDataSourceChanged(m_diagramDataSource);
     beginResetModel();
-    if(m_diagramDataSource && m_signalConnected){
-        m_diagramDataSource->disconnect(this);
+    if(m_blockDataSource && m_signalConnected){
+        m_blockDataSource->disconnect(this);
     }
 
-    m_diagramDataSource = newDiagramDataSource;
+    m_blockDataSource = newBlockDataSource;
 
-    connect(m_diagramDataSource,&DiagramDataSource::beginResetBlockModel,this,[=](){
+    connect(m_blockDataSource,&BlockDataSource::beginResetBlockModel,this,[=](){
         beginResetModel();
     });
-    connect(m_diagramDataSource,&DiagramDataSource::endResetBlockModel,this,[=](){
+    connect(m_blockDataSource,&BlockDataSource::endResetBlockModel,this,[=](){
         endResetModel();
     });
-    connect(m_diagramDataSource,&DiagramDataSource::beginInsertBlock,this,[=](){
-        const int index = m_diagramDataSource->proxyRoot()->childCount();
+    connect(m_blockDataSource,&BlockDataSource::beginInsertBlock,this,[=](int index){
+        //const int index = m_blockDataSource->proxyRoot()->childCount();
         beginInsertRows(QModelIndex(),index,index);
     });
-    connect(m_diagramDataSource,&DiagramDataSource::endInsertBlock,this,[=](){
+    connect(m_blockDataSource,&BlockDataSource::endInsertBlock,this,[=](){
         endInsertRows();
     });
-    connect(m_diagramDataSource,&DiagramDataSource::beginRemoveBlock,this,[=](int index){
+    connect(m_blockDataSource,&BlockDataSource::beginRemoveBlock,this,[=](int index){
         beginRemoveRows(QModelIndex(),index,index);
     });
-    connect(m_diagramDataSource,&DiagramDataSource::endRemoveBlock,this,[=](){
+    connect(m_blockDataSource,&BlockDataSource::endRemoveBlock,this,[=](){
         endRemoveRows();
     });
 
@@ -176,7 +171,7 @@ QModelIndex BlockModel::parent(const QModelIndex &index) const
     }
     BlockItem *proxyChildItem = static_cast<BlockItem*>(index.internalPointer());
     BlockItem *proxyParentItem = static_cast<BlockItem *>(proxyChildItem->proxyParent());
-    if (proxyParentItem == m_diagramDataSource->proxyRoot()){
+    if (proxyParentItem == m_blockDataSource->proxyRoot()){
         return QModelIndex();
     }
     return createIndex(proxyParentItem->childNumber(), 0, proxyParentItem);

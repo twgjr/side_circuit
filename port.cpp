@@ -19,7 +19,7 @@ Port::~Port()
 void Port::setBlockParent(BlockItem *blockParent)
 {
     m_blockParent = blockParent;
-    qDebug()<<"port block parent: "<<blockParent;
+    //qDebug()<<"port block parent: "<<blockParent;
 }
 
 void Port::setSide(int side)

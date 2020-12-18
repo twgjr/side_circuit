@@ -20,14 +20,7 @@ Rectangle{
     height: 100; width:100
     x: xPosition
     y: yPosition
-    Component.onCompleted: {
-        //console.log(blockModel.thisBlock(model.index))
-        //console.log(blockModel)
-        //console.log(portModel)
-        //console.log(model.index)
-        //portModel.setBlockParent(blockModel.thisBlock(model.index))
-
-    }
+    Component.onCompleted: {}
     Component.onDestruction: {}
 
     property int mouseBorder: 3*border.width
@@ -45,18 +38,18 @@ Rectangle{
         anchors.verticalCenter: parent.bottom
     }
 
+    PortDataSource{
+        id: portDataSourceId
+        parentBlock: blockDataSourceId.proxyChild(model.index)
+    }
+
     PortModel{
         id: portModel
-        blockDataSource: diagramDataSourceId.blockDataSource(model.index)
-//        Component.onCompleted: {
-////            console.log(blockModel.thisBlock(model.index))
-////            console.log(blockModel)
-////            console.log(portModel)
-////            portModel.setBlockParent(blockModel.thisBlock(model.index))
-//            console.log(model.thisBlock)
-//            portModel.setBlockParent(model.thisBlock)
-//        }
+        portDataSource: portDataSourceId
     }
+
+    property int parentIndex: model.index
+
     Repeater{
         id : portRepeater
         height: parent.height

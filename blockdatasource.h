@@ -1,25 +1,24 @@
-#ifndef DIAGRAMDATASOURCE_H
-#define DIAGRAMDATASOURCE_H
+#ifndef BLOCKDATASOURCE_H
+#define BLOCKDATASOURCE_H
 
 #include <QObject>
 #include "blockitem.h"
 #include "equationsolver.h"
 
-class DiagramDataSource : public QObject
+class BlockDataSource : public QObject
 {
     Q_OBJECT
 public:
-    explicit DiagramDataSource(QObject *parent = nullptr);
-    ~DiagramDataSource();
+    explicit BlockDataSource(QObject *parent = nullptr);
+    ~BlockDataSource();
 
     BlockItem * proxyRoot();
+    Q_INVOKABLE BlockItem * proxyChild(int blockIndex);
 
-    Q_INVOKABLE BlockItem * blockDataSource(int index);
 
     void newProxyRoot(BlockItem *newProxyRoot);
 
     Q_INVOKABLE void appendBlock(int x = 0, int y = 0);
-    Q_INVOKABLE BlockItem *thisBlock(int blockIndex);
     Q_INVOKABLE void downLevel(int modelIndex);
     Q_INVOKABLE void upLevel();
     Q_INVOKABLE void printProxyTree(BlockItem * rootItem, int depth);
@@ -28,11 +27,14 @@ public:
     Q_INVOKABLE int distanceFromRoot() const;
     Q_INVOKABLE int numChildren(int blockIndex);
     Q_INVOKABLE void deleteBlock(int blockIndex);
+
     Q_INVOKABLE void addPort(int blockIndex, int side, int position);
+    /*
+    Q_INVOKABLE void deletePort(int portIndex, int parentIndex);
     Q_INVOKABLE int portCount(int blockIndex);
     Q_INVOKABLE int portSide(int blockIndex, int portNum);
     Q_INVOKABLE int portPosition(int blockIndex, int portNum);
-
+    */
     /* EXPOSING EQUATIONSOLVER FUNCTIONS AS SLOTS TO QML VIA BLOCKDATASOURCE->BLOCKMODEL */
     Q_INVOKABLE void solveEquations();
 
@@ -43,14 +45,16 @@ public:
 signals:
     void beginResetBlockModel();
     void endResetBlockModel();
-    void beginInsertBlock();
+    void beginInsertBlock(int blockIndex);
     void endInsertBlock();
     void beginRemoveBlock(int blockIndex);
     void endRemoveBlock();
+
+
 private:
     BlockItem * m_root;
     z3::context m_context;
     BlockItem * m_proxyRoot;
 };
 
-#endif // DIAGRAMDATASOURCE_H
+#endif // BLOCKDATASOURCE_H

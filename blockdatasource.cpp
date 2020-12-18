@@ -1,8 +1,8 @@
-#include "diagramdatasource.h"
+#include "blockdatasource.h"
 
-DiagramDataSource::DiagramDataSource(QObject *parent) : QObject(parent)
+BlockDataSource::BlockDataSource(QObject *parent) : QObject(parent)
 {
-    qDebug()<<"DiagramDataSource created";
+    qDebug()<<"BlockDataSource created";
     m_root = new BlockItem(&m_context,nullptr,this);  // real root is empty
     m_proxyRoot = m_root;
 
@@ -12,21 +12,21 @@ DiagramDataSource::DiagramDataSource(QObject *parent) : QObject(parent)
     addPort(1,3,50);
 }
 
-DiagramDataSource::~DiagramDataSource()
+BlockDataSource::~BlockDataSource()
 {
-    qDebug()<<"DiagramDataSource destroyed";
+    qDebug()<<"BlockDataSource destroyed";
 }
 
-BlockItem *DiagramDataSource::proxyRoot(){
+BlockItem *BlockDataSource::proxyRoot(){
     return m_proxyRoot;
 }
 
-BlockItem *DiagramDataSource::blockDataSource(int index)
+BlockItem *BlockDataSource::proxyChild(int blockIndex)
 {
-    return m_proxyRoot->child(index);
+    return m_proxyRoot->child(blockIndex);
 }
 
-void DiagramDataSource::newProxyRoot(BlockItem *newProxyRoot)
+void BlockDataSource::newProxyRoot(BlockItem *newProxyRoot)
 {
     // set old proxy children parents to nullptr (point to nothing)
     for ( int i = 0 ; i < m_proxyRoot->proxyChildCount() ; i++ ) {
@@ -49,31 +49,19 @@ void DiagramDataSource::newProxyRoot(BlockItem *newProxyRoot)
     }
 }
 
-void DiagramDataSource::appendBlock(int x, int y)
+void BlockDataSource::appendBlock(int x, int y)
 {
-    //int blockIndex = m_proxyRoot->childCount();
-    //QModelIndex proxyParentIndex = qIndexOfBlock(m_proxyRoot);
-    //beginInsertRows(proxyParentIndex, pos, pos);
-    beginInsertBlock();
 
+    beginInsertBlock(m_proxyRoot->childCount());
     BlockItem *childItem = new BlockItem(&m_context,nullptr,this);
     childItem->setBlockXPosition(x);
     childItem->setBlockYPosition(y);
     m_proxyRoot->appendChild(childItem);
     m_proxyRoot->appendProxyChild(childItem);
-//    endInsertRows();
-    endRemoveBlock();
-    //printProxyTree(m_proxyRoot,0);
-    //printFullTree(m_root,0);
+    endInsertBlock();
 }
 
-BlockItem *DiagramDataSource::thisBlock(int blockIndex)
-{
-    return m_proxyRoot->child(blockIndex);
-
-}
-
-void DiagramDataSource::downLevel(int blockIndex)
+void BlockDataSource::downLevel(int blockIndex)
 {
     //beginResetModel();
     beginResetBlockModel();
@@ -84,21 +72,19 @@ void DiagramDataSource::downLevel(int blockIndex)
     //printFullTree(m_root,0);
 }
 
-void DiagramDataSource::upLevel()
+void BlockDataSource::upLevel()
 {
     if(m_proxyRoot->parentItem()!=nullptr){
         // parent is valid, cannot go higher than actual root
-        //beginResetModel();
         beginResetBlockModel();
         newProxyRoot(m_proxyRoot->parentItem());
-        //endResetModel();
         endResetBlockModel();
     }
     //printProxyTree(m_proxyRoot,0);
     //printFullTree(m_root,0);
 }
 
-void DiagramDataSource::printProxyTree(BlockItem *rootItem, int depth)
+void BlockDataSource::printProxyTree(BlockItem *rootItem, int depth)
 {
     //iterate through all children and load equations then recurse to children
     if(rootItem->proxyParent() == nullptr){
@@ -115,7 +101,7 @@ void DiagramDataSource::printProxyTree(BlockItem *rootItem, int depth)
     }
 }
 
-void DiagramDataSource::printFullTree(BlockItem *rootItem, int depth)
+void BlockDataSource::printFullTree(BlockItem *rootItem, int depth)
 {
     //iterate through all children and load equations then recurse to children
     if(rootItem->parentItem() == nullptr){
@@ -136,7 +122,7 @@ void DiagramDataSource::printFullTree(BlockItem *rootItem, int depth)
     }
 }
 
-void DiagramDataSource::printBlock(int blockIndex)
+void BlockDataSource::printBlock(int blockIndex)
 {
     qDebug()<<"ID: " << m_proxyRoot->child(blockIndex)->id();
     qDebug()<<"Category: " << m_proxyRoot->child(blockIndex)->description();
@@ -147,7 +133,7 @@ void DiagramDataSource::printBlock(int blockIndex)
 
 }
 
-int DiagramDataSource::distanceFromRoot() const
+int BlockDataSource::distanceFromRoot() const
 {
     int count = 0;
 
@@ -165,53 +151,57 @@ int DiagramDataSource::distanceFromRoot() const
     return count;
 }
 
-int DiagramDataSource::numChildren(int blockIndex)
+int BlockDataSource::numChildren(int blockIndex)
 {
     return m_proxyRoot->child(blockIndex)->childCount();
 }
 
-void DiagramDataSource::deleteBlock(int blockIndex)
+void BlockDataSource::deleteBlock(int blockIndex)
 {
-    //beginResetModel();
     beginResetBlockModel();
     m_proxyRoot->removeChild(blockIndex);
     m_proxyRoot->removeProxyChild(blockIndex);
-    //endResetModel();
     endResetBlockModel();
 }
 
-void DiagramDataSource::addPort(int blockIndex, int side, int position)
+void BlockDataSource::addPort(int blockIndex, int side, int position)
 {
     //delete row then insert to reset only the affect block
-    //QModelIndex proxyParentIndex = qIndexOfBlock(m_proxyRoot);
-    //beginRemoveRows(proxyParentIndex,modelIndex,modelIndex);
     beginRemoveBlock(blockIndex);
     // don't actually remove the block
-    //endRemoveRows();
     endRemoveBlock();
-    //beginInsertRows(proxyParentIndex, modelIndex, modelIndex);
-    beginInsertBlock();
+    beginInsertBlock(blockIndex);
     m_proxyRoot->child(blockIndex)->addPort(side,position);
-    //endInsertRows();
-    endRemoveBlock();
+    endInsertBlock();
 }
 
-int DiagramDataSource::portCount(int blockIndex)
+/*
+void BlockDataSource::deletePort(int portIndex, int parentIndex)
+{
+    beginResetBlockModel();
+    m_proxyRoot->child(parentIndex)->ports().remove(portIndex);
+    endResetBlockModel();
+}
+*/
+/*
+int BlockDataSource::portCount(int blockIndex)
 {
     return m_proxyRoot->proxyChild(blockIndex)->portCount();
 }
-
-int DiagramDataSource::portSide(int blockIndex, int portNum)
+*/
+/*
+int BlockDataSource::portSide(int blockIndex, int portNum)
 {
     return m_proxyRoot->proxyChild(blockIndex)->portSide(portNum);
 }
-
-int DiagramDataSource::portPosition(int blockIndex, int portNum)
+*/
+/*
+int BlockDataSource::portPosition(int blockIndex, int portNum)
 {
     return m_proxyRoot->proxyChild(blockIndex)->portPosition(portNum);
 }
-
-void DiagramDataSource::solveEquations()
+*/
+void BlockDataSource::solveEquations()
 {
     try {
         EquationSolver equationSolver(&m_context);
@@ -221,7 +211,7 @@ void DiagramDataSource::solveEquations()
     }
 }
 
-int DiagramDataSource::maxBlockX()
+int BlockDataSource::maxBlockX()
 {
     int blockX = 0;
     for ( int i = 0 ; i < m_proxyRoot->childCount() ; i++ ) {
@@ -233,7 +223,7 @@ int DiagramDataSource::maxBlockX()
     return blockX;
 }
 
-int DiagramDataSource::maxBlockY()
+int BlockDataSource::maxBlockY()
 {
     int blockY = 0;
     for ( int i = 0 ; i < m_proxyRoot->childCount() ; i++ ) {

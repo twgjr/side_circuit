@@ -25,7 +25,6 @@ class BlockItem : public QObject
     Q_PROPERTY(int blockHeight READ blockHeight WRITE setblockHeight)
     Q_PROPERTY(int numChildren READ childCount)
     Q_PROPERTY(QString equationString READ equationString WRITE setEquationString)
-    Q_PROPERTY(BlockItem * thisBlock READ thisBlock)
 
 public:
     explicit BlockItem(z3::context * context,
@@ -66,6 +65,7 @@ public:
     // connecting blocks
     QVector<Port *> ports();
     void addPort(int side, int position);
+    void removePort(int portIndex);
     int portCount();
     int portSide(int portNum);
     int portPosition(int portNum);
@@ -96,18 +96,8 @@ public:
     void setBlockWidth(int blockWidth);
     void setblockHeight(int blockHeight);
 
-    BlockItem* thisBlock() const
-    {
-        return m_thisBlock;
-    }
-
 signals:
-    void beginResetPortModel();
-    void endResetPortModel();
-    void beginInsertPort();
-    void endInsertPort();
-    void beginRemovePort(int blockIndex);
-    void endRemovePort();
+
 
 private:
     //object pointers
@@ -127,8 +117,6 @@ private:
     Equation m_equation;
     int m_blockWidth;
     int m_blockHeight;
-
-    BlockItem* m_thisBlock;
 };
 
 #endif // BLOCKITEM_H

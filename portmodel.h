@@ -3,18 +3,19 @@
 
 #include <QAbstractListModel>
 #include "blockitem.h"
-#include "diagramdatasource.h"
+#include "portdatasource.h"
+
+//class BlockDataSource;
 
 class PortModel : public QAbstractListModel
 {
     Q_OBJECT
 
-    Q_PROPERTY(BlockItem* blockDataSource READ blockDataSource WRITE setBlockDataSource NOTIFY blockDataSourceChanged)
-
 public:
-    //Q_PROPERTY(BlockItem * blockParent READ blockParent WRITE setBlockParent)
+    Q_PROPERTY(PortDataSource* portDataSource READ portDataSource WRITE setPortDataSource NOTIFY portDataSourceChanged)
 
     explicit PortModel(QObject *parent = nullptr);
+    ~PortModel();
 
     enum PortRoles{
         SideRole = Qt::UserRole + 1,
@@ -31,26 +32,17 @@ public:
     Qt::ItemFlags flags(const QModelIndex& index) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    //Q_INVOKABLE void addPort(int side, int position);
-    //BlockItem *blockParent() const;
-    //Q_INVOKABLE void setBlockParent(BlockItem * blockParent);
+    PortDataSource* portDataSource();
 
-    BlockItem* blockDataSource() const;
-
-public slots:
-    void setBlockDataSource(BlockItem* blockDataSource);
+    void setPortDataSource(PortDataSource* portDataSource);
 
 signals:
-
-    void blockDataSourceChanged(BlockItem* blockDataSource);
+    void portDataSourceChanged(PortDataSource* portDataSource);
 
 private:
-    //QVector<Port*> m_ports;
     QHash<int, QByteArray> m_roles;
-    //BlockItem * m_blockParent;
-
-    BlockItem* m_blockDataSource;
     bool m_signalConnected;
+    PortDataSource* m_portDataSource;
 };
 
 #endif // PORTMODEL_H
