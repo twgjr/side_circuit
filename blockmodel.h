@@ -14,16 +14,15 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
-#include "blockdatasource.h"
+#include "datasource.h"
 
 class BlockModel : public QAbstractItemModel
 {
     Q_OBJECT
-    // Q_PROPERTY(QVariantList roles READ roles WRITE setRoles NOTIFY rolesChanged)
-    Q_PROPERTY(BlockDataSource* blockDataSource
-               READ blockDataSource
-               WRITE setBlockDataSource
-               NOTIFY blockDataSourceChanged)
+    Q_PROPERTY(DataSource* dataSource
+               READ dataSource
+               WRITE setdataSource
+               NOTIFY dataSourceChanged)
 
 public:
 
@@ -65,19 +64,18 @@ public:
     QModelIndex qIndexOfBlock(BlockItem *item);
     BlockItem * blockFromQIndex(const QModelIndex &index) const;
 
-    BlockDataSource* blockDataSource() const;
+    DataSource* dataSource() const;
 
-
-    void setBlockDataSource(BlockDataSource* blockDataSource);
+    void setdataSource(DataSource* blockDataSource);
 
 signals:
     void rolesChanged();
 
-    void blockDataSourceChanged(BlockDataSource* newBlockDataSource);
+    void dataSourceChanged(DataSource* newBlockDataSource);
 
 private:
     QHash<int, QByteArray> m_roles;
-    BlockDataSource * m_blockDataSource;
+    DataSource * m_dataSource;
     bool m_signalConnected;
 };
 

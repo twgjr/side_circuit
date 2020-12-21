@@ -8,18 +8,17 @@ Port::Port(QObject *parent) : QObject(parent),
     m_name("label"),
     isConnected(false)
 {
-    qDebug()<<"Port created";
+    //qDebug()<<"Port created";
 }
 
 Port::~Port()
 {
-    qDebug()<<"Port destroyed.";
+    //qDebug()<<"Port destroyed.";
 }
 
 void Port::setBlockParent(BlockItem *blockParent)
 {
     m_blockParent = blockParent;
-    //qDebug()<<"port block parent: "<<blockParent;
 }
 
 void Port::setSide(int side)

@@ -9,12 +9,12 @@ PortModel::PortModel(QObject *parent)
     m_roles[PortModel::PositionRole]="position";
     m_roles[PortModel::NameRole]="name";
 
-    qDebug()<<"Port model created";
+    //qDebug()<<"Port model created";
 }
 
 PortModel::~PortModel()
 {
-    qDebug()<<"Port model destroyed";
+    //qDebug()<<"Port model destroyed";
 }
 
 int PortModel::rowCount(const QModelIndex &parent) const
@@ -24,7 +24,7 @@ int PortModel::rowCount(const QModelIndex &parent) const
     if (parent.isValid())
         return 0;
 
-    return m_portDataSource->parentBlock()->portCount();
+    return m_proxyPorts->parentBlock()->portCount();
 }
 
 QVariant PortModel::data(const QModelIndex &index, int role) const
@@ -32,7 +32,7 @@ QVariant PortModel::data(const QModelIndex &index, int role) const
     if (!index.isValid())
         return QVariant();
 
-    Port * portItem = m_portDataSource->parentBlock()->ports()[index.row()];
+    Port * portItem = m_proxyPorts->parentBlock()->ports()[index.row()];
     QByteArray roleName = m_roles[role];
     QVariant name = portItem->property(roleName.data());
     return name;
@@ -42,7 +42,7 @@ bool PortModel::setData(const QModelIndex &index, const QVariant &value, int rol
 {
     if (data(index, role) != value) {
         //don't do anything if the data being submitted did not change
-        Port * portItem = m_portDataSource->parentBlock()->ports()[index.row()];
+        Port * portItem = m_proxyPorts->parentBlock()->ports()[index.row()];
         switch (role) {
         case SideRole:
             if(portItem->side() != value.toInt()){
@@ -79,71 +79,39 @@ QHash<int, QByteArray> PortModel::roleNames() const
     return m_roles;
 }
 
-PortDataSource *PortModel::portDataSource()
+ProxyPorts *PortModel::proxyPorts()
 {
-    return m_portDataSource;
+    return m_proxyPorts;
 }
 
-void PortModel::setPortDataSource(PortDataSource* portDataSource)
+void PortModel::setProxyPorts(ProxyPorts* portDataSource)
 {
     beginResetModel();
-    if(m_portDataSource && m_signalConnected){
-        m_portDataSource->disconnect(this);
+    if(m_proxyPorts && m_signalConnected){
+        m_proxyPorts->disconnect(this);
     }
 
-    m_portDataSource = portDataSource;
+    m_proxyPorts = portDataSource;
 
-    connect(m_portDataSource,&PortDataSource::beginResetPortModel,this,[=](){
+    connect(m_proxyPorts,&ProxyPorts::beginResetPortModel,this,[=](){
         beginResetModel();
     });
-    connect(m_portDataSource,&PortDataSource::endResetPortModel,this,[=](){
+    connect(m_proxyPorts,&ProxyPorts::endResetPortModel,this,[=](){
         endResetModel();
     });
-    connect(m_portDataSource,&PortDataSource::beginInsertPort,this,[=](int index){
-        //const int index = m_portDataSource->parentBlock()->portCount();
+    connect(m_proxyPorts,&ProxyPorts::beginInsertPort,this,[=](int index){
         beginInsertRows(QModelIndex(),index,index);
     });
-    connect(m_portDataSource,&PortDataSource::endInsertPort,this,[=](){
+    connect(m_proxyPorts,&ProxyPorts::endInsertPort,this,[=](){
         endInsertRows();
     });
-    connect(m_portDataSource,&PortDataSource::beginRemovePort,this,[=](int index){
+    connect(m_proxyPorts,&ProxyPorts::beginRemovePort,this,[=](int index){
         beginRemoveRows(QModelIndex(),index,index);
     });
-    connect(m_portDataSource,&PortDataSource::endRemovePort,this,[=](){
+    connect(m_proxyPorts,&ProxyPorts::endRemovePort,this,[=](){
         endRemoveRows();
     });
 
     m_signalConnected = true;
     endResetModel();
 }
-/*
-void PortModel::addPort(int side, int position)
-{
-    Port * portItem = new Port();
-    portItem->setBlockParent(m_blockParent);
-    portItem->setParent(m_blockParent);
-    portItem->setSide(side);
-    portItem->setPosition(position);
-    const int index = m_ports.size();
-    beginInsertRows(QModelIndex(),index,index);
-    m_ports.append(portItem);
-    endInsertRows();
-}
-*/
-/*
-BlockItem *PortModel::blockParent() const
-{
-    return m_blockParent;
-}
-*/
-/*
-void PortModel::setBlockParent(BlockItem *blockParent)
-{
-    if (m_blockParent == blockParent)
-        qDebug()<<"Port model parent: "<<m_blockParent;
-        return;
-
-    m_blockParent = blockParent;
-    qDebug()<<"Port model parent: "<<m_blockParent;
-}
-*/

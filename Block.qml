@@ -38,14 +38,14 @@ Rectangle{
         anchors.verticalCenter: parent.bottom
     }
 
-    PortDataSource{
-        id: portDataSourceId
-        parentBlock: blockDataSourceId.proxyChild(model.index)
+    ProxyPorts{
+        id: proxyPortsId
+        parentBlock: dataSource.proxyChild(model.index)
     }
 
     PortModel{
         id: portModel
-        portDataSource: portDataSourceId
+        proxyPorts: proxyPortsId
     }
 
     property int parentIndex: model.index

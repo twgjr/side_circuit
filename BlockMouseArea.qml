@@ -15,8 +15,8 @@ MouseArea{
 
     onDoubleClicked: {
         if(mouse.button & Qt.LeftButton){
-            flickableId.leveltext = blockDataSourceId.distanceFromRoot()+1
-            blockDataSourceId.downLevel(model.index)
+            flickableId.leveltext = dataSource.distanceFromRoot()+1
+            dataSource.downLevel(model.index)
         }
     }
     // single click and release
@@ -33,8 +33,8 @@ MouseArea{
         model.blockYPosition = blkRectId.y
         xPosition = model.blockXPosition
         yPosition = model.blockYPosition
-        flickableId.maxFlickX = Math.max(blockDataSourceId.maxBlockX() + width*2, flickableId.width)
-        flickableId.maxFlickY = Math.max(blockDataSourceId.maxBlockY() + height*2, flickableId.height)
+        flickableId.maxFlickX = Math.max(dataSource.maxBlockX() + width*2, flickableId.width)
+        flickableId.maxFlickY = Math.max(dataSource.maxBlockY() + height*2, flickableId.height)
     }
 
     Menu {
@@ -54,44 +54,38 @@ MouseArea{
                 var side = 0
                 // top
                 if(posY<=xLineDown && posY<=xLineUp){
-                    //console.log("port on top")
                     side = 0
                     position = posX
                 }
                 // bottom
                 if (posY>xLineDown && posY>xLineUp){
-                    //console.log("port on bottom")
                     side = 1
                     position = posX
                 }
                 // left
                 if (posY>xLineDown && posY<xLineUp){
-                    //console.log("port on left")
                     side = 2
                     position = posY
                 }
                 // right
                 if (posY<xLineDown && posY>xLineUp){
-                    //console.log("port on right")
                     side = 3
                     position = posY
                 }
-                //PortScript.createPortObjects(side,position)
-                blockDataSourceId.addPort(model.index,side,position)
+                dataSource.addPort(model.index,side,position)
             }
         }//MenuItem
         MenuItem {
             text: "Down Level"
             onTriggered: {
-                flickableId.leveltext = blockDataSourceId.distanceFromRoot()+1
-                blockDataSourceId.downLevel(model.index)
+                flickableId.leveltext = dataSource.distanceFromRoot()+1
+                dataSource.downLevel(model.index)
             }
         }
         MenuItem {
             text: "Delete"
             onTriggered: {
-                console.log(model.index)
-                blockDataSourceId.deleteBlock(model.index)
+                dataSource.deleteBlock(model.index)
             }
         }
     } //Menu

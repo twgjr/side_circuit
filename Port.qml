@@ -78,7 +78,7 @@ Rectangle {
         MenuItem {
             text: "Delete"
             onTriggered: {
-                portDataSourceId.deletePort(model.index)
+                proxyPortsId.deletePort(model.index)
             }
         }
     } //Menu

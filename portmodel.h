@@ -3,16 +3,14 @@
 
 #include <QAbstractListModel>
 #include "blockitem.h"
-#include "portdatasource.h"
-
-//class BlockDataSource;
+#include "proxyports.h"
 
 class PortModel : public QAbstractListModel
 {
     Q_OBJECT
 
 public:
-    Q_PROPERTY(PortDataSource* portDataSource READ portDataSource WRITE setPortDataSource NOTIFY portDataSourceChanged)
+    Q_PROPERTY(ProxyPorts* proxyPorts READ proxyPorts WRITE setProxyPorts NOTIFY proxyPortsChanged)
 
     explicit PortModel(QObject *parent = nullptr);
     ~PortModel();
@@ -32,17 +30,17 @@ public:
     Qt::ItemFlags flags(const QModelIndex& index) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    PortDataSource* portDataSource();
+    ProxyPorts* proxyPorts();
 
-    void setPortDataSource(PortDataSource* portDataSource);
+    void setProxyPorts(ProxyPorts* portDataSource);
 
 signals:
-    void portDataSourceChanged(PortDataSource* portDataSource);
+    void proxyPortsChanged(ProxyPorts* portDataSource);
 
 private:
     QHash<int, QByteArray> m_roles;
     bool m_signalConnected;
-    PortDataSource* m_portDataSource;
+    ProxyPorts* m_proxyPorts;
 };
 
 #endif // PORTMODEL_H

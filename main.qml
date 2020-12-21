@@ -13,11 +13,11 @@ Window {
     title: qsTr("Diagram Solver")
     visibility: "Maximized"
 
-    BlockDataSource{ id: blockDataSourceId }
+    DataSource{ id: dataSource }
 
     BlockModel{
-        id:blockModel
-        blockDataSource: blockDataSourceId
+        id: blockModel
+        dataSource: dataSource
     }
 
     ColumnLayout{
@@ -43,7 +43,7 @@ Window {
                 id:flickableId
                 property int maxFlickX: width
                 property int maxFlickY: height
-                property int leveltext: blockDataSourceId.distanceFromRoot()
+                property int leveltext: dataSource.distanceFromRoot()
 
                 flickableDirection: Flickable.HorizontalAndVerticalFlick
                 height: parent.height
@@ -68,13 +68,13 @@ Window {
                         id: diagramAreaContextMenu
                         MenuItem {
                             text: "New Block"
-                            onTriggered: blockDataSourceId.appendBlock(diagramMouseArea.mouseX,diagramMouseArea.mouseY)
+                            onTriggered: dataSource.appendBlock(diagramMouseArea.mouseX,diagramMouseArea.mouseY)
                         }
                         MenuItem {
                             text: "Up Level"
                             onTriggered: {
-                                flickableId.leveltext = Math.max(blockDataSourceId.distanceFromRoot()-1,0)
-                                blockDataSourceId.upLevel()
+                                flickableId.leveltext = Math.max(dataSource.distanceFromRoot()-1,0)
+                                dataSource.upLevel()
                             }
                         }
                     }
@@ -111,14 +111,14 @@ Window {
                 id : mButton3
                 text : "New Block"
                 Layout.fillWidth: true
-                onClicked: blockDataSourceId.appendBlock(window.width/2,window.height/2) // adds to the active "root"
+                onClicked: dataSource.appendBlock(window.width/2,window.height/2) // adds to the active "root"
             }
             Button {
                 id : mButton6
                 text : "Solve Model"
                 Layout.fillWidth: true
                 onClicked: {
-                    blockDataSourceId.solveEquations()
+                    dataSource.solveEquations()
                 }
             }
         } //RowLayout
@@ -132,11 +132,10 @@ Window {
         selectExisting: false
         nameFilters: [ "JSON file (*.json)" ]
         onAccepted: {
-            blockDataSourceId.saveBlockItems(fileSaveDialog.fileUrl)
+            dataSource.saveBlockItems(fileSaveDialog.fileUrl)
             fileSaveDialog.close()
         }
         onRejected: {
-            console.log("Canceled")
             fileSaveDialog.close()
         }
     }//FileDialog
@@ -148,11 +147,10 @@ Window {
         selectExisting: true
         nameFilters: [ "JSON file (*.json)" ]
         onAccepted: {
-            blockDataSourceId.loadBlockItems(fileLoadDialog.fileUrl)
+            dataSource.loadBlockItems(fileLoadDialog.fileUrl)
             fileLoadDialog.close()
         }
         onRejected: {
-            console.log("Canceled")
             fileLoadDialog.close()
         }
     } //FileDialog

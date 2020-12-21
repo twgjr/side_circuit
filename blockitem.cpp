@@ -15,13 +15,12 @@ BlockItem::BlockItem(z3::context *context,
     m_blockYPosition(0),
     m_equation(context)
 {
-    qDebug()<<"Block Item created";
-    //qDebug()<<this;
+    //qDebug()<<"Block Item created";
 }
 
 BlockItem::~BlockItem()
 {
-    qDebug()<<"Block Item destroyed";
+    //qDebug()<<"Block Item destroyed";
 }
 
 BlockItem *BlockItem::parentItem() {return m_parentItem;}
@@ -100,7 +99,6 @@ void BlockItem::appendProxyChild(BlockItem *item)
 
 void BlockItem::removeProxyChild(int modelIndex)
 {
-    //delete m_proxyChildren[modelIndex];
     m_proxyChildren.remove(modelIndex);
 }
 

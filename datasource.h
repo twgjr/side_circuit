@@ -1,20 +1,19 @@
-#ifndef BLOCKDATASOURCE_H
-#define BLOCKDATASOURCE_H
+#ifndef DATASOURCE_H
+#define DATASOURCE_H
 
 #include <QObject>
 #include "blockitem.h"
 #include "equationsolver.h"
 
-class BlockDataSource : public QObject
+class DataSource : public QObject
 {
     Q_OBJECT
 public:
-    explicit BlockDataSource(QObject *parent = nullptr);
-    ~BlockDataSource();
+    explicit DataSource(QObject *parent = nullptr);
+    ~DataSource();
 
     BlockItem * proxyRoot();
     Q_INVOKABLE BlockItem * proxyChild(int blockIndex);
-
 
     void newProxyRoot(BlockItem *newProxyRoot);
 
@@ -29,12 +28,7 @@ public:
     Q_INVOKABLE void deleteBlock(int blockIndex);
 
     Q_INVOKABLE void addPort(int blockIndex, int side, int position);
-    /*
-    Q_INVOKABLE void deletePort(int portIndex, int parentIndex);
-    Q_INVOKABLE int portCount(int blockIndex);
-    Q_INVOKABLE int portSide(int blockIndex, int portNum);
-    Q_INVOKABLE int portPosition(int blockIndex, int portNum);
-    */
+
     /* EXPOSING EQUATIONSOLVER FUNCTIONS AS SLOTS TO QML VIA BLOCKDATASOURCE->BLOCKMODEL */
     Q_INVOKABLE void solveEquations();
 
@@ -50,11 +44,10 @@ signals:
     void beginRemoveBlock(int blockIndex);
     void endRemoveBlock();
 
-
 private:
     BlockItem * m_root;
     z3::context m_context;
     BlockItem * m_proxyRoot;
 };
 
-#endif // BLOCKDATASOURCE_H
+#endif // DATASOURCE_H

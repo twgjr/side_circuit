@@ -1,32 +1,32 @@
-#include "blockdatasource.h"
+#include "datasource.h"
 
-BlockDataSource::BlockDataSource(QObject *parent) : QObject(parent)
+DataSource::DataSource(QObject *parent) : QObject(parent)
 {
-    qDebug()<<"BlockDataSource created";
+    //qDebug()<<"DataSource created";
     m_root = new BlockItem(&m_context,nullptr,this);  // real root is empty
     m_proxyRoot = m_root;
 
-    appendBlock(50,50);
-    appendBlock(200,200);
-    addPort(0,0,50);
-    addPort(1,3,50);
+    //appendBlock(50,50);
+    //appendBlock(200,200);
+    //addPort(0,0,50);
+    //addPort(1,3,50);
 }
 
-BlockDataSource::~BlockDataSource()
+DataSource::~DataSource()
 {
-    qDebug()<<"BlockDataSource destroyed";
+    //qDebug()<<"DataSource destroyed";
 }
 
-BlockItem *BlockDataSource::proxyRoot(){
+BlockItem *DataSource::proxyRoot(){
     return m_proxyRoot;
 }
 
-BlockItem *BlockDataSource::proxyChild(int blockIndex)
+BlockItem *DataSource::proxyChild(int blockIndex)
 {
     return m_proxyRoot->child(blockIndex);
 }
 
-void BlockDataSource::newProxyRoot(BlockItem *newProxyRoot)
+void DataSource::newProxyRoot(BlockItem *newProxyRoot)
 {
     // set old proxy children parents to nullptr (point to nothing)
     for ( int i = 0 ; i < m_proxyRoot->proxyChildCount() ; i++ ) {
@@ -49,7 +49,7 @@ void BlockDataSource::newProxyRoot(BlockItem *newProxyRoot)
     }
 }
 
-void BlockDataSource::appendBlock(int x, int y)
+void DataSource::appendBlock(int x, int y)
 {
 
     beginInsertBlock(m_proxyRoot->childCount());
@@ -61,18 +61,14 @@ void BlockDataSource::appendBlock(int x, int y)
     endInsertBlock();
 }
 
-void BlockDataSource::downLevel(int blockIndex)
+void DataSource::downLevel(int blockIndex)
 {
-    //beginResetModel();
     beginResetBlockModel();
     newProxyRoot(m_proxyRoot->child(blockIndex));
-    //endResetModel();
     endResetBlockModel();
-    //printProxyTree(m_proxyRoot,0);
-    //printFullTree(m_root,0);
 }
 
-void BlockDataSource::upLevel()
+void DataSource::upLevel()
 {
     if(m_proxyRoot->parentItem()!=nullptr){
         // parent is valid, cannot go higher than actual root
@@ -80,11 +76,9 @@ void BlockDataSource::upLevel()
         newProxyRoot(m_proxyRoot->parentItem());
         endResetBlockModel();
     }
-    //printProxyTree(m_proxyRoot,0);
-    //printFullTree(m_root,0);
 }
 
-void BlockDataSource::printProxyTree(BlockItem *rootItem, int depth)
+void DataSource::printProxyTree(BlockItem *rootItem, int depth)
 {
     //iterate through all children and load equations then recurse to children
     if(rootItem->proxyParent() == nullptr){
@@ -101,7 +95,7 @@ void BlockDataSource::printProxyTree(BlockItem *rootItem, int depth)
     }
 }
 
-void BlockDataSource::printFullTree(BlockItem *rootItem, int depth)
+void DataSource::printFullTree(BlockItem *rootItem, int depth)
 {
     //iterate through all children and load equations then recurse to children
     if(rootItem->parentItem() == nullptr){
@@ -122,7 +116,7 @@ void BlockDataSource::printFullTree(BlockItem *rootItem, int depth)
     }
 }
 
-void BlockDataSource::printBlock(int blockIndex)
+void DataSource::printBlock(int blockIndex)
 {
     qDebug()<<"ID: " << m_proxyRoot->child(blockIndex)->id();
     qDebug()<<"Category: " << m_proxyRoot->child(blockIndex)->description();
@@ -133,7 +127,7 @@ void BlockDataSource::printBlock(int blockIndex)
 
 }
 
-int BlockDataSource::distanceFromRoot() const
+int DataSource::distanceFromRoot() const
 {
     int count = 0;
 
@@ -151,12 +145,12 @@ int BlockDataSource::distanceFromRoot() const
     return count;
 }
 
-int BlockDataSource::numChildren(int blockIndex)
+int DataSource::numChildren(int blockIndex)
 {
     return m_proxyRoot->child(blockIndex)->childCount();
 }
 
-void BlockDataSource::deleteBlock(int blockIndex)
+void DataSource::deleteBlock(int blockIndex)
 {
     beginResetBlockModel();
     m_proxyRoot->removeChild(blockIndex);
@@ -164,7 +158,7 @@ void BlockDataSource::deleteBlock(int blockIndex)
     endResetBlockModel();
 }
 
-void BlockDataSource::addPort(int blockIndex, int side, int position)
+void DataSource::addPort(int blockIndex, int side, int position)
 {
     //delete row then insert to reset only the affect block
     beginRemoveBlock(blockIndex);
@@ -175,33 +169,7 @@ void BlockDataSource::addPort(int blockIndex, int side, int position)
     endInsertBlock();
 }
 
-/*
-void BlockDataSource::deletePort(int portIndex, int parentIndex)
-{
-    beginResetBlockModel();
-    m_proxyRoot->child(parentIndex)->ports().remove(portIndex);
-    endResetBlockModel();
-}
-*/
-/*
-int BlockDataSource::portCount(int blockIndex)
-{
-    return m_proxyRoot->proxyChild(blockIndex)->portCount();
-}
-*/
-/*
-int BlockDataSource::portSide(int blockIndex, int portNum)
-{
-    return m_proxyRoot->proxyChild(blockIndex)->portSide(portNum);
-}
-*/
-/*
-int BlockDataSource::portPosition(int blockIndex, int portNum)
-{
-    return m_proxyRoot->proxyChild(blockIndex)->portPosition(portNum);
-}
-*/
-void BlockDataSource::solveEquations()
+void DataSource::solveEquations()
 {
     try {
         EquationSolver equationSolver(&m_context);
@@ -211,7 +179,7 @@ void BlockDataSource::solveEquations()
     }
 }
 
-int BlockDataSource::maxBlockX()
+int DataSource::maxBlockX()
 {
     int blockX = 0;
     for ( int i = 0 ; i < m_proxyRoot->childCount() ; i++ ) {
@@ -223,7 +191,7 @@ int BlockDataSource::maxBlockX()
     return blockX;
 }
 
-int BlockDataSource::maxBlockY()
+int DataSource::maxBlockY()
 {
     int blockY = 0;
     for ( int i = 0 ; i < m_proxyRoot->childCount() ; i++ ) {

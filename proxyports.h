@@ -1,29 +1,25 @@
-#ifndef PORTDATASOURCE_H
-#define PORTDATASOURCE_H
+#ifndef PROXYPORTS_H
+#define PROXYPORTS_H
 
 #include <QObject>
-#include "blockdatasource.h"
+#include "datasource.h"
 
-class PortDataSource : public QObject
+class ProxyPorts : public QObject
 {
     Q_OBJECT
 public:
     Q_PROPERTY(BlockItem* parentBlock READ parentBlock WRITE setParentBlock)
 
-    explicit PortDataSource(QObject *parent = nullptr);
+    explicit ProxyPorts(QObject *parent = nullptr);
 
     BlockItem *parentBlock();
     Q_INVOKABLE void setParentBlock(BlockItem* block);
 
     Q_INVOKABLE void addPort(int side, int position);
     Q_INVOKABLE void deletePort(int portIndex);
-    /*
-    Q_INVOKABLE int portCount();
-    Q_INVOKABLE int portSide(int portNum);
-    Q_INVOKABLE int portPosition(int portNum);
-    */
+
 signals:
-    void parentBlockDSChanged(BlockDataSource* parentBlockDS);
+    void parentBlockDSChanged(DataSource* parentBlockDS);
 
     void beginResetPortModel();
     void endResetPortModel();
@@ -36,4 +32,4 @@ private:
     BlockItem* m_parentBlock;
 };
 
-#endif // PORTDATASOURCE_H
+#endif // PROXYPORTS_H
