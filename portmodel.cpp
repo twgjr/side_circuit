@@ -2,29 +2,28 @@
 
 PortModel::PortModel(QObject *parent)
     : QAbstractListModel(parent),
-      m_signalConnected(false)
+      m_signalConnected(false),
+      m_dsChildBlock(nullptr)
 {
     //set the basic roles for access of item properties in QML
-    m_roles[PortModel::SideRole]="side";
-    m_roles[PortModel::PositionRole]="position";
-    m_roles[PortModel::NameRole]="name";
+    m_roles[SideRole]="side";
+    m_roles[PositionRole]="position";
+    m_roles[NameRole]="name";
 
-    //qDebug()<<"Port model created";
+    qDebug()<<"Created: "<<this;
 }
 
 PortModel::~PortModel()
 {
-    //qDebug()<<"Port model destroyed";
+    qDebug()<<"Deleted: "<<this;
 }
 
 int PortModel::rowCount(const QModelIndex &parent) const
 {
-    // For list models only the root node (an invalid parent) should return the list's size. For all
-    // other (valid) parents, rowCount() should return 0 so that it does not become a tree model.
     if (parent.isValid())
         return 0;
 
-    return m_proxyPorts->parentBlock()->portCount();
+    return m_dsChildBlock->dsChildBlock()->portCount();
 }
 
 QVariant PortModel::data(const QModelIndex &index, int role) const
@@ -32,7 +31,7 @@ QVariant PortModel::data(const QModelIndex &index, int role) const
     if (!index.isValid())
         return QVariant();
 
-    Port * portItem = m_proxyPorts->parentBlock()->ports()[index.row()];
+    Port * portItem = m_dsChildBlock->dsChildBlock()->ports()[index.row()];
     QByteArray roleName = m_roles[role];
     QVariant name = portItem->property(roleName.data());
     return name;
@@ -42,7 +41,7 @@ bool PortModel::setData(const QModelIndex &index, const QVariant &value, int rol
 {
     if (data(index, role) != value) {
         //don't do anything if the data being submitted did not change
-        Port * portItem = m_proxyPorts->parentBlock()->ports()[index.row()];
+        Port * portItem = m_dsChildBlock->dsChildBlock()->ports()[index.row()];
         switch (role) {
         case SideRole:
             if(portItem->side() != value.toInt()){
@@ -79,36 +78,36 @@ QHash<int, QByteArray> PortModel::roleNames() const
     return m_roles;
 }
 
-ProxyPorts *PortModel::proxyPorts()
+DSChildBlock *PortModel::dsChildBlock()
 {
-    return m_proxyPorts;
+    return m_dsChildBlock;
 }
 
-void PortModel::setProxyPorts(ProxyPorts* portDataSource)
+void PortModel::setdsChildBlock(DSChildBlock* proxyBlock)
 {
     beginResetModel();
-    if(m_proxyPorts && m_signalConnected){
-        m_proxyPorts->disconnect(this);
+    if(m_dsChildBlock && m_signalConnected){
+        m_dsChildBlock->disconnect(this);
     }
 
-    m_proxyPorts = portDataSource;
+    m_dsChildBlock = proxyBlock;
 
-    connect(m_proxyPorts,&ProxyPorts::beginResetPortModel,this,[=](){
+    connect(m_dsChildBlock,&DSChildBlock::beginResetPortModel,this,[=](){
         beginResetModel();
     });
-    connect(m_proxyPorts,&ProxyPorts::endResetPortModel,this,[=](){
+    connect(m_dsChildBlock,&DSChildBlock::endResetPortModel,this,[=](){
         endResetModel();
     });
-    connect(m_proxyPorts,&ProxyPorts::beginInsertPort,this,[=](int index){
+    connect(m_dsChildBlock,&DSChildBlock::beginInsertPort,this,[=](int index){
         beginInsertRows(QModelIndex(),index,index);
     });
-    connect(m_proxyPorts,&ProxyPorts::endInsertPort,this,[=](){
+    connect(m_dsChildBlock,&DSChildBlock::endInsertPort,this,[=](){
         endInsertRows();
     });
-    connect(m_proxyPorts,&ProxyPorts::beginRemovePort,this,[=](int index){
+    connect(m_dsChildBlock,&DSChildBlock::beginRemovePort,this,[=](int index){
         beginRemoveRows(QModelIndex(),index,index);
     });
-    connect(m_proxyPorts,&ProxyPorts::endRemovePort,this,[=](){
+    connect(m_dsChildBlock,&DSChildBlock::endRemovePort,this,[=](){
         endRemoveRows();
     });
 

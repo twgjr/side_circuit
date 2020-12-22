@@ -3,6 +3,7 @@ import QtQuick.Window 2.15
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Dialogs 1.2
+import QtQuick.Shapes 1.15
 import com.company.models 1.0
 import "portScript.js" as PortScript
 
@@ -76,10 +77,40 @@ Rectangle {
     Menu {
         id: portContextMenu
         MenuItem {
-            text: "Delete"
+            text: "Start Link"
             onTriggered: {
-                proxyPortsId.deletePort(model.index)
+                dsPortId.startLink()
+            }
+        }MenuItem {
+            text: "Delete Port"
+            onTriggered: {
+                console.log("delete port: "+model.index)
+                dsBlockId.deletePort(model.index)
             }
         }
     } //Menu
+
+
+    DSPort{
+        id: dsPortId
+        dsPort: dsBlockId.port(model.index)
+        Component.onCompleted: {
+            console.log("dsPort set for port: "+model.index)
+        }
+
+    }
+    LinkModel{
+        id: linkModel
+        dsPort: dsPortId
+        Component.onCompleted: {
+            console.log("linkModel set for port: "+model.index)
+        }
+    }
+    Repeater{
+        id : portRepeater
+        height: parent.height
+        width: parent.width
+        model : linkModel
+        delegate: Link{}
+    }
 }

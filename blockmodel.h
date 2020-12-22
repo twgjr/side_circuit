@@ -19,10 +19,7 @@
 class BlockModel : public QAbstractItemModel
 {
     Q_OBJECT
-    Q_PROPERTY(DataSource* dataSource
-               READ dataSource
-               WRITE setdataSource
-               NOTIFY dataSourceChanged)
+    Q_PROPERTY(DataSource* dataSource READ dataSource WRITE setdataSource NOTIFY dataSourceChanged)
 
 public:
 

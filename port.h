@@ -3,7 +3,6 @@
 
 #include <QObject>
 #include <QDebug>
-//#include "blockitem.h"
 #include "link.h"
 
 class BlockItem;  //added to remove circular include with blockitem.h
@@ -12,15 +11,15 @@ class Port : public QObject
 {
     Q_OBJECT
 
+public:
     Q_PROPERTY(int side READ side WRITE setSide)
     Q_PROPERTY(int position READ position WRITE setPosition)
     Q_PROPERTY(QString name READ name WRITE setName)
 
-public:
-
     explicit Port(QObject *parent = nullptr);
     ~Port();
 
+    // this port
     void setBlockParent(BlockItem * blockParent);
     int side() const;
     void setSide(int side);
@@ -29,18 +28,23 @@ public:
     QString name() const;
     void setName(QString name);
 
-
+    //links
+    QVector<Link *> links();
+    int linkCount();
+    void startLink();
+    void removeLink(int linkIndex);
 
 signals:
 
 private:
     BlockItem * m_blockParent;
-    Link * m_link;
     int m_side;
     int m_position;
     QString m_name;
     bool isConnected;
     int m_id;
+
+    QVector<Link*> m_links;
 };
 
 #endif // PORT_H

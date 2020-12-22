@@ -3,6 +3,7 @@ import QtQuick.Window 2.15
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Dialogs 1.2
+import QtQuick.Shapes 1.15
 import com.company.models 1.0
 
 Window {
@@ -14,11 +15,6 @@ Window {
     visibility: "Maximized"
 
     DataSource{ id: dataSource }
-
-    BlockModel{
-        id: blockModel
-        dataSource: dataSource
-    }
 
     ColumnLayout{
         id:columnLayoutId
@@ -51,8 +47,18 @@ Window {
                 contentWidth: maxFlickX
                 contentHeight: maxFlickY
                 clip: true
-                ScrollBar.horizontal: ScrollBar { id: hbar ; active: true; visible: true ; policy: ScrollBar.AlwaysOn }
-                ScrollBar.vertical: ScrollBar { id: vbar; active: true; visible: true ; policy: ScrollBar.AlwaysOn }
+                ScrollBar.horizontal: ScrollBar {
+                    id: hbar
+                    active: true; visible: true
+                    policy: ScrollBar.AlwaysOn
+                }
+                ScrollBar.vertical: ScrollBar {
+                    id: vbar
+                    active: true; visible: true
+                    policy: ScrollBar.AlwaysOn
+                }
+
+
 
                 MouseArea{
                     id: diagramMouseArea
@@ -78,15 +84,18 @@ Window {
                             }
                         }
                     }
-                }
+                }//MouseArea
 
+                BlockModel{
+                    id: blockModel
+                    dataSource: dataSource
+                }
                 Repeater{
                     id : repeaterID
                     height: parent.height
                     width: parent.width
                     model : blockModel
                     delegate: Block{}
-
                 }
             } //Flickable
         } //RowLayout
@@ -106,12 +115,6 @@ Window {
                 text : "Save"
                 Layout.fillWidth: true
                 onClicked: fileSaveDialog.open()
-            }
-            Button {
-                id : mButton3
-                text : "New Block"
-                Layout.fillWidth: true
-                onClicked: dataSource.appendBlock(window.width/2,window.height/2) // adds to the active "root"
             }
             Button {
                 id : mButton6

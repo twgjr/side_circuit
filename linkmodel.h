@@ -1,23 +1,24 @@
-#ifndef PORTMODEL_H
-#define PORTMODEL_H
+#ifndef LINKMODEL_H
+#define LINKMODEL_H
 
 #include <QAbstractListModel>
-#include "dschildblock.h"
+#include "dsport.h"
 
-class PortModel : public QAbstractListModel
+class LinkModel : public QAbstractListModel
 {
     Q_OBJECT
 
 public:
-    Q_PROPERTY(DSChildBlock* dsChildBlock READ dsChildBlock WRITE setdsChildBlock NOTIFY dsChildBlockChanged)
+    Q_PROPERTY(DSPort* dsPort READ dsPort WRITE setdsPort NOTIFY dsPortChanged)
 
-    explicit PortModel(QObject *parent = nullptr);
-    ~PortModel();
+    explicit LinkModel(QObject *parent = nullptr);
+    ~LinkModel();
 
-    enum PortRoles{
-        SideRole = Qt::UserRole + 1,
-        NameRole,
-        PositionRole
+    enum LinkRoles{
+        StartXRole = Qt::UserRole + 1,
+        StartYRole,
+        EndXRole,
+        EndYRole
     };
 
     // Basic functionality:
@@ -29,16 +30,17 @@ public:
     Qt::ItemFlags flags(const QModelIndex& index) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    DSChildBlock* dsChildBlock();
-    void setdsChildBlock(DSChildBlock* proxyBlock);
+    DSPort* dsPort();
+    void setdsPort(DSPort* proxyPort);
 
 signals:
-    void dsChildBlockChanged(DSChildBlock* proxyBlock);
+    void dsPortChanged(DSPort* proxyPort);
 
 private:
     QHash<int, QByteArray> m_roles;
     bool m_signalConnected;
-    DSChildBlock* m_dsChildBlock;
+    DSPort* m_dsPort;
+
 };
 
-#endif // PORTMODEL_H
+#endif // LINKMODEL_H

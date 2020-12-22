@@ -14,6 +14,8 @@ public:
 
     BlockItem * proxyRoot();
     Q_INVOKABLE BlockItem * proxyChild(int blockIndex);
+    Q_INVOKABLE Port * proxyPort(int blockIndex, int portIndex);
+
 
     void newProxyRoot(BlockItem *newProxyRoot);
 

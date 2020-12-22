@@ -3,6 +3,7 @@ import QtQuick.Window 2.15
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Dialogs 1.2
+import QtQuick.Shapes 1.15
 import com.company.models 1.0
 
 Rectangle{
@@ -38,18 +39,20 @@ Rectangle{
         anchors.verticalCenter: parent.bottom
     }
 
-    ProxyPorts{
-        id: proxyPortsId
-        parentBlock: dataSource.proxyChild(model.index)
+    DSChildBlock{
+        id: dsBlockId
+        dsChildBlock: dataSource.proxyChild(model.index)
+        Component.onCompleted: {
+            console.log("dsBlock set for block: "+model.index)
+        }
     }
-
     PortModel{
         id: portModel
-        proxyPorts: proxyPortsId
+        dsChildBlock: dsBlockId
+        Component.onCompleted: {
+            console.log("portModel set for block: "+model.index)
+        }
     }
-
-    property int parentIndex: model.index
-
     Repeater{
         id : portRepeater
         height: parent.height

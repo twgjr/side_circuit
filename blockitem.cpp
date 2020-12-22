@@ -15,12 +15,12 @@ BlockItem::BlockItem(z3::context *context,
     m_blockYPosition(0),
     m_equation(context)
 {
-    //qDebug()<<"Block Item created";
+    qDebug()<<"Created: "<<this;
 }
 
 BlockItem::~BlockItem()
 {
-    //qDebug()<<"Block Item destroyed";
+    qDebug()<<"Deleted: "<<this;
 }
 
 BlockItem *BlockItem::parentItem() {return m_parentItem;}
@@ -131,6 +131,11 @@ int BlockItem::portSide(int portNum)
 int BlockItem::portPosition(int portNum)
 {
     return m_ports[portNum]->position();
+}
+
+void BlockItem::startLink(int portIndex)
+{
+    m_ports[portIndex]->startLink();
 }
 
 void BlockItem::setContext(z3::context *context) {m_context = context;}

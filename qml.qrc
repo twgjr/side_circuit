@@ -5,5 +5,6 @@
         <file>BlockCornerMouseArea.qml</file>
         <file>BlockMouseArea.qml</file>
         <file>Port.qml</file>
+        <file>Link.qml</file>
     </qresource>
 </RCC>

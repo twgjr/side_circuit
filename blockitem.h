@@ -62,13 +62,16 @@ public:
     void removeProxyChild(int modelIndex);
 
 
-    // connecting blocks
+    // ports
     QVector<Port *> ports();
     void addPort(int side, int position);
     void removePort(int portIndex);
     int portCount();
     int portSide(int portNum);
     int portPosition(int portNum);
+
+    //links
+    Q_INVOKABLE void startLink( int portIndex );
 
     // solver
     void setContext(z3::context *context);

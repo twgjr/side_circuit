@@ -2,18 +2,17 @@
 
 Port::Port(QObject *parent) : QObject(parent),
     m_blockParent(nullptr),
-    m_link(nullptr),
     m_side(0),
     m_position(0),
     m_name("label"),
     isConnected(false)
 {
-    //qDebug()<<"Port created";
+    qDebug()<<"Created: "<<this;
 }
 
 Port::~Port()
 {
-    //qDebug()<<"Port destroyed.";
+    qDebug()<<"Deleted: "<<this;
 }
 
 void Port::setBlockParent(BlockItem *blockParent)
@@ -50,3 +49,29 @@ void Port::setName(QString name)
 {
     m_name = name;
 }
+
+QVector<Link *> Port::links()
+{
+    return m_links;
+}
+
+int Port::linkCount()
+{
+    return m_links.count();
+}
+
+void Port::startLink()
+{
+    Link * newLink = new Link(this);
+    Port * thisItem = static_cast<Port*>(this);
+    //set initial properties of the link
+    m_links.append(newLink);
+}
+
+void Port::removeLink(int linkIndex)
+{
+    delete m_links[linkIndex];
+    m_links.remove(linkIndex);
+}
+
+

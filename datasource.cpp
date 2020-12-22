@@ -26,6 +26,11 @@ BlockItem *DataSource::proxyChild(int blockIndex)
     return m_proxyRoot->child(blockIndex);
 }
 
+Port *DataSource::proxyPort(int blockIndex, int portIndex)
+{
+    return m_proxyRoot->child(blockIndex)->ports()[portIndex];
+}
+
 void DataSource::newProxyRoot(BlockItem *newProxyRoot)
 {
     // set old proxy children parents to nullptr (point to nothing)

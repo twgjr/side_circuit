@@ -10,15 +10,17 @@ SOURCES += \
         blockitem.cpp \
         blockmodel.cpp \
         datasource.cpp \
+        dschildblock.cpp \
+        dsport.cpp \
         equation.cpp \
         equationparser.cpp \
         equationsolver.cpp \
         expressionitem.cpp \
         link.cpp \
+        linkmodel.cpp \
         main.cpp \
         port.cpp \
         portmodel.cpp \
-        proxyports.cpp \
         regexlist.cpp
 
 RESOURCES += qml.qrc \
@@ -47,14 +49,16 @@ HEADERS += \
     blockitem.h \
     blockmodel.h \
     datasource.h \
+    dschildblock.h \
+    dsport.h \
     equation.h \
     equationparser.h \
     equationsolver.h \
     expressionitem.h \
     link.h \
+    linkmodel.h \
     port.h \
     portmodel.h \
-    proxyports.h \
     regexlist.h
 
 DISTFILES +=

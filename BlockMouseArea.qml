@@ -3,8 +3,8 @@ import QtQuick.Window 2.15
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Dialogs 1.2
+import QtQuick.Shapes 1.15
 import com.company.models 1.0
-//import "portCreation.js" as PortScript
 
 MouseArea{
     acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -16,7 +16,7 @@ MouseArea{
     onDoubleClicked: {
         if(mouse.button & Qt.LeftButton){
             flickableId.leveltext = dataSource.distanceFromRoot()+1
-            dataSource.downLevel(model.index)
+            dataSource.downLevel(/*repeaterID.*/model.index)
         }
     }
     // single click and release
@@ -72,20 +72,20 @@ MouseArea{
                     side = 3
                     position = posY
                 }
-                dataSource.addPort(model.index,side,position)
+                dsBlockId.addPort(side,position)
             }
         }//MenuItem
         MenuItem {
             text: "Down Level"
             onTriggered: {
                 flickableId.leveltext = dataSource.distanceFromRoot()+1
-                dataSource.downLevel(model.index)
+                dataSource.downLevel(/*repeaterID.*/model.index)
             }
         }
         MenuItem {
             text: "Delete"
             onTriggered: {
-                dataSource.deleteBlock(model.index)
+                dataSource.deleteBlock(/*repeaterID.*/model.index)
             }
         }
     } //Menu
