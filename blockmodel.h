@@ -46,7 +46,6 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
-
     // QAbstractItemModel functions for editable model
     Qt::ItemFlags flags(const QModelIndex &index) const override;
     bool setData(const QModelIndex &index,
@@ -62,12 +61,10 @@ public:
     BlockItem * blockFromQIndex(const QModelIndex &index) const;
 
     DataSource* dataSource() const;
-
     void setdataSource(DataSource* blockDataSource);
 
 signals:
     void rolesChanged();
-
     void dataSourceChanged(DataSource* newBlockDataSource);
 
 private:

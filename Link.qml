@@ -31,8 +31,7 @@ Rectangle{
         MenuItem {
             text: "Delete Link"
             onTriggered: {
-                //proxyBlockId.deletePort(model.index)
-                dsPortId.deleteLink(model.index)
+                dataSource.deleteLink(proxyBlockIndex,proxyPortIndex,model.index)
             }
         }
     } //Menu

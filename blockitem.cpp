@@ -15,7 +15,7 @@ BlockItem::BlockItem(z3::context *context,
     m_blockYPosition(0),
     m_equation(context)
 {
-    qDebug()<<"Created: "<<this;
+    qDebug()<<"Created: "<<this<<" with Qparent: "<<qobjparent;
 }
 
 BlockItem::~BlockItem()
@@ -103,39 +103,35 @@ void BlockItem::removeProxyChild(int modelIndex)
 }
 
 QVector<Port *> BlockItem::ports() {return m_ports;}
+
+Port *BlockItem::portAt(int portIndex)
+{
+    return m_ports[portIndex];
+}
 void BlockItem::addPort(int side, int position){
+    qDebug()<<"next port Index to be added "<< m_ports.count();
     Port * newPort = new Port(this);
     BlockItem * thisItem = static_cast<BlockItem*>(this);
     newPort->setBlockParent(thisItem);
     newPort->setSide(side);
     newPort->setPosition(position);
+    emit beginInsertPort(m_ports.count());
     m_ports.append(newPort);
+    emit endInsertPort();
 }
 
 void BlockItem::removePort(int portIndex)
 {
+    qDebug()<<"port Index to be removed "<< portIndex;
+    emit beginRemovePort(portIndex);
     delete m_ports[portIndex];
     m_ports.remove(portIndex);
+    emit endRemovePort();
 }
 
 int BlockItem::portCount()
 {
     return m_ports.count();
-}
-
-int BlockItem::portSide(int portNum)
-{
-    return m_ports[portNum]->side();
-}
-
-int BlockItem::portPosition(int portNum)
-{
-    return m_ports[portNum]->position();
-}
-
-void BlockItem::startLink(int portIndex)
-{
-    m_ports[portIndex]->startLink();
 }
 
 void BlockItem::setContext(z3::context *context) {m_context = context;}

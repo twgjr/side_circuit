@@ -28,7 +28,7 @@ BlockItem *DataSource::proxyChild(int blockIndex)
 
 Port *DataSource::proxyPort(int blockIndex, int portIndex)
 {
-    return m_proxyRoot->child(blockIndex)->ports()[portIndex];
+    return m_proxyRoot->child(blockIndex)->portAt(portIndex);
 }
 
 void DataSource::newProxyRoot(BlockItem *newProxyRoot)
@@ -43,7 +43,6 @@ void DataSource::newProxyRoot(BlockItem *newProxyRoot)
 
     // set new proxy root pointer
     m_proxyRoot=newProxyRoot;
-    //m_proxyRoot->setProxyParent(nullptr);
 
     // append all proxy child pointers for item pointed by proxy parent
     for ( int i = 0 ; i < newProxyRoot->childCount() ; i++ ) {
@@ -56,30 +55,33 @@ void DataSource::newProxyRoot(BlockItem *newProxyRoot)
 
 void DataSource::appendBlock(int x, int y)
 {
-
-    beginInsertBlock(m_proxyRoot->childCount());
+    emit beginInsertBlock(m_proxyRoot->childCount());
     BlockItem *childItem = new BlockItem(&m_context,nullptr,this);
     childItem->setBlockXPosition(x);
     childItem->setBlockYPosition(y);
     m_proxyRoot->appendChild(childItem);
     m_proxyRoot->appendProxyChild(childItem);
-    endInsertBlock();
+    emit endInsertBlock();
 }
 
 void DataSource::downLevel(int blockIndex)
 {
-    beginResetBlockModel();
+    // change the block connected to the reset signals before changing the
+    // proxy root. if not, the pointer will be lost and the reset
+    // cannot complete, problem is with portmodel and block item signals connect
+
+    emit beginResetBlockModel();
     newProxyRoot(m_proxyRoot->child(blockIndex));
-    endResetBlockModel();
+    emit endResetBlockModel();
 }
 
 void DataSource::upLevel()
 {
     if(m_proxyRoot->parentItem()!=nullptr){
         // parent is valid, cannot go higher than actual root
-        beginResetBlockModel();
+        emit beginResetBlockModel();
         newProxyRoot(m_proxyRoot->parentItem());
-        endResetBlockModel();
+        emit endResetBlockModel();
     }
 }
 
@@ -157,21 +159,30 @@ int DataSource::numChildren(int blockIndex)
 
 void DataSource::deleteBlock(int blockIndex)
 {
-    beginResetBlockModel();
+    emit beginResetBlockModel();
     m_proxyRoot->removeChild(blockIndex);
     m_proxyRoot->removeProxyChild(blockIndex);
-    endResetBlockModel();
+    emit endResetBlockModel();
 }
 
 void DataSource::addPort(int blockIndex, int side, int position)
 {
-    //delete row then insert to reset only the affect block
-    beginRemoveBlock(blockIndex);
-    // don't actually remove the block
-    endRemoveBlock();
-    beginInsertBlock(blockIndex);
     m_proxyRoot->child(blockIndex)->addPort(side,position);
-    endInsertBlock();
+}
+
+void DataSource::deletePort(int blockIndex, int portIndex)
+{
+    m_proxyRoot->child(blockIndex)->removePort(portIndex);
+}
+
+void DataSource::startLink(int blockIndex, int portIndex)
+{
+    m_proxyRoot->child(blockIndex)->portAt(portIndex)->startLink();
+}
+
+void DataSource::deleteLink(int blockIndex, int portIndex, int linkIndex)
+{
+    m_proxyRoot->child(blockIndex)->portAt(portIndex)->removeLink(linkIndex);
 }
 
 void DataSource::solveEquations()

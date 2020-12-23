@@ -2,9 +2,7 @@
 #include <QQmlApplicationEngine>
 #include "datasource.h"
 #include "blockmodel.h"
-#include "dschildblock.h"
 #include "portmodel.h"
-#include "dsport.h"
 #include "linkmodel.h"
 
 int main(int argc, char *argv[])
@@ -20,9 +18,7 @@ int main(int argc, char *argv[])
 
     qmlRegisterType<DataSource>("com.company.models",1,0,"DataSource");
     qmlRegisterType<BlockModel>("com.company.models",1,0,"BlockModel");
-    qmlRegisterType<DSChildBlock>("com.company.models",1,0,"DSChildBlock");
     qmlRegisterType<PortModel>("com.company.models",1,0,"PortModel");
-    qmlRegisterType<DSPort>("com.company.models",1,0,"DSPort");
     qmlRegisterType<LinkModel>("com.company.models",1,0,"LinkModel");
 
     const QUrl url(QStringLiteral("qrc:/main.qml"));

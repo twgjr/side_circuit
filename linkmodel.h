@@ -1,15 +1,16 @@
 #ifndef LINKMODEL_H
 #define LINKMODEL_H
 
-#include <QAbstractListModel>
-#include "dsport.h"
+#include <QAbstractItemModel>
+#include "datasource.h"
 
-class LinkModel : public QAbstractListModel
+class LinkModel : public QAbstractItemModel
 {
     Q_OBJECT
 
 public:
-    Q_PROPERTY(DSPort* dsPort READ dsPort WRITE setdsPort NOTIFY dsPortChanged)
+    Q_PROPERTY(Port* proxyPort READ proxyPort WRITE setProxyPort NOTIFY proxyPortChanged)
+
 
     explicit LinkModel(QObject *parent = nullptr);
     ~LinkModel();
@@ -22,6 +23,11 @@ public:
     };
 
     // Basic functionality:
+    QModelIndex index(int row,
+                      int column,
+                      const QModelIndex &parent = QModelIndex()) const override;
+    QModelIndex parent(const QModelIndex &index) const override;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     // Editable:
@@ -30,17 +36,17 @@ public:
     Qt::ItemFlags flags(const QModelIndex& index) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    DSPort* dsPort();
-    void setdsPort(DSPort* proxyPort);
+    Port* proxyPort() const;
+
+    void setProxyPort(Port* proxyPort);
 
 signals:
-    void dsPortChanged(DSPort* proxyPort);
+    void proxyPortChanged(Port* proxyPort);
 
 private:
     QHash<int, QByteArray> m_roles;
     bool m_signalConnected;
-    DSPort* m_dsPort;
-
+    Port* m_proxyPort;
 };
 
 #endif // LINKMODEL_H

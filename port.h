@@ -30,11 +30,18 @@ public:
 
     //links
     QVector<Link *> links();
+    Link * linkAt(int linkIndex);
     int linkCount();
     void startLink();
     void removeLink(int linkIndex);
 
 signals:
+    void beginResetLinkModel();
+    void endResetLinkModel();
+    void beginInsertLink(int linkIndex);
+    void endInsertLink();
+    void beginRemoveLink(int linkIndex);
+    void endRemoveLink();
 
 private:
     BlockItem * m_blockParent;

@@ -16,7 +16,6 @@ public:
     Q_INVOKABLE BlockItem * proxyChild(int blockIndex);
     Q_INVOKABLE Port * proxyPort(int blockIndex, int portIndex);
 
-
     void newProxyRoot(BlockItem *newProxyRoot);
 
     Q_INVOKABLE void appendBlock(int x = 0, int y = 0);
@@ -29,7 +28,12 @@ public:
     Q_INVOKABLE int numChildren(int blockIndex);
     Q_INVOKABLE void deleteBlock(int blockIndex);
 
-    Q_INVOKABLE void addPort(int blockIndex, int side, int position);
+    Q_INVOKABLE void addPort( int blockIndex, int side, int position );
+    Q_INVOKABLE void deletePort( int blockIndex, int portIndex );
+
+    Q_INVOKABLE void startLink( int blockIndex, int portIndex );
+    Q_INVOKABLE void deleteLink( int blockIndex, int portIndex, int linkIndex );
+
 
     /* EXPOSING EQUATIONSOLVER FUNCTIONS AS SLOTS TO QML VIA BLOCKDATASOURCE->BLOCKMODEL */
     Q_INVOKABLE void solveEquations();
@@ -39,6 +43,7 @@ public:
     Q_INVOKABLE int maxBlockY();
 
 signals:
+    //blocks
     void beginResetBlockModel();
     void endResetBlockModel();
     void beginInsertBlock(int blockIndex);

@@ -7,7 +7,7 @@ Port::Port(QObject *parent) : QObject(parent),
     m_name("label"),
     isConnected(false)
 {
-    qDebug()<<"Created: "<<this;
+    qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 }
 
 Port::~Port()
@@ -55,6 +55,11 @@ QVector<Link *> Port::links()
     return m_links;
 }
 
+Link *Port::linkAt(int linkIndex)
+{
+    return m_links[linkIndex];
+}
+
 int Port::linkCount()
 {
     return m_links.count();
@@ -62,16 +67,22 @@ int Port::linkCount()
 
 void Port::startLink()
 {
+    qDebug()<<"next link Index to be added "<< m_links.count();
     Link * newLink = new Link(this);
-    Port * thisItem = static_cast<Port*>(this);
+    //Port * thisItem = static_cast<Port*>(this);
     //set initial properties of the link
+    emit beginInsertLink(m_links.count());
     m_links.append(newLink);
+    emit endInsertLink();
 }
 
 void Port::removeLink(int linkIndex)
 {
+    qDebug()<<"link Index to be removed "<<linkIndex;
+    emit beginRemoveLink(linkIndex);
     delete m_links[linkIndex];
     m_links.remove(linkIndex);
+    emit endRemoveLink();
 }
 
 

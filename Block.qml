@@ -39,20 +39,12 @@ Rectangle{
         anchors.verticalCenter: parent.bottom
     }
 
-    DSChildBlock{
-        id: dsBlockId
-        dsChildBlock: dataSource.proxyChild(model.index)
-        Component.onCompleted: {
-            console.log("dsBlock set for block: "+model.index)
-        }
-    }
     PortModel{
         id: portModel
-        dsChildBlock: dsBlockId
-        Component.onCompleted: {
-            console.log("portModel set for block: "+model.index)
-        }
+        proxyChildBlock: dataSource.proxyChild(model.index)
+        Component.onCompleted: {}
     }
+    property int proxyBlockIndex: model.index
     Repeater{
         id : portRepeater
         height: parent.height

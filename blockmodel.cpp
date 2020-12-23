@@ -3,7 +3,7 @@
 BlockModel::BlockModel(QObject *parent) : QAbstractItemModel(parent),
     m_signalConnected(false)
 {
-    //qDebug()<<"BlockModel object created.";
+    qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 
     //set the basic roles for access of item properties in QML
     m_roles[DescriptionDataRole]="description";

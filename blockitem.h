@@ -61,17 +61,12 @@ public:
     void appendProxyChild(BlockItem * item);
     void removeProxyChild(int modelIndex);
 
-
     // ports
     QVector<Port *> ports();
+    Port * portAt( int portIndex );
     void addPort(int side, int position);
     void removePort(int portIndex);
     int portCount();
-    int portSide(int portNum);
-    int portPosition(int portNum);
-
-    //links
-    Q_INVOKABLE void startLink( int portIndex );
 
     // solver
     void setContext(z3::context *context);
@@ -100,7 +95,12 @@ public:
     void setblockHeight(int blockHeight);
 
 signals:
-
+    void beginResetPortModel();
+    void endResetPortModel();
+    void beginInsertPort(int portIndex);
+    void endInsertPort();
+    void beginRemovePort(int portIndex);
+    void endRemovePort();
 
 private:
     //object pointers

@@ -72,20 +72,20 @@ MouseArea{
                     side = 3
                     position = posY
                 }
-                dsBlockId.addPort(side,position)
+                dataSource.addPort(model.index,side,position)
             }
         }//MenuItem
         MenuItem {
             text: "Down Level"
             onTriggered: {
                 flickableId.leveltext = dataSource.distanceFromRoot()+1
-                dataSource.downLevel(/*repeaterID.*/model.index)
+                dataSource.downLevel(model.index)
             }
         }
         MenuItem {
             text: "Delete"
             onTriggered: {
-                dataSource.deleteBlock(/*repeaterID.*/model.index)
+                dataSource.deleteBlock(model.index)
             }
         }
     } //Menu

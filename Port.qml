@@ -79,33 +79,23 @@ Rectangle {
         MenuItem {
             text: "Start Link"
             onTriggered: {
-                dsPortId.startLink()
+                dataSource.startLink(proxyBlockIndex,model.index)
             }
         }MenuItem {
             text: "Delete Port"
             onTriggered: {
-                console.log("delete port: "+model.index)
-                dsBlockId.deletePort(model.index)
+                dataSource.deletePort(proxyBlockIndex,model.index)
             }
         }
     } //Menu
 
-
-    DSPort{
-        id: dsPortId
-        dsPort: dsBlockId.port(model.index)
-        Component.onCompleted: {
-            console.log("dsPort set for port: "+model.index)
-        }
-
-    }
     LinkModel{
         id: linkModel
-        dsPort: dsPortId
+        proxyPort: dataSource.proxyPort(proxyBlockIndex,model.index)
         Component.onCompleted: {
-            console.log("linkModel set for port: "+model.index)
         }
     }
+    property int proxyPortIndex: model.index
     Repeater{
         id : portRepeater
         height: parent.height

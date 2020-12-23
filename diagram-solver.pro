@@ -10,8 +10,6 @@ SOURCES += \
         blockitem.cpp \
         blockmodel.cpp \
         datasource.cpp \
-        dschildblock.cpp \
-        dsport.cpp \
         equation.cpp \
         equationparser.cpp \
         equationsolver.cpp \
@@ -49,8 +47,6 @@ HEADERS += \
     blockitem.h \
     blockmodel.h \
     datasource.h \
-    dschildblock.h \
-    dsport.h \
     equation.h \
     equationparser.h \
     equationsolver.h \

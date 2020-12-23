@@ -1,15 +1,15 @@
 #ifndef PORTMODEL_H
 #define PORTMODEL_H
 
-#include <QAbstractListModel>
-#include "dschildblock.h"
+#include <QAbstractItemModel>
+#include "datasource.h"
 
-class PortModel : public QAbstractListModel
+class PortModel : public QAbstractItemModel
 {
     Q_OBJECT
 
 public:
-    Q_PROPERTY(DSChildBlock* dsChildBlock READ dsChildBlock WRITE setdsChildBlock NOTIFY dsChildBlockChanged)
+    Q_PROPERTY(BlockItem* proxyChildBlock READ proxyChildBlock WRITE setProxyChildBlock NOTIFY proxyChildBlockChanged)
 
     explicit PortModel(QObject *parent = nullptr);
     ~PortModel();
@@ -21,6 +21,11 @@ public:
     };
 
     // Basic functionality:
+    QModelIndex index(int row,
+                      int column,
+                      const QModelIndex &parent = QModelIndex()) const override;
+    QModelIndex parent(const QModelIndex &index) const override;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     // Editable:
@@ -29,16 +34,16 @@ public:
     Qt::ItemFlags flags(const QModelIndex& index) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    DSChildBlock* dsChildBlock();
-    void setdsChildBlock(DSChildBlock* proxyBlock);
+    BlockItem* proxyChildBlock() const;
+    void setProxyChildBlock(BlockItem* proxyChildBlock);
 
 signals:
-    void dsChildBlockChanged(DSChildBlock* proxyBlock);
+    void proxyChildBlockChanged(BlockItem* proxyChildBlock);
 
 private:
     QHash<int, QByteArray> m_roles;
     bool m_signalConnected;
-    DSChildBlock* m_dsChildBlock;
+    BlockItem* m_proxyChildBlock;
 };
 
 #endif // PORTMODEL_H
