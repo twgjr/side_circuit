@@ -91,7 +91,7 @@ Rectangle {
 
     LinkModel{
         id: linkModel
-        proxyPort: dataSource.proxyPort(proxyBlockIndex,model.index)
+        proxyPort: model.thisPort
         Component.onCompleted: {
         }
     }

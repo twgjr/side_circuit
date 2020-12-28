@@ -12,6 +12,8 @@ class Port : public QObject
     Q_OBJECT
 
 public:
+    Q_PROPERTY(Port* thisPort READ thisPort WRITE setThisPort NOTIFY thisPortChanged)
+
     Q_PROPERTY(int side READ side WRITE setSide)
     Q_PROPERTY(int position READ position WRITE setPosition)
     Q_PROPERTY(QString name READ name WRITE setName)
@@ -35,6 +37,20 @@ public:
     void startLink();
     void removeLink(int linkIndex);
 
+    Port* thisPort()
+    {
+        return this;
+    }
+
+    void setThisPort(Port* thisPort)
+    {
+        if (m_thisPort == thisPort)
+            return;
+
+        m_thisPort = thisPort;
+        emit thisPortChanged(m_thisPort);
+    }
+
 signals:
     void beginResetLinkModel();
     void endResetLinkModel();
@@ -42,6 +58,8 @@ signals:
     void endInsertLink();
     void beginRemoveLink(int linkIndex);
     void endRemoveLink();
+
+    void thisPortChanged(Port* thisPort);
 
 private:
     BlockItem * m_blockParent;
@@ -52,6 +70,7 @@ private:
     int m_id;
 
     QVector<Link*> m_links;
+    Port* m_thisPort;
 };
 
 #endif // PORT_H

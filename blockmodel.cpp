@@ -6,6 +6,8 @@ BlockModel::BlockModel(QObject *parent) : QAbstractItemModel(parent),
     qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 
     //set the basic roles for access of item properties in QML
+    m_roles[ProxyRoot]="proxyRoot";
+    m_roles[ThisBlock]="thisBlock";
     m_roles[DescriptionDataRole]="description";
     m_roles[IDDataRole]="id";
     m_roles[BlockXPositionRole]="blockXPosition";

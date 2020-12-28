@@ -9,13 +9,14 @@ class PortModel : public QAbstractItemModel
     Q_OBJECT
 
 public:
-    Q_PROPERTY(BlockItem* proxyChildBlock READ proxyChildBlock WRITE setProxyChildBlock NOTIFY proxyChildBlockChanged)
+    Q_PROPERTY(BlockItem* proxyChildBlock READ proxyChildBlock WRITE setProxyChildBlock NOTIFY proxyChildBlockChanged)   
 
     explicit PortModel(QObject *parent = nullptr);
     ~PortModel();
 
     enum PortRoles{
-        SideRole = Qt::UserRole + 1,
+        ThisPort = Qt::UserRole + 1,
+        SideRole,
         NameRole,
         PositionRole
     };

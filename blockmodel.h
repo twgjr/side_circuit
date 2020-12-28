@@ -24,7 +24,9 @@ class BlockModel : public QAbstractItemModel
 public:
 
     enum ModelRoles{
-        DescriptionDataRole = Qt::UserRole + 1,
+        ProxyRoot = Qt::UserRole + 1,
+        ThisBlock,
+        DescriptionDataRole,
         IDDataRole,
         BlockXPositionRole,
         BlockYPositionRole,

@@ -208,3 +208,31 @@ int BlockItem::blockWidth() const {return m_blockWidth;}
 int BlockItem::blockHeight() const {return m_blockHeight;}
 void BlockItem::setBlockWidth(int blockWidth) {m_blockWidth = blockWidth;}
 void BlockItem::setblockHeight(int blockHeight) {m_blockHeight = blockHeight;}
+
+BlockItem *BlockItem::proxyRoot()
+{
+    return m_proxyRoot;
+}
+
+void BlockItem::setProxyRoot(BlockItem *proxyRoot)
+{
+    if (m_proxyRoot == proxyRoot)
+        return;
+
+    m_proxyRoot = proxyRoot;
+    emit proxyRootChanged(m_proxyRoot);
+}
+
+BlockItem *BlockItem::thisBlock()
+{
+    return this;
+}
+
+void BlockItem::setThisBlock(BlockItem *thisBlock)
+{
+    if (m_thisBlock == thisBlock)
+        return;
+
+    m_thisBlock = thisBlock;
+    emit thisBlockChanged(m_thisBlock);
+}

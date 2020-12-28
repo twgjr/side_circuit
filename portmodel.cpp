@@ -4,6 +4,7 @@ PortModel::PortModel(QObject *parent): QAbstractItemModel(parent),
       m_signalConnected(false)
 {
     //set the basic roles for access of item properties in QML
+    m_roles[ThisPort]="thisPort";
     m_roles[SideRole]="side";
     m_roles[PositionRole]="position";
     m_roles[NameRole]="name";
@@ -21,8 +22,6 @@ QModelIndex PortModel::index(int row, int column, const QModelIndex &parent) con
     if (!hasIndex(row, column, parent)){
         return QModelIndex();
     }
-//    BlockItem *proxyParentItem = blockFromQIndex(parent);
-//    BlockItem *proxyChildItem = proxyParentItem->child(row);
     Port * portItem = m_proxyChildBlock->portAt(row);
     if (portItem){
         return createIndex(row, column, portItem);
@@ -33,17 +32,8 @@ QModelIndex PortModel::index(int row, int column, const QModelIndex &parent) con
 
 QModelIndex PortModel::parent(const QModelIndex &index) const
 {
+    Q_UNUSED(index)
     return QModelIndex();
-//    if (!index.isValid()){
-//        // the root index
-//        return QModelIndex();
-//    }
-//    BlockItem *proxyChildItem = static_cast<BlockItem*>(index.internalPointer());
-//    BlockItem *proxyParentItem = static_cast<BlockItem *>(proxyChildItem->proxyParent());
-//    if (proxyParentItem == m_dataSource->proxyRoot()){
-//        return QModelIndex();
-//    }
-//    return createIndex(proxyParentItem->childNumber(), 0, proxyParentItem);
 }
 
 int PortModel::columnCount(const QModelIndex &parent) const
@@ -57,8 +47,6 @@ int PortModel::rowCount(const QModelIndex &parent) const
     if (parent.column() > 0){
         return 0;
     }
-//    BlockItem *proxyParentItem = blockFromQIndex(parent);
-//    return proxyParentItem->childCount();
     return m_proxyChildBlock->portCount();
 }
 

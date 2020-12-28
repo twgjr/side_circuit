@@ -41,7 +41,7 @@ Rectangle{
 
     PortModel{
         id: portModel
-        proxyChildBlock: dataSource.proxyChild(model.index)
+        proxyChildBlock: model.thisBlock
         Component.onCompleted: {}
     }
     property int proxyBlockIndex: model.index

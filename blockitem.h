@@ -12,10 +12,14 @@
 #include "equationparser.h"
 #include "equation.h"
 #include "port.h"
+//#include "portmodel.h"
 
 class BlockItem : public QObject
 {
     Q_OBJECT
+
+    Q_PROPERTY(BlockItem* proxyRoot READ proxyRoot WRITE setProxyRoot NOTIFY proxyRootChanged)
+    Q_PROPERTY(BlockItem* thisBlock READ thisBlock WRITE setThisBlock NOTIFY thisBlockChanged)
 
     Q_PROPERTY(QString description READ description WRITE setDescription)
     Q_PROPERTY(int id READ id)
@@ -94,6 +98,12 @@ public:
     void setBlockWidth(int blockWidth);
     void setblockHeight(int blockHeight);
 
+    BlockItem* proxyRoot();
+    void setProxyRoot(BlockItem* proxyRoot);
+
+    BlockItem* thisBlock();
+    void setThisBlock(BlockItem* thisBlock);
+
 signals:
     void beginResetPortModel();
     void endResetPortModel();
@@ -101,6 +111,9 @@ signals:
     void endInsertPort();
     void beginRemovePort(int portIndex);
     void endRemovePort();
+
+    void proxyRootChanged(BlockItem* proxyRoot);
+    void thisBlockChanged(BlockItem* thisBlock);
 
 private:
     //object pointers
@@ -120,6 +133,9 @@ private:
     Equation m_equation;
     int m_blockWidth;
     int m_blockHeight;
+
+    BlockItem* m_proxyRoot;
+    BlockItem* m_thisBlock;
 };
 
 #endif // BLOCKITEM_H
