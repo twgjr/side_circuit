@@ -21,11 +21,10 @@ public:
     Q_INVOKABLE void appendBlock(int x = 0, int y = 0);
     Q_INVOKABLE void downLevel(int modelIndex);
     Q_INVOKABLE void upLevel();
-    Q_INVOKABLE void printProxyTree(BlockItem * rootItem, int depth);
     Q_INVOKABLE void printFullTree(BlockItem * rootItem, int depth);
     Q_INVOKABLE void printBlock(int blockIndex);
     Q_INVOKABLE int distanceFromRoot() const;
-    Q_INVOKABLE int numChildren(int blockIndex);
+    //Q_INVOKABLE int numChildren(int blockIndex);
     Q_INVOKABLE void deleteBlock(int blockIndex);
 
     Q_INVOKABLE void addPort( int blockIndex, int side, int position );
@@ -33,7 +32,6 @@ public:
 
     Q_INVOKABLE void startLink( int blockIndex, int portIndex );
     Q_INVOKABLE void deleteLink( int blockIndex, int portIndex, int linkIndex );
-
 
     /* EXPOSING EQUATIONSOLVER FUNCTIONS AS SLOTS TO QML VIA BLOCKDATASOURCE->BLOCKMODEL */
     Q_INVOKABLE void solveEquations();

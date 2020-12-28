@@ -3,11 +3,11 @@
 
 
 BlockItem::BlockItem(z3::context *context,
-                     BlockItem *parent,
-                     QObject * qobjparent) :
-    QObject(qobjparent),
-    m_parentItem(parent),
-    m_proxyParent(nullptr),
+                     BlockItem *parentBlock,
+                     QObject * parent) :
+    QObject(parent),
+    m_parentItem(parentBlock),
+    m_proxyChildCount(0),
     m_context(context),
     m_blockType(Block),
     m_description(""),
@@ -15,34 +15,34 @@ BlockItem::BlockItem(z3::context *context,
     m_blockYPosition(0),
     m_equation(context)
 {
-    qDebug()<<"Created: "<<this<<" with Qparent: "<<qobjparent;
+    //qDebug()<<"Created: "<<this<<" with Qparent: "<<qobjparent;
 }
 
 BlockItem::~BlockItem()
 {
-    qDebug()<<"Deleted: "<<this;
+    //qDebug()<<"Deleted: "<<this;
 }
 
-BlockItem *BlockItem::parentItem() {return m_parentItem;}
-void BlockItem::setParentItem(BlockItem *parentItem) {m_parentItem = parentItem;}
+BlockItem *BlockItem::parentBlock() {return m_parentItem;}
+void BlockItem::setParentBlock(BlockItem *parentBlock) {m_parentItem = parentBlock;}
 
-BlockItem *BlockItem::child(int index)
+BlockItem *BlockItem::childBlock(int index)
 {
     if(index < 0 || index >= m_children.length())
         return nullptr;
     return m_children.at(index);
 }
 
-int BlockItem::childNumber() const
+int BlockItem::childBlockNumber() const
 {
     if (m_parentItem)
         return m_parentItem->m_children.indexOf(const_cast<BlockItem*>(this));
     return 0;
 }
 
-int BlockItem::childCount() const {return m_children.count();}
+int BlockItem::childBlockCount() const {return m_children.count();}
 
-bool BlockItem::appendChild(BlockItem *item)
+bool BlockItem::appendBlockChild(BlockItem *item)
 {
     item->m_parentItem = this;
     item->setParent(this);  //to automatically delete if QObject parent destroyed
@@ -50,59 +50,11 @@ bool BlockItem::appendChild(BlockItem *item)
     return true;
 }
 
-void BlockItem::removeChild(int modelIndex)
+void BlockItem::removeBlockChild(int modelIndex)
 {
     delete m_children[modelIndex];
     m_children.remove(modelIndex);
 }
-
-int BlockItem::columnCount() const {return 1;} // columns not used
-
-void BlockItem::clearProxyParent()
-{
-    m_proxyParent = nullptr;
-}
-
-BlockItem *BlockItem::proxyChild(int index)
-{
-    if(index < 0 || index >= m_proxyChildren.length())
-        return nullptr;
-    return m_proxyChildren.at(index);
-}
-
-int BlockItem::proxyChildNumber() const
-{
-    if (m_proxyParent)
-        return m_proxyParent->m_proxyChildren.indexOf(const_cast<BlockItem*>(this));
-    return 0;
-}
-
-int BlockItem::proxyChildCount() const
-{
-    return m_proxyChildren.count();
-}
-BlockItem *BlockItem::proxyParent() {return m_proxyParent;}
-
-void BlockItem::clearProxyChildren()
-{
-    while ( !m_proxyChildren.isEmpty() ) {
-        m_proxyChildren.removeLast();
-    }
-}
-
-void BlockItem::appendProxyChild(BlockItem *item)
-{
-    item->m_proxyParent = this;
-    item->setParent(this);  //to automatically delete if QObject parent destroyed
-    m_proxyChildren.append(item);
-}
-
-void BlockItem::removeProxyChild(int modelIndex)
-{
-    m_proxyChildren.remove(modelIndex);
-}
-
-QVector<Port *> BlockItem::ports() {return m_ports;}
 
 Port *BlockItem::portAt(int portIndex)
 {
@@ -191,7 +143,7 @@ void BlockItem::setBlockType(int blockType) {m_blockType = blockType;}
 int BlockItem::blockType() const {return m_blockType;}
 QString BlockItem::description() const {return m_description;}
 void BlockItem::setDescription(QString category) {m_description = category;}
-int BlockItem::id() const {return childNumber();}
+int BlockItem::id() const {return childBlockNumber();}
 int BlockItem::blockXPosition() const {return m_blockXPosition;}
 void BlockItem::setBlockXPosition(int blockXPosition){m_blockXPosition = blockXPosition;}
 int BlockItem::blockYPosition() const {return m_blockYPosition;}

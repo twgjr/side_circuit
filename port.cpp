@@ -7,12 +7,12 @@ Port::Port(QObject *parent) : QObject(parent),
     m_name("label"),
     isConnected(false)
 {
-    qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
+    //qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 }
 
 Port::~Port()
 {
-    qDebug()<<"Deleted: "<<this;
+    //qDebug()<<"Deleted: "<<this;
 }
 
 void Port::setBlockParent(BlockItem *blockParent)
@@ -69,8 +69,6 @@ void Port::startLink()
 {
     qDebug()<<"next link Index to be added "<< m_links.count();
     Link * newLink = new Link(this);
-    //Port * thisItem = static_cast<Port*>(this);
-    //set initial properties of the link
     emit beginInsertLink(m_links.count());
     m_links.append(newLink);
     emit endInsertLink();

@@ -39,40 +39,30 @@ public:
     explicit BlockModel(QObject *parent = nullptr);
     ~BlockModel();
 
-    // QAbstractItemModel read-only functions
-    QVariant data(const QModelIndex &index, int role) const override;
+    // QAbstractItemModel overrides
     QModelIndex index(int row,
                       int column,
                       const QModelIndex &parent = QModelIndex()) const override;
     QModelIndex parent(const QModelIndex &index) const override;
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
-
-    // QAbstractItemModel functions for editable model
-    Qt::ItemFlags flags(const QModelIndex &index) const override;
+    QVariant data(const QModelIndex &index, int role) const override;
     bool setData(const QModelIndex &index,
                  const QVariant &value,
                  int role) override;
-
-    //functions for working with roles
+    Qt::ItemFlags flags(const QModelIndex &index) const override;
     QHash<int,QByteArray> roleNames() const override;
-    QVariantList roles() const;
-    void setRoles(QVariantList roles);
-
-    QModelIndex qIndexOfBlock(BlockItem *item);
-    BlockItem * blockFromQIndex(const QModelIndex &index) const;
 
     DataSource* dataSource() const;
     void setdataSource(DataSource* blockDataSource);
 
 signals:
-    void rolesChanged();
     void dataSourceChanged(DataSource* newBlockDataSource);
 
 private:
     QHash<int, QByteArray> m_roles;
-    DataSource * m_dataSource;
     bool m_signalConnected;
+    DataSource * m_dataSource;
 };
 
 #endif // BLOCKMODEL_H

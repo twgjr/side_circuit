@@ -27,13 +27,12 @@ class BlockItem : public QObject
     Q_PROPERTY(int blockYPosition READ blockYPosition WRITE setBlockYPosition)
     Q_PROPERTY(int blockWidth READ blockWidth WRITE setBlockWidth)
     Q_PROPERTY(int blockHeight READ blockHeight WRITE setblockHeight)
-    Q_PROPERTY(int numChildren READ childCount)
+    Q_PROPERTY(int numChildren READ childBlockCount)
     Q_PROPERTY(QString equationString READ equationString WRITE setEquationString)
 
 public:
-    explicit BlockItem(z3::context * context,
-                       BlockItem *parent = nullptr,
-                       QObject * qobjparent = nullptr);
+    explicit BlockItem(z3::context * context, BlockItem *parentBlock,
+                       QObject *parent = nullptr);
     ~BlockItem();
 
     enum BlockType{
@@ -44,29 +43,17 @@ public:
     };
 
     // parent
-    BlockItem * parentItem();
-    void setParentItem(BlockItem *parentItem);
+    BlockItem * parentBlock();
+    void setParentBlock(BlockItem *parentBlock);
 
     // children
-    BlockItem * child(int index);
-    int childNumber() const;
-    int childCount() const;
-    bool appendChild(BlockItem *item);
-    void removeChild(int modelIndex);
-    int columnCount() const;
-
-    // proxy model for diagram view
-    BlockItem *proxyParent();
-    void clearProxyParent();
-    BlockItem * proxyChild(int index);
-    int proxyChildNumber() const;
-    int proxyChildCount() const;
-    void clearProxyChildren();
-    void appendProxyChild(BlockItem * item);
-    void removeProxyChild(int modelIndex);
+    BlockItem * childBlock(int index);
+    int childBlockNumber() const;
+    int childBlockCount() const;
+    bool appendBlockChild(BlockItem *item);
+    void removeBlockChild(int modelIndex);
 
     // ports
-    QVector<Port *> ports();
     Port * portAt( int portIndex );
     void addPort(int side, int position);
     void removePort(int portIndex);
@@ -119,8 +106,7 @@ private:
     //object pointers
     BlockItem * m_parentItem;
     QVector<BlockItem*> m_children;
-    BlockItem * m_proxyParent;
-    QVector<BlockItem*> m_proxyChildren;
+    int m_proxyChildCount;
     QVector<Port*> m_ports;
 
     z3::context* m_context;

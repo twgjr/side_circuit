@@ -1,7 +1,7 @@
 #include "portmodel.h"
 
 PortModel::PortModel(QObject *parent): QAbstractItemModel(parent),
-      m_signalConnected(false)
+    m_signalConnected(false)
 {
     //set the basic roles for access of item properties in QML
     m_roles[ThisPort]="thisPort";
@@ -9,12 +9,12 @@ PortModel::PortModel(QObject *parent): QAbstractItemModel(parent),
     m_roles[PositionRole]="position";
     m_roles[NameRole]="name";
 
-    qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
+    //qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 }
 
 PortModel::~PortModel()
 {
-    qDebug()<<"Deleted: "<<this;
+    //qDebug()<<"Deleted: "<<this;
 }
 
 QModelIndex PortModel::index(int row, int column, const QModelIndex &parent) const
@@ -26,7 +26,6 @@ QModelIndex PortModel::index(int row, int column, const QModelIndex &parent) con
     if (portItem){
         return createIndex(row, column, portItem);
     }
-
     return QModelIndex();
 }
 
@@ -36,18 +35,18 @@ QModelIndex PortModel::parent(const QModelIndex &index) const
     return QModelIndex();
 }
 
-int PortModel::columnCount(const QModelIndex &parent) const
-{
-    Q_UNUSED(parent);
-    return 1;
-}
-
 int PortModel::rowCount(const QModelIndex &parent) const
 {
     if (parent.column() > 0){
         return 0;
     }
     return m_proxyChildBlock->portCount();
+}
+
+int PortModel::columnCount(const QModelIndex &parent) const
+{
+    Q_UNUSED(parent);
+    return 1;
 }
 
 QVariant PortModel::data(const QModelIndex &index, int role) const
@@ -63,26 +62,26 @@ QVariant PortModel::data(const QModelIndex &index, int role) const
 
 bool PortModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    if (data(index, role) != value) {
-        //don't do anything if the data being submitted did not change
-        Port * portItem = m_proxyChildBlock->portAt(index.row());
-        switch (role) {
-        case SideRole:
-            if(portItem->side() != value.toInt()){
-                portItem->setSide(value.toInt());
-            }
-            break;
-        case PositionRole:
-            if(portItem->position() != value.toInt()){
-                portItem->setPosition(value.toInt());
-            }
-            break;
-        case NameRole:
-            if(portItem->name() != value.toString()){
-                portItem->setName(value.toString());
-            }
-            break;
+    Port * portItem = m_proxyChildBlock->portAt(index.row());
+    bool somethingChanged = false;
+    switch (role) {
+    case SideRole:
+        if(portItem->side() != value.toInt()){
+            portItem->setSide(value.toInt());
         }
+        break;
+    case PositionRole:
+        if(portItem->position() != value.toInt()){
+            portItem->setPosition(value.toInt());
+        }
+        break;
+    case NameRole:
+        if(portItem->name() != value.toString()){
+            portItem->setName(value.toString());
+        }
+        break;
+    }
+    if(somethingChanged){
         emit dataChanged(index, index, QVector<int>() << role);
         return true;
     }

@@ -8,12 +8,12 @@ Link::Link(QObject *parent) : QObject(parent),
     m_endX(0),
     m_endY(0)
 {
-    qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
+    //qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 }
 
 Link::~Link()
 {
-    qDebug()<<"Deleted: "<<this;
+    //qDebug()<<"Deleted: "<<this;
 }
 
 int Link::startX() const
