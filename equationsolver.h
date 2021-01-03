@@ -5,7 +5,9 @@
 #include <QDebug>
 #include "z3++.h"
 #include "equation.h"
-#include "blockitem.h"
+#include "block.h"
+
+class Block;
 
 class EquationSolver : public QObject
 {
@@ -14,8 +16,8 @@ public:
     explicit EquationSolver(z3::context * context, QObject *parent = nullptr);
 
     void registerEquation(z3::expr z3Expr);
-    void loadEquations(BlockItem *parentItem);
-    void solveEquations(BlockItem * parentItem);
+    void loadEquations(Block *parentItem);
+    void solveEquations(Block * parentItem);
     void printModel();
     void resetSolver();
 

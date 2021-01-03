@@ -1,10 +1,5 @@
-// ORGANIZES THE BLOCKS IN A FORMAT USABLE BY LISTVIEW IN QML
-// SHOULD ONLY CONTAIN THINGS ASSOCIATED WITH THE QML/C++ INTERFACE
-// SOME FUNCTIONS MAY BE REPEATED FROM OTHER CLASSES TO CLEANLY
-// EXPOSE THEM TO QML. BETTER FOR READABILITY AND SIMPLICITY
-
-#ifndef BLOCKMODEL_H
-#define BLOCKMODEL_H
+#ifndef DIAGRAMMODEL_H
+#define DIAGRAMMODEL_H
 
 #include <QObject>
 #include <QAbstractItemModel>
@@ -16,14 +11,14 @@
 #include <QJsonObject>
 #include "datasource.h"
 
-class BlockModel : public QAbstractItemModel
+class DiagramModel : public QAbstractItemModel
 {
     Q_OBJECT
     Q_PROPERTY(DataSource* dataSource READ dataSource WRITE setdataSource NOTIFY dataSourceChanged)
 
 public:
 
-    enum ModelRoles{
+    enum BlockRoles{
         ProxyRoot = Qt::UserRole + 1,
         ThisBlock,
         DescriptionDataRole,
@@ -32,12 +27,19 @@ public:
         BlockYPositionRole,
         blockWidthRole,
         blockHeightRole,
-        EquationRole,
-        ThisRole
+        ThisRole,
+        BlockRolesEnd
     };
 
-    explicit BlockModel(QObject *parent = nullptr);
-    ~BlockModel();
+    enum EquationRoles{
+        EquationRole = Qt::UserRole + 1,
+        EqXPosRole,
+        EqYPosRole,
+        EquationRolesEnd
+    };
+
+    explicit DiagramModel(QObject *parent = nullptr);
+    ~DiagramModel();
 
     // QAbstractItemModel overrides
     QModelIndex index(int row,
@@ -65,4 +67,4 @@ private:
     DataSource * m_dataSource;
 };
 
-#endif // BLOCKMODEL_H
+#endif // DIAGRAMMODEL_H

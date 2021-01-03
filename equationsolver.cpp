@@ -14,14 +14,14 @@ void EquationSolver::registerEquation(z3::expr z3Expr)
     qDebug()<<"added :"<<QString::fromStdString(z3Expr.to_string());
 }
 
-void EquationSolver::loadEquations(BlockItem *parentItem)
+void EquationSolver::loadEquations(Block *parentItem)
 {
     //iterate through all children and load equations then recurse to children
-    for (int i = 0 ; i < parentItem->childBlockCount() ; i++) {
-        if( (parentItem->childBlock(i)->childBlockCount() == 0) && (parentItem->parentBlock() != nullptr) ){
+    for (int i = 0 ; i < parentItem->equationCount() ; i++) {
+        if( (parentItem->childBlockAt(i)->childBlockCount() == 0) && (parentItem->parentBlock() != nullptr) ){
             z3::expr expression = parentItem->equation()->getEquationExpression();
             registerEquation(expression);
-            loadEquations(parentItem->childBlock(i));
+            loadEquations(parentItem->childBlockAt(i));
         }
     }
     //iterate through all children and load equations then recurse to children
@@ -29,16 +29,16 @@ void EquationSolver::loadEquations(BlockItem *parentItem)
         qDebug() << "ROOT";
     }
     for (int i = 0 ; i < parentItem->childBlockCount() ; i++) {
-        if( parentItem->childBlock(i)->childBlockCount() == 0 ){
+        if( parentItem->childBlockAt(i)->childBlockCount() == 0 ){
             //is a leaf, then print and return, else continue to traverse the tree
-            registerEquation(parentItem->childBlock(i)->equation()->getEquationExpression());
+            registerEquation(parentItem->childBlockAt(i)->equation()->getEquationExpression());
         } else{
-            loadEquations(parentItem->childBlock(i));
+            loadEquations(parentItem->childBlockAt(i));
         }
     }
 }
 
-void EquationSolver::solveEquations(BlockItem *parentItem)
+void EquationSolver::solveEquations(Block *parentItem)
 {
     loadEquations(parentItem);
 

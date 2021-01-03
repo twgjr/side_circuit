@@ -108,10 +108,10 @@ void LinkModel::setProxyPort(Port *proxyPort)
 
     m_proxyPort = proxyPort;
 
-    connect(m_proxyPort,&Port::beginResetLinkModel,this,[=](){
+    connect(m_proxyPort,&Port::beginResetPort,this,[=](){
         beginResetModel();
     });
-    connect(m_proxyPort,&Port::endResetLinkModel,this,[=](){
+    connect(m_proxyPort,&Port::endResetPort,this,[=](){
         endResetModel();
     });
     connect(m_proxyPort,&Port::beginInsertLink,this,[=](int index){

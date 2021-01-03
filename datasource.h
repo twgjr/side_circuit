@@ -2,8 +2,10 @@
 #define DATASOURCE_H
 
 #include <QObject>
-#include "blockitem.h"
+#include "block.h"
 #include "equationsolver.h"
+
+class Block;
 
 class DataSource : public QObject
 {
@@ -12,26 +14,28 @@ public:
     explicit DataSource(QObject *parent = nullptr);
     ~DataSource();
 
-    BlockItem * proxyRoot();
-    Q_INVOKABLE BlockItem * proxyChild(int blockIndex);
+    Block * proxyRoot();
+    Q_INVOKABLE Block * proxyChild(int blockIndex);
     Q_INVOKABLE Port * proxyPort(int blockIndex, int portIndex);
 
-    void newProxyRoot(BlockItem *newProxyRoot);
+    void newProxyRoot(Block *newProxyRoot);
 
     Q_INVOKABLE void appendBlock(int x = 0, int y = 0);
+    Q_INVOKABLE void deleteBlock(int blockIndex);
+    Q_INVOKABLE void addEquation(int x = 0, int y = 0);
+    Q_INVOKABLE void deleteEquation(int index);
     Q_INVOKABLE void downLevel(int modelIndex);
     Q_INVOKABLE void upLevel();
-    Q_INVOKABLE void printFullTree(BlockItem * rootItem, int depth);
+    Q_INVOKABLE void printFullTree(Block * rootItem, int depth);
     Q_INVOKABLE void printBlock(int blockIndex);
     Q_INVOKABLE int distanceFromRoot() const;
-    //Q_INVOKABLE int numChildren(int blockIndex);
-    Q_INVOKABLE void deleteBlock(int blockIndex);
 
     Q_INVOKABLE void addPort( int blockIndex, int side, int position );
     Q_INVOKABLE void deletePort( int blockIndex, int portIndex );
 
     Q_INVOKABLE void startLink( int blockIndex, int portIndex );
     Q_INVOKABLE void deleteLink( int blockIndex, int portIndex, int linkIndex );
+    Q_INVOKABLE void endLink(int blockIndex, int portIndex, Link* endLink);
 
     /* EXPOSING EQUATIONSOLVER FUNCTIONS AS SLOTS TO QML VIA BLOCKDATASOURCE->BLOCKMODEL */
     Q_INVOKABLE void solveEquations();
@@ -42,17 +46,17 @@ public:
 
 signals:
     //blocks
-    void beginResetBlockModel();
-    void endResetBlockModel();
-    void beginInsertBlock(int blockIndex);
-    void endInsertBlock();
-    void beginRemoveBlock(int blockIndex);
-    void endRemoveBlock();
+    void beginResetDiagram();
+    void endResetDiagram();
+    void beginInsertDiagramItem(int blockIndex);
+    void endInsertDiagramItem();
+    void beginRemoveDiagramItem(int blockIndex);
+    void endRemoveDiagramItem();
 
 private:
-    BlockItem * m_root;
+    Block * m_root;
     z3::context m_context;
-    BlockItem * m_proxyRoot;
+    Block * m_proxyRoot;
 };
 
 #endif // DATASOURCE_H

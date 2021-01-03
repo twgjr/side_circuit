@@ -7,9 +7,9 @@ CONFIG += c++11
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-        blockitem.cpp \
-        blockmodel.cpp \
+        block.cpp \
         datasource.cpp \
+        diagrammodel.cpp \
         equation.cpp \
         equationparser.cpp \
         equationsolver.cpp \
@@ -44,9 +44,9 @@ win32:!win32-g++: PRE_TARGETDEPS += $$PWD/../libbuilds/z3/z3-4.8.9-x64-win/bin/l
 else:win32-g++: PRE_TARGETDEPS += $$PWD/../libbuilds/z3/z3-4.8.9-x64-win/bin/liblibz3.a
 
 HEADERS += \
-    blockitem.h \
-    blockmodel.h \
+    block.h \
     datasource.h \
+    diagrammodel.h \
     equation.h \
     equationparser.h \
     equationsolver.h \

@@ -6,25 +6,54 @@ import QtQuick.Dialogs 1.2
 import QtQuick.Shapes 1.15
 import com.company.models 1.0
 
-Rectangle{
-    width:10
-    height: width
-    color: "red"
-    anchors.left: portId.right
-
-    MouseArea {
-        id: portMouseArea
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
-        anchors.fill: parent
-        drag.target: parent
-        drag.threshold: 0
-
-        onClicked: {
-            if(mouse.button & Qt.RightButton){
-                portContextMenu.popup()
-            }
+Shape {
+    anchors.centerIn: parent
+    ShapePath {
+        strokeWidth: 4
+        strokeColor: "red"
+        strokeStyle: ShapePath.DashLine
+        dashPattern: [ 1, 4 ]
+        startX: 0 ; startY: 0
+        PathLine {
+            id: segment
+            x: endRect.x+endRect.radius
+            y: endRect.y+endRect.radius
         }
     }
+    Rectangle{
+        id: endRect
+        width: 10
+        height: width
+        radius: width/2
+        border.color: "black"
+        color: "transparent"
+
+        Drag.active: linkMouseArea.drag.active
+        Drag.keys: [ "dropKey" ]
+
+        //property string dropKey: "dropKey"
+        MouseArea {
+            id: linkMouseArea
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            anchors.fill: parent
+            drag.target: parent
+            drag.threshold: 0
+
+            onReleased: {
+                parent.Drag.drop()
+            }
+
+            onClicked: {
+                if(mouse.button & Qt.RightButton){
+                    portContextMenu.popup()
+                }
+                if(mouse.button & Qt.LeftButton){
+                    console.log("add new segment and set new segment to follow mouse pointer")
+                }
+            }
+            onPositionChanged: {}
+        }//MouseArea
+    }//Rectangle
 
     Menu {
         id: portContextMenu
@@ -35,41 +64,4 @@ Rectangle{
             }
         }
     } //Menu
-}
-
-//Shape {
-//    width: implicitHeight
-//    height: implicitWidth
-//    //anchors.centerIn: parent
-//    ShapePath {
-//        strokeWidth: 4
-//        strokeColor: "red"
-//        strokeStyle: ShapePath.DashLine
-//        dashPattern: [ 1, 4 ]
-//        startX: portId.x ; startY: portId.y
-//        PathLine { x: 20; y: 130 }
-//    }
-
-//    MouseArea {
-//        id: portMouseArea
-//        acceptedButtons: Qt.LeftButton | Qt.RightButton
-//        anchors.fill: parent
-//        drag.target: parent
-//        drag.threshold: 0
-
-//        onClicked: {
-//            if(mouse.button & Qt.RightButton){
-//                portContextMenu.popup()
-//            }
-//        }
-//    }
-//    Menu {
-//        id: portContextMenu
-//        MenuItem {
-//            text: "Delete Link"
-//            onTriggered: {
-//                dsLinksId.deleteLink(model.index)
-//            }
-//        }
-//    } //Menu
-//}
+}//Shape

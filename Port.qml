@@ -20,36 +20,81 @@ Rectangle {
     border.color: "black"
     border.width: 2
 
-    property int offSet: width/2
-    property int leftBound: -offSet
-    property int rightBound: blkRectId.width - offSet
-    property int topBound: -offSet
-    property int bottomBound: blkRectId.height - offSet
+    property int leftBound: 0
+    property int rightBound: blkRectId.width
+    property int topBound: 0
+    property int bottomBound: blkRectId.height
+
+    function setSide(sideType){
+        anchors.horizontalCenter = undefined
+        anchors.verticalCenter = undefined
+
+        switch(sideType){
+        case "top":
+            sideNum = 0
+            anchors.verticalCenter = blkRectId.top
+            positionNum = portMouseArea.mouseX-radius
+            break;
+        case "bottom":
+            sideNum = 1
+            anchors.verticalCenter = blkRectId.bottom
+            positionNum = portMouseArea.mouseX-radius
+            break;
+        case "left":
+            sideNum = 2
+            anchors.horizontalCenter = blkRectId.left
+            positionNum = portMouseArea.mouseY-radius
+            break;
+        case "right":
+            sideNum = 3
+            anchors.horizontalCenter = blkRectId.right
+            positionNum = portMouseArea.mouseY-radius
+            break;
+        }
+
+        model.side = sideNum
+        model.position = positionNum
+    }
 
     Component.onCompleted: {
         switch (sideNum){
         case 0://top
-            portMouseArea.drag.axis = Drag.XAxis
-            portId.x = positionNum
-            portId.anchors.verticalCenter = blkRectId.top
+            x = positionNum
+            anchors.verticalCenter = blkRectId.top
             break;
         case 1://bottom
-            portMouseArea.drag.axis = Drag.XAxis
-            portId.x = positionNum
-            portId.anchors.verticalCenter = blkRectId.bottom
+            x = positionNum
+            anchors.verticalCenter = blkRectId.bottom
             break;
         case 2://left
-            portMouseArea.drag.axis = Drag.YAxis
-            portId.y = positionNum
-            portId.anchors.horizontalCenter = blkRectId.left
+            y = positionNum
+            anchors.horizontalCenter = blkRectId.left
             break;
         case 3://right
-            portMouseArea.drag.axis = Drag.YAxis
-            portId.y = positionNum
-            portId.anchors.horizontalCenter = blkRectId.right
+            y = positionNum
+            anchors.horizontalCenter = blkRectId.right
             break;
         }
     }
+
+    //property string dropKey: "dropKey"
+    DropArea{
+        anchors.fill: parent
+        Drag.keys: [ "dropKey" ]
+
+        onDropped: {
+            console.log("dropped")
+        }
+        onEntered: {
+            portId.color = "green"
+            console.log("entered")
+        }
+        onExited: {
+            portId.color = "orange"
+            console.log("exited")
+        }
+    }
+
 
     MouseArea {
         id: portMouseArea
@@ -58,21 +103,99 @@ Rectangle {
         drag.target: parent
         drag.threshold: 0
 
-        drag.minimumX: leftBound+offSet
-        drag.maximumX: rightBound-offSet
-        drag.minimumY: topBound+offSet
-        drag.maximumY: bottomBound-offSet
+        drag.minimumX: parent.leftBound-parent.radius
+        drag.maximumX: parent.rightBound-parent.radius
+        drag.minimumY: parent.topBound-parent.radius
+        drag.maximumY: parent.bottomBound-parent.radius
+
+
 
         onClicked: {
             if(mouse.button & Qt.RightButton){
                 portContextMenu.popup()
             }
         }
-    }
+        onPositionChanged: {
+            var mousePosX = mouseX-parent.radius+parent.x
+            var mousePosY = mouseY-parent.radius+parent.y
+
+            switch(sideNum){
+            case 0:// top
+                if( mousePosY > parent.topBound){
+                    if( mousePosX < parent.leftBound){
+                        setSide("left")
+                    }
+                    if( mousePosX > parent.rightBound ){
+                        setSide("right")
+                    }
+                }
+                if( mousePosY > parent.bottomBound ){
+                    if( parent.leftBound < mousePosX < parent.rightBound){
+                        setSide("bottom")
+                    }
+                }
+                break;
+            case 1:// bottom
+                if( mousePosY < parent.bottomBound ){
+                    if( mousePosX < parent.leftBound){
+                        setSide("left")
+                    }
+                    if( mousePosX > parent.rightBound ){
+                        setSide("right")
+                    }
+                }
+                if( mousePosY < parent.topBound ){
+                    if( parent.leftBound < mousePosX < parent.rightBound){
+                        setSide("top")
+                    }
+                }
+                break;
+            case 2:// left
+                if( mousePosX > parent.leftBound ){
+                    if( mousePosY < parent.topBound ){
+                        setSide("top")
+                    }
+                    if( mousePosY > parent.bottomBound ){
+                        setSide("bottom")
+                    }
+                }
+                if( mousePosX > parent.rightBound ){
+                    if( parent.topBound < mousePosY < parent.bottomBound){
+                        setSide("right")
+                    }
+                }
+                break;
+            case 3:// right
+                if( mousePosX < parent.rightBound ){
+                    if( mousePosY < parent.topBound ){
+                        setSide("top")
+                    }
+                    if( mousePosY > parent.bottomBound ){
+                        setSide("bottom")
+                    }
+                }
+                if( mousePosX < parent.leftBound ){
+                    if( parent.topBound < mousePosY < parent.bottomBound){
+                        setSide("left")
+                    }
+                }
+                break;
+            default:
+                break;
+            }//switch
+        }//onPositionChanged
+    }//MouseArea
     Label{
         text: nameText
-        anchors.top: parent.bottom
-        anchors.left: parent.right
+        Component.onCompleted: {
+            x = parent.width
+            y = parent.height
+        }
+        MouseArea{
+            anchors.fill: parent
+            drag.target: parent
+            drag.threshold: 0
+        }
     }
     Menu {
         id: portContextMenu

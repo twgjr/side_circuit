@@ -3,7 +3,9 @@
 Equation::Equation(z3::context * context, QObject *parent) : QObject(parent),
     m_equationContext(context),
     m_equationString(""),
-    m_equationExpression(*context)
+    m_equationExpression(*context),
+    m_eqXPos(0),
+    m_eqYPos(0)
 {
 }
 
@@ -56,4 +58,32 @@ void Equation::eqStrToExpr()
         qDebug()<<"Expression parsing error";
     }
     m_equationExpression = equationParser.z3Expr();
+}
+
+int Equation::eqXPos() const
+{
+    return m_eqXPos;
+}
+
+int Equation::eqYPos() const
+{
+    return m_eqYPos;
+}
+
+void Equation::setEqXPos(int eqXPos)
+{
+    if (m_eqXPos == eqXPos)
+        return;
+
+    m_eqXPos = eqXPos;
+    emit eqXPosChanged(m_eqXPos);
+}
+
+void Equation::setEqYPos(int eqYPos)
+{
+    if (m_eqYPos == eqYPos)
+        return;
+
+    m_eqYPos = eqYPos;
+    emit eqYPosChanged(m_eqYPos);
 }

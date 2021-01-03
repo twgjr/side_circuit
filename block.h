@@ -1,7 +1,7 @@
 //PROVIDES STRUCTURE OF INDIVIDUAL BLOCK ITEMS IN THE MODEL
 
-#ifndef BLOCKITEM_H
-#define BLOCKITEM_H
+#ifndef BLOCK_H
+#define BLOCK_H
 
 #include <QObject>
 #include <QDebug>
@@ -14,12 +14,14 @@
 #include "port.h"
 //#include "portmodel.h"
 
-class BlockItem : public QObject
+class DataSource;
+
+class Block : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(BlockItem* proxyRoot READ proxyRoot WRITE setProxyRoot NOTIFY proxyRootChanged)
-    Q_PROPERTY(BlockItem* thisBlock READ thisBlock WRITE setThisBlock NOTIFY thisBlockChanged)
+    Q_PROPERTY(Block* proxyRoot READ proxyRoot WRITE setProxyRoot NOTIFY proxyRootChanged)
+    Q_PROPERTY(Block* thisBlock READ thisBlock WRITE setThisBlock NOTIFY thisBlockChanged)
 
     Q_PROPERTY(QString description READ description WRITE setDescription)
     Q_PROPERTY(int id READ id)
@@ -31,26 +33,21 @@ class BlockItem : public QObject
     Q_PROPERTY(QString equationString READ equationString WRITE setEquationString)
 
 public:
-    explicit BlockItem(z3::context * context, BlockItem *parentBlock,
+    explicit Block(z3::context * context, Block *parentBlock,
                        QObject *parent = nullptr);
-    ~BlockItem();
-
-    enum BlockType{
-        Block,
-        CircuitBlock,
-        EquationBlock,
-        CoreBlock
-    };
+    ~Block();
 
     // parent
-    BlockItem * parentBlock();
-    void setParentBlock(BlockItem *parentBlock);
+    Block * parentBlock();
+    void setParentBlock(Block *parentBlock);
 
-    // children
-    BlockItem * childBlock(int index);
+    int diagramItemCount();
+
+    // block children
+    Block * childBlockAt(int index);
     int childBlockNumber() const;
     int childBlockCount() const;
-    bool appendBlockChild(BlockItem *item);
+    void addBlockChild(int x, int y);
     void removeBlockChild(int modelIndex);
 
     // ports
@@ -58,6 +55,16 @@ public:
     void addPort(int side, int position);
     void removePort(int portIndex);
     int portCount();
+
+    // Equation children
+    QVector<Equation*> equations();
+    int equationCount();
+    Equation* childEquationAt(int index);
+    void addEquation(int x, int y);
+    void removeEquation(int index);
+    //Equation * equation();
+    //QString equationString();
+    //void setEquationString(QString equationString);
 
     // solver
     void setContext(z3::context *context);
@@ -77,51 +84,48 @@ public:
     void setBlockXPosition(int blockXPosition);
     int blockYPosition() const;
     void setBlockYPosition(int blockYPosition);
-    Equation * equation();
-    QString equationString();
-    void setEquationString(QString equationString);
     int blockWidth() const;
     int blockHeight() const;
     void setBlockWidth(int blockWidth);
     void setblockHeight(int blockHeight);
 
-    BlockItem* proxyRoot();
-    void setProxyRoot(BlockItem* proxyRoot);
+    Block* proxyRoot();
+    void setProxyRoot(Block* proxyRoot);
 
-    BlockItem* thisBlock();
-    void setThisBlock(BlockItem* thisBlock);
+    Block* thisBlock();
+    void setThisBlock(Block* thisBlock);
 
 signals:
-    void beginResetPortModel();
-    void endResetPortModel();
+    void beginResetBlock();
+    void endResetBlock();
     void beginInsertPort(int portIndex);
     void endInsertPort();
     void beginRemovePort(int portIndex);
     void endRemovePort();
 
-    void proxyRootChanged(BlockItem* proxyRoot);
-    void thisBlockChanged(BlockItem* thisBlock);
+    void proxyRootChanged(Block* proxyRoot);
+    void thisBlockChanged(Block* thisBlock);
 
 private:
     //object pointers
-    BlockItem * m_parentItem;
-    QVector<BlockItem*> m_children;
+    Block * m_parentItem;
+    QVector<Block*> m_blockChildren;
     int m_proxyChildCount;
     QVector<Port*> m_ports;
+    QVector<Equation*> m_equationChildren;
 
     z3::context* m_context;
 
     //Data
-    int m_blockType;
     QString m_description;
     int m_blockXPosition;
     int m_blockYPosition;
-    Equation m_equation;
+    //Equation m_equation;
     int m_blockWidth;
     int m_blockHeight;
 
-    BlockItem* m_proxyRoot;
-    BlockItem* m_thisBlock;
+    Block* m_proxyRoot;
+    Block* m_thisBlock;
 };
 
-#endif // BLOCKITEM_H
+#endif // BLOCK_H

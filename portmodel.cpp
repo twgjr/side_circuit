@@ -8,6 +8,7 @@ PortModel::PortModel(QObject *parent): QAbstractItemModel(parent),
     m_roles[SideRole]="side";
     m_roles[PositionRole]="position";
     m_roles[NameRole]="name";
+    m_roles[State]="state";
 
     //qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 }
@@ -80,6 +81,11 @@ bool PortModel::setData(const QModelIndex &index, const QVariant &value, int rol
             portItem->setName(value.toString());
         }
         break;
+    case State:
+        if(portItem->name() != value.toString()){
+            portItem->setName(value.toString());
+        }
+        break;
     }
     if(somethingChanged){
         emit dataChanged(index, index, QVector<int>() << role);
@@ -101,12 +107,12 @@ QHash<int, QByteArray> PortModel::roleNames() const
     return m_roles;
 }
 
-BlockItem *PortModel::proxyChildBlock() const
+Block *PortModel::proxyChildBlock() const
 {
     return m_proxyChildBlock;
 }
 
-void PortModel::setProxyChildBlock(BlockItem *proxyChildBlock)
+void PortModel::setProxyChildBlock(Block *proxyChildBlock)
 {
     beginResetModel();
     if(m_proxyChildBlock && m_signalConnected){
@@ -114,22 +120,22 @@ void PortModel::setProxyChildBlock(BlockItem *proxyChildBlock)
     }
     m_proxyChildBlock = proxyChildBlock;
 
-    connect(m_proxyChildBlock,&BlockItem::beginResetPortModel,this,[=](){
+    connect(m_proxyChildBlock,&Block::beginResetBlock,this,[=](){
         beginResetModel();
     });
-    connect(m_proxyChildBlock,&BlockItem::endResetPortModel,this,[=](){
+    connect(m_proxyChildBlock,&Block::endResetBlock,this,[=](){
         endResetModel();
     });
-    connect(m_proxyChildBlock,&BlockItem::beginInsertPort,this,[=](int index){
+    connect(m_proxyChildBlock,&Block::beginInsertPort,this,[=](int index){
         beginInsertRows(QModelIndex(),index,index);
     });
-    connect(m_proxyChildBlock,&BlockItem::endInsertPort,this,[=](){
+    connect(m_proxyChildBlock,&Block::endInsertPort,this,[=](){
         endInsertRows();
     });
-    connect(m_proxyChildBlock,&BlockItem::beginRemovePort,this,[=](int index){
+    connect(m_proxyChildBlock,&Block::beginRemovePort,this,[=](int index){
         beginRemoveRows(QModelIndex(),index,index);
     });
-    connect(m_proxyChildBlock,&BlockItem::endRemovePort,this,[=](){
+    connect(m_proxyChildBlock,&Block::endRemovePort,this,[=](){
         endRemoveRows();
     });
 

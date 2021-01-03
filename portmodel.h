@@ -4,21 +4,30 @@
 #include <QAbstractItemModel>
 #include "datasource.h"
 
+class Block;
+
 class PortModel : public QAbstractItemModel
 {
     Q_OBJECT
 
 public:
-    Q_PROPERTY(BlockItem* proxyChildBlock READ proxyChildBlock WRITE setProxyChildBlock NOTIFY proxyChildBlockChanged)   
+    Q_PROPERTY(Block* proxyChildBlock READ proxyChildBlock WRITE setProxyChildBlock NOTIFY proxyChildBlockChanged)
 
     explicit PortModel(QObject *parent = nullptr);
     ~PortModel();
+
+    enum PortStates{
+        NotConnected,
+        Connected,
+        Error
+    };
 
     enum PortRoles{
         ThisPort = Qt::UserRole + 1,
         SideRole,
         NameRole,
-        PositionRole
+        PositionRole,
+        State
     };
 
     // QAbstractItemModel overrides
@@ -34,16 +43,16 @@ public:
     Qt::ItemFlags flags(const QModelIndex& index) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    BlockItem* proxyChildBlock() const;
-    void setProxyChildBlock(BlockItem* proxyChildBlock);
+    Block* proxyChildBlock() const;
+    void setProxyChildBlock(Block* proxyChildBlock);
 
 signals:
-    void proxyChildBlockChanged(BlockItem* proxyChildBlock);
+    void proxyChildBlockChanged(Block* proxyChildBlock);
 
 private:
     QHash<int, QByteArray> m_roles;
     bool m_signalConnected;
-    BlockItem* m_proxyChildBlock;
+    Block* m_proxyChildBlock;
 };
 
 #endif // PORTMODEL_H

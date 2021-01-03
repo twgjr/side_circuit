@@ -21,6 +21,7 @@ Rectangle{
     height: 100; width:100
     x: xPosition
     y: yPosition
+
     Component.onCompleted: {}
     Component.onDestruction: {}
 

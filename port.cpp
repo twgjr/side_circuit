@@ -5,7 +5,8 @@ Port::Port(QObject *parent) : QObject(parent),
     m_side(0),
     m_position(0),
     m_name("label"),
-    isConnected(false)
+    isConnected(false),
+    m_state(PortModel::NotConnected)
 {
     //qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 }
@@ -15,7 +16,7 @@ Port::~Port()
     //qDebug()<<"Deleted: "<<this;
 }
 
-void Port::setBlockParent(BlockItem *blockParent)
+void Port::setBlockParent(Block *blockParent)
 {
     m_blockParent = blockParent;
 }
@@ -67,7 +68,6 @@ int Port::linkCount()
 
 void Port::startLink()
 {
-    qDebug()<<"next link Index to be added "<< m_links.count();
     Link * newLink = new Link(this);
     emit beginInsertLink(m_links.count());
     m_links.append(newLink);
@@ -81,6 +81,44 @@ void Port::removeLink(int linkIndex)
     delete m_links[linkIndex];
     m_links.remove(linkIndex);
     emit endRemoveLink();
+}
+
+Port *Port::thisPort()
+{
+    return this;
+}
+
+void Port::setThisPort(Port *thisPort)
+{
+    if (m_thisPort == thisPort)
+        return;
+
+    m_thisPort = thisPort;
+    emit thisPortChanged(m_thisPort);
+}
+
+int Port::state() const
+{
+    return m_state;
+}
+
+void Port::setState(int state)
+{
+    if (m_state == state)
+        return;
+
+    m_state = state;
+    emit stateChanged(m_state);
+}
+
+//Link *Port::connectedLink(int index)
+//{
+//    return m_connectedLinks[index];
+//}
+
+void Port::setConnectedLink(Link *connectedLink)
+{
+    m_connectedLinks.append(connectedLink);
 }
 
 
