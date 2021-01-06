@@ -1,18 +1,18 @@
-#ifndef DIAGRAMMODEL_H
-#define DIAGRAMMODEL_H
+#ifndef EQUATIONMODEL_H
+#define EQUATIONMODEL_H
 
 #include <QObject>
 #include <QAbstractItemModel>
 #include "datasource.h"
 
-class DiagramModel : public QAbstractItemModel
+class EquationModel : public QAbstractItemModel
 {
-    Q_OBJECT
+    Q_OBJECT    
     Q_PROPERTY(DataSource* dataSource READ dataSource WRITE setdataSource NOTIFY dataSourceChanged)
 
 public:
 
-    enum DiagramRoles{
+    enum EquationRoles{
         ProxyRoot = Qt::UserRole + 1,
         ThisRole,
         TypeRole,
@@ -25,8 +25,7 @@ public:
         EquationRole
     };
 
-    explicit DiagramModel(QObject *parent = nullptr);
-    ~DiagramModel();
+    explicit EquationModel(QObject *parent = nullptr);
 
     // QAbstractItemModel overrides
     QModelIndex index(int row,
@@ -46,7 +45,7 @@ public:
     void setdataSource(DataSource* blockDataSource);
 
 signals:
-    void dataSourceChanged(DataSource* newBlockDataSource);
+    void dataSourceChanged(DataSource* dataSource);
 
 private:
     QHash<int, QByteArray> m_roles;
@@ -54,4 +53,4 @@ private:
     DataSource * m_dataSource;
 };
 
-#endif // DIAGRAMMODEL_H
+#endif // EQUATIONMODEL_H

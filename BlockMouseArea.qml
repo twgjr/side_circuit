@@ -4,6 +4,7 @@ import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Dialogs 1.2
 import QtQuick.Shapes 1.15
+import Qt.labs.qmlmodels 1.0
 import com.company.models 1.0
 
 MouseArea{
@@ -16,7 +17,7 @@ MouseArea{
     onDoubleClicked: {
         if(mouse.button & Qt.LeftButton){
             flickableId.leveltext = dataSource.distanceFromRoot()+1
-            dataSource.downLevel(/*repeaterID.*/model.index)
+            dataSource.downLevel(model.index)
         }
     }
     // single click and release
@@ -29,10 +30,10 @@ MouseArea{
     onPressed: {}
     onReleased: {}
     onPositionChanged: {
-        model.blockXPosition = blkRectId.x
-        model.blockYPosition = blkRectId.y
-        xPosition = model.blockXPosition
-        yPosition = model.blockYPosition
+        model.xPos = blkRectId.x
+        model.yPos = blkRectId.y
+        xPosition = model.xPos
+        yPosition = model.yPos
         flickableId.maxFlickX = Math.max(dataSource.maxBlockX() + width*2, flickableId.width)
         flickableId.maxFlickY = Math.max(dataSource.maxBlockY() + height*2, flickableId.height)
     }

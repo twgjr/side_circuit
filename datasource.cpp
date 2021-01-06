@@ -38,9 +38,9 @@ void DataSource::newProxyRoot(Block *newProxyRoot)
 
 void DataSource::appendBlock(int x, int y)
 {
-    emit beginInsertDiagramItem(m_proxyRoot->diagramItemCount());
+    emit beginResetDiagram();
     m_proxyRoot->addBlockChild(x,y);
-    emit endInsertDiagramItem();
+    emit endResetDiagram();
 }
 
 void DataSource::deleteBlock(int blockIndex)
@@ -52,10 +52,11 @@ void DataSource::deleteBlock(int blockIndex)
 
 void DataSource::addEquation(int x, int y)
 {
-
-    emit beginInsertDiagramItem(m_proxyRoot->diagramItemCount());
+    qDebug()<<"begin reset equations";
+    emit beginResetDiagram();
     m_proxyRoot->addEquation(x,y);
-    emit endInsertDiagramItem();
+    emit endResetDiagram();
+    qDebug()<<"end reset equations";
 }
 
 void DataSource::deleteEquation(int index)
@@ -103,9 +104,9 @@ void DataSource::printBlock(int blockIndex)
 {
     qDebug()<<"ID: " << m_proxyRoot->childBlockAt(blockIndex)->id();
     qDebug()<<"Category: " << m_proxyRoot->childBlockAt(blockIndex)->description();
-    qDebug()<<"Position: " << m_proxyRoot->childBlockAt(blockIndex)->blockXPosition()
+    qDebug()<<"Position: " << m_proxyRoot->childBlockAt(blockIndex)->xPos()
            << " x "
-           << m_proxyRoot->childBlockAt(blockIndex)->blockYPosition();
+           << m_proxyRoot->childBlockAt(blockIndex)->yPos();
     //qDebug()<<"Equation: " << m_proxyRoot->childBlock(blockIndex)->equationString();
 
 }
@@ -169,7 +170,7 @@ int DataSource::maxBlockX()
 {
     int blockX = 0;
     for ( int i = 0 ; i < m_proxyRoot->childBlockCount() ; i++ ) {
-        int newBlockX = m_proxyRoot->childBlockAt(i)->blockXPosition();
+        int newBlockX = m_proxyRoot->childBlockAt(i)->xPos();
         if(blockX<newBlockX){
             blockX = newBlockX;
         }
@@ -181,7 +182,7 @@ int DataSource::maxBlockY()
 {
     int blockY = 0;
     for ( int i = 0 ; i < m_proxyRoot->childBlockCount() ; i++ ) {
-        int newBlockX = m_proxyRoot->childBlockAt(i)->blockYPosition();
+        int newBlockX = m_proxyRoot->childBlockAt(i)->yPos();
         if(blockY<newBlockX){
             blockY = newBlockX;
         }

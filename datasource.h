@@ -2,6 +2,12 @@
 #define DATASOURCE_H
 
 #include <QObject>
+#include <QDebug>
+#include <QFile>
+#include <QUrl>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
 #include "block.h"
 #include "equationsolver.h"
 
@@ -52,6 +58,13 @@ signals:
     void endInsertDiagramItem();
     void beginRemoveDiagramItem(int blockIndex);
     void endRemoveDiagramItem();
+
+//    void beginResetEquations();
+//    void endResetEquations();
+//    void beginInsertEquation(int index);
+//    void endInsertEquation();
+//    void beginRemoveEquation(int index);
+//    void endRemoveEquation();
 
 private:
     Block * m_root;

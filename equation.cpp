@@ -2,21 +2,26 @@
 
 Equation::Equation(z3::context * context, QObject *parent) : QObject(parent),
     m_equationContext(context),
+    m_type("equation"),
     m_equationString(""),
     m_equationExpression(*context),
-    m_eqXPos(0),
-    m_eqYPos(0)
+    m_xPos(0),
+    m_yPos(0),
+    m_itemWidth(0),
+    m_itemHeight(0)
 {
+    qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 }
 
-QString Equation::getEquationString()
+Equation::~Equation()
 {
-    return m_equationString;
+    qDebug()<<"Destroyed: "<<this;
 }
 
 void Equation::setEquationString( QString value)
 {
     m_equationString = value;
+    eqStrToExpr();
 }
 
 void Equation::printExprInfo()
@@ -60,30 +65,77 @@ void Equation::eqStrToExpr()
     m_equationExpression = equationParser.z3Expr();
 }
 
-int Equation::eqXPos() const
+int Equation::xPos() const
 {
-    return m_eqXPos;
+    return m_xPos;
 }
 
-int Equation::eqYPos() const
+int Equation::yPos() const
 {
-    return m_eqYPos;
+    return m_yPos;
 }
 
-void Equation::setEqXPos(int eqXPos)
+void Equation::setXPos(int eqXPos)
 {
-    if (m_eqXPos == eqXPos)
+    if (m_xPos == eqXPos)
         return;
 
-    m_eqXPos = eqXPos;
-    emit eqXPosChanged(m_eqXPos);
+    m_xPos = eqXPos;
+    emit xPosChanged(m_xPos);
 }
 
-void Equation::setEqYPos(int eqYPos)
+void Equation::setYPos(int eqYPos)
 {
-    if (m_eqYPos == eqYPos)
+    if (m_yPos == eqYPos)
         return;
 
-    m_eqYPos = eqYPos;
-    emit eqYPosChanged(m_eqYPos);
+    m_yPos = eqYPos;
+    emit yPosChanged(m_yPos);
+}
+
+QString Equation::type() const
+{
+    return m_type;
+}
+
+void Equation::setType(QString type)
+{
+    if (m_type == type)
+        return;
+
+    m_type = type;
+    emit typeChanged(m_type);
+}
+
+QString Equation::equationString() const
+{
+    return m_equationString;
+}
+
+int Equation::itemWidth() const
+{
+    return m_itemWidth;
+}
+
+int Equation::itemHeight() const
+{
+    return m_itemHeight;
+}
+
+void Equation::setItemWidth(int itemWidth)
+{
+    if (m_itemWidth == itemWidth)
+        return;
+
+    m_itemWidth = itemWidth;
+    emit itemWidthChanged(m_itemWidth);
+}
+
+void Equation::setItemHeight(int itemHeight)
+{
+    if (m_itemHeight == itemHeight)
+        return;
+
+    m_itemHeight = itemHeight;
+    emit itemHeightChanged(m_itemHeight);
 }

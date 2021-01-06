@@ -4,6 +4,7 @@ import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Dialogs 1.2
 import QtQuick.Shapes 1.15
+import Qt.labs.qmlmodels 1.0
 import com.company.models 1.0
 
 Window {
@@ -77,6 +78,10 @@ Window {
                             onTriggered: dataSource.appendBlock(diagramMouseArea.mouseX,diagramMouseArea.mouseY)
                         }
                         MenuItem {
+                            text: "New Equation"
+                            onTriggered: dataSource.addEquation(diagramMouseArea.mouseX,diagramMouseArea.mouseY)
+                        }
+                        MenuItem {
                             text: "Up Level"
                             onTriggered: {
                                 flickableId.leveltext = Math.max(dataSource.distanceFromRoot()-1,0)
@@ -86,17 +91,30 @@ Window {
                     }
                 }//MouseArea
 
-                BlockModel{
-                    id: blockModel
+                DiagramModel{
+                    id: diagramModel
                     dataSource: dataSource
                 }
                 Repeater{
-                    id : repeaterID
+                    id : blockRepeater
                     height: parent.height
                     width: parent.width
-                    model : blockModel
+                    model : diagramModel
                     delegate: Block{}
                 }
+
+                EquationModel{
+                    id: equationModel
+                    dataSource: dataSource
+                }
+                Repeater{
+                    id : equationRepeater
+                    height: parent.height
+                    width: parent.width
+                    model : equationModel
+                    delegate: Equation{}
+                }
+
             } //Flickable
         } //RowLayout
 

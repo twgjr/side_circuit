@@ -4,15 +4,15 @@ import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Dialogs 1.2
 import QtQuick.Shapes 1.15
+import Qt.labs.qmlmodels 1.0
 import com.company.models 1.0
 
 Rectangle{
     id:blkRectId
     property int idText: model.id
     property string descriptionText: model.description
-    property int xPosition: model.blockXPosition
-    property int yPosition: model.blockYPosition
-    property string equationText: model.equationString
+    property int xPosition: model.xPos
+    property int yPosition: model.yPos
 
     color: "beige"
     border.color: "black"
@@ -42,7 +42,7 @@ Rectangle{
 
     PortModel{
         id: portModel
-        proxyChildBlock: model.thisBlock
+        proxyChildBlock: model.thisItem
         Component.onCompleted: {}
     }
     property int proxyBlockIndex: model.index

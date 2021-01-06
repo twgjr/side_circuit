@@ -1,6 +1,6 @@
-#include "diagrammodel.h"
+#include "equationmodel.h"
 
-DiagramModel::DiagramModel(QObject *parent) : QAbstractItemModel(parent),
+EquationModel::EquationModel(QObject *parent) : QAbstractItemModel(parent),
     m_signalConnected(false)
 {
     //qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
@@ -15,55 +15,51 @@ DiagramModel::DiagramModel(QObject *parent) : QAbstractItemModel(parent),
     m_roles[YposRole]="yPos";
     m_roles[WidthRole]="itemWidth";
     m_roles[HeightRole]="itemHeight";
+    m_roles[EquationRole]="equationString";
 }
 
-DiagramModel::~DiagramModel()
-{
-    //qDebug()<<"Block Model destroyed.";
-}
-
-QModelIndex DiagramModel::index(int row, int column, const QModelIndex &parent) const
+QModelIndex EquationModel::index(int row, int column, const QModelIndex &parent) const
 {
     if (!hasIndex(row, column, parent)){
         return QModelIndex();
     }
 
-    Block *childBlockItem = m_dataSource->proxyRoot()->childBlockAt(row);
-    return createIndex(row, column, childBlockItem);
+    Equation *childEquationItem = m_dataSource->proxyRoot()->childEquationAt(row);
+    return createIndex(row, column, childEquationItem);
 
     return QModelIndex();
 }
 
-QModelIndex DiagramModel::parent(const QModelIndex &index) const
+QModelIndex EquationModel::parent(const QModelIndex &index) const
 {
     Q_UNUSED(index);
     return QModelIndex();
 }
 
-int DiagramModel::rowCount(const QModelIndex &parent) const
+int EquationModel::rowCount(const QModelIndex &parent) const
 {
     if (parent.column() > 0){
         return 0;
     }
 
-    int blockCount = m_dataSource->proxyRoot()->childBlockCount();
+    int equationCount = m_dataSource->proxyRoot()->equationCount();
 
-    return blockCount;
+    return equationCount;
 }
 
-int DiagramModel::columnCount(const QModelIndex &parent) const
+int EquationModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
     return 1; //columns not used
 }
 
-QVariant DiagramModel::data(const QModelIndex &index, int role) const
+QVariant EquationModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid()){
         return QVariant();
     }
 
-    Block * item = m_dataSource->proxyRoot()->childBlockAt(index.row());
+    Equation * item = m_dataSource->proxyRoot()->childEquationAt(index.row());
     QByteArray roleName = m_roles[role];
     QVariant name = item->property(roleName.data());
     return name;
@@ -71,25 +67,26 @@ QVariant DiagramModel::data(const QModelIndex &index, int role) const
     return QVariant();
 }
 
-bool DiagramModel::setData(const QModelIndex &index, const QVariant &value, int role)
+bool EquationModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     bool somethingChanged = false;
 
-    Block * blockItem = m_dataSource->proxyRoot()->childBlockAt(index.row());
+    Equation * equationItem = m_dataSource->proxyRoot()->childEquationAt(index.row());
     switch (role) {
-    case DescRole:
-        if(blockItem->description() != value.toString()){
-            blockItem->setDescription(value.toString());
-        }
-        break;
     case XposRole:
-        if(blockItem->xPos() != value.toInt()){
-            blockItem->setXPos(value.toInt());
+        if(equationItem->xPos() != value.toInt()){
+            equationItem->setXPos(value.toInt());
         }
         break;
     case YposRole:
-        if(blockItem->yPos() != value.toInt()){
-            blockItem->setYPos(value.toInt());
+        if(equationItem->yPos() != value.toInt()){
+            equationItem->setYPos(value.toInt());
+        }
+        break;
+    case EquationRole:
+        if(equationItem->equationString() != value.toString()){
+            equationItem->setEquationString(value.toString());
+            equationItem->eqStrToExpr();
         }
         break;
     }
@@ -101,7 +98,7 @@ bool DiagramModel::setData(const QModelIndex &index, const QVariant &value, int 
     return false;
 }
 
-Qt::ItemFlags DiagramModel::flags(const QModelIndex &index) const
+Qt::ItemFlags EquationModel::flags(const QModelIndex &index) const
 {
     if (!index.isValid()){
         return Qt::NoItemFlags;
@@ -109,14 +106,17 @@ Qt::ItemFlags DiagramModel::flags(const QModelIndex &index) const
     return Qt::ItemIsEditable | QAbstractItemModel::flags(index);
 }
 
-QHash<int, QByteArray> DiagramModel::roleNames() const {return m_roles;}
+QHash<int, QByteArray> EquationModel::roleNames() const
+{
+    return m_roles;
+}
 
-DataSource *DiagramModel::dataSource() const
+DataSource *EquationModel::dataSource() const
 {
     return m_dataSource;
 }
 
-void DiagramModel::setdataSource(DataSource *newDataSource)
+void EquationModel::setdataSource(DataSource *newDataSource)
 {
     beginResetModel();
     if(m_dataSource && m_signalConnected){

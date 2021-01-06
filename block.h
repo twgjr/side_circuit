@@ -12,7 +12,6 @@
 #include "equationparser.h"
 #include "equation.h"
 #include "port.h"
-//#include "portmodel.h"
 
 class DataSource;
 
@@ -21,36 +20,33 @@ class Block : public QObject
     Q_OBJECT
 
     Q_PROPERTY(Block* proxyRoot READ proxyRoot WRITE setProxyRoot NOTIFY proxyRootChanged)
-    Q_PROPERTY(Block* thisBlock READ thisBlock WRITE setThisBlock NOTIFY thisBlockChanged)
-
+    Q_PROPERTY(Block* thisItem READ thisItem WRITE setThisItem NOTIFY thisItemChanged)
+    Q_PROPERTY(QString type READ type WRITE setType NOTIFY typeChanged)
     Q_PROPERTY(QString description READ description WRITE setDescription)
     Q_PROPERTY(int id READ id)
-    Q_PROPERTY(int blockXPosition READ blockXPosition WRITE setBlockXPosition)
-    Q_PROPERTY(int blockYPosition READ blockYPosition WRITE setBlockYPosition)
-    Q_PROPERTY(int blockWidth READ blockWidth WRITE setBlockWidth)
-    Q_PROPERTY(int blockHeight READ blockHeight WRITE setblockHeight)
+    Q_PROPERTY(int xPos READ xPos WRITE setXPos)
+    Q_PROPERTY(int yPos READ yPos WRITE setYPos)
+    Q_PROPERTY(int itemWidth READ itemWidth WRITE setItemWidth)
+    Q_PROPERTY(int itemHeight READ itemHeight WRITE setblockHeight)
     Q_PROPERTY(int numChildren READ childBlockCount)
-    Q_PROPERTY(QString equationString READ equationString WRITE setEquationString)
 
 public:
     explicit Block(z3::context * context, Block *parentBlock,
-                       QObject *parent = nullptr);
+                   QObject *parent = nullptr);
     ~Block();
 
     // parent
     Block * parentBlock();
     void setParentBlock(Block *parentBlock);
 
-    int diagramItemCount();
-
-    // block children
+    // Block children
     Block * childBlockAt(int index);
     int childBlockNumber() const;
     int childBlockCount() const;
     void addBlockChild(int x, int y);
     void removeBlockChild(int modelIndex);
 
-    // ports
+    // Ports
     Port * portAt( int portIndex );
     void addPort(int side, int position);
     void removePort(int portIndex);
@@ -62,40 +58,40 @@ public:
     Equation* childEquationAt(int index);
     void addEquation(int x, int y);
     void removeEquation(int index);
-    //Equation * equation();
-    //QString equationString();
-    //void setEquationString(QString equationString);
 
-    // solver
+    // z3 solver
     void setContext(z3::context *context);
     z3::context *context() const;
 
     // data save and load
-//    void jsonWrite(QJsonObject &json);
-//    void jsonRead(QJsonObject &json);
+    //    void jsonWrite(QJsonObject &json);
+    //    void jsonRead(QJsonObject &json);
 
-    //data getters and setters
-    void setBlockType(int blockType);
+    //getters with qProperty
     int blockType() const;
     QString description() const;
-    void setDescription(QString category);
     int id() const;
-    int blockXPosition() const;
-    void setBlockXPosition(int blockXPosition);
-    int blockYPosition() const;
-    void setBlockYPosition(int blockYPosition);
-    int blockWidth() const;
-    int blockHeight() const;
-    void setBlockWidth(int blockWidth);
-    void setblockHeight(int blockHeight);
-
+    int xPos() const;
+    int yPos() const;
+    int itemWidth() const;
+    int itemHeight() const;
     Block* proxyRoot();
-    void setProxyRoot(Block* proxyRoot);
+    Block* thisItem();
+    QString type() const;
 
-    Block* thisBlock();
-    void setThisBlock(Block* thisBlock);
+    //setters with qProperty
+    void setBlockType(int blockType);
+    void setDescription(QString category);
+    void setXPos(int blockXPosition);
+    void setYPos(int blockYPosition);
+    void setItemWidth(int blockWidth);
+    void setblockHeight(int blockHeight);
+    void setProxyRoot(Block* proxyRoot);
+    void setThisItem(Block* thisBlock);
+    void setType(QString type);
 
 signals:
+    // qAbstractItemModel signals
     void beginResetBlock();
     void endResetBlock();
     void beginInsertPort(int portIndex);
@@ -103,29 +99,29 @@ signals:
     void beginRemovePort(int portIndex);
     void endRemovePort();
 
+    // qProperty signals
     void proxyRootChanged(Block* proxyRoot);
-    void thisBlockChanged(Block* thisBlock);
+    void thisItemChanged(Block* thisBlock);
+    void typeChanged(QString type);
 
 private:
     //object pointers
     Block * m_parentItem;
     QVector<Block*> m_blockChildren;
-    int m_proxyChildCount;
     QVector<Port*> m_ports;
     QVector<Equation*> m_equationChildren;
 
     z3::context* m_context;
 
     //Data
-    QString m_description;
-    int m_blockXPosition;
-    int m_blockYPosition;
-    //Equation m_equation;
-    int m_blockWidth;
-    int m_blockHeight;
-
     Block* m_proxyRoot;
-    Block* m_thisBlock;
+    Block* m_thisItem;
+    QString m_type;
+    QString m_description;
+    int m_xPos;
+    int m_yPos;
+    int m_itemWidth;
+    int m_itemHeight;
 };
 
 #endif // BLOCK_H

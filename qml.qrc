@@ -6,5 +6,6 @@
         <file>BlockMouseArea.qml</file>
         <file>Port.qml</file>
         <file>Link.qml</file>
+        <file>Equation.qml</file>
     </qresource>
 </RCC>

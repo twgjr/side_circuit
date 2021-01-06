@@ -1,18 +1,17 @@
 #include "block.h"
 
-
-
 Block::Block(z3::context *context,
                      Block *parentBlock,
                      QObject * parent) :
     QObject(parent),
     m_parentItem(parentBlock),
-    m_proxyChildCount(0),
     m_context(context),
+    m_type("block"),
     m_description(""),
-    m_blockXPosition(0),
-    m_blockYPosition(0)//,
-    //m_equation(context)
+    m_xPos(0),
+    m_yPos(0),
+    m_itemWidth(0),
+    m_itemHeight(0)
 {
     //qDebug()<<"Created: "<<this<<" with Qparent: "<<qobjparent;
 }
@@ -24,11 +23,6 @@ Block::~Block()
 
 Block *Block::parentBlock() {return m_parentItem;}
 void Block::setParentBlock(Block *parentBlock) {m_parentItem = parentBlock;}
-
-int Block::diagramItemCount()
-{
-    return m_blockChildren.count()+m_equationChildren.count();
-}
 
 Block *Block::childBlockAt(int index)
 {
@@ -50,8 +44,8 @@ int Block::childBlockCount() const {return m_blockChildren.count();}
 void Block::addBlockChild(int x, int y)
 {
     Block *childItem = new Block(m_context,this,this);
-    childItem->setBlockXPosition(x);
-    childItem->setBlockYPosition(y);
+    childItem->setXPos(x);
+    childItem->setYPos(y);
     m_blockChildren.append(childItem);
 }
 
@@ -108,9 +102,10 @@ Equation *Block::childEquationAt(int index)
 
 void Block::addEquation(int x, int y)
 {
+    qDebug()<<"create equation object";
     Equation * newEquation = new Equation(m_context,this);
-    newEquation->setEqXPos(x);
-    newEquation->setEqYPos(y);
+    newEquation->setXPos(x);
+    newEquation->setYPos(y);
     m_equationChildren.append(newEquation);
 }
 
@@ -177,23 +172,14 @@ z3::context *Block::context() const {return m_context;}
 QString Block::description() const {return m_description;}
 void Block::setDescription(QString category) {m_description = category;}
 int Block::id() const {return childBlockNumber();}
-int Block::blockXPosition() const {return m_blockXPosition;}
-void Block::setBlockXPosition(int blockXPosition){m_blockXPosition = blockXPosition;}
-int Block::blockYPosition() const {return m_blockYPosition;}
-void Block::setBlockYPosition(int blockYPosition){m_blockYPosition = blockYPosition;}
-//Equation * Block::equation(){return &m_equation;}
-//QString Block::equationString() {return m_equation.getEquationString();}
-//void Block::setEquationString(QString equationString)
-//{
-//    if (m_equation.getEquationString() == equationString)
-//        return;
-//    m_equation.setEquationString(equationString);
-//}
-
-int Block::blockWidth() const {return m_blockWidth;}
-int Block::blockHeight() const {return m_blockHeight;}
-void Block::setBlockWidth(int blockWidth) {m_blockWidth = blockWidth;}
-void Block::setblockHeight(int blockHeight) {m_blockHeight = blockHeight;}
+int Block::xPos() const {return m_xPos;}
+void Block::setXPos(int blockXPosition){m_xPos = blockXPosition;}
+int Block::yPos() const {return m_yPos;}
+void Block::setYPos(int blockYPosition){m_yPos = blockYPosition;}
+int Block::itemWidth() const {return m_itemWidth;}
+int Block::itemHeight() const {return m_itemHeight;}
+void Block::setItemWidth(int blockWidth) {m_itemWidth = blockWidth;}
+void Block::setblockHeight(int blockHeight) {m_itemHeight = blockHeight;}
 
 Block *Block::proxyRoot()
 {
@@ -209,18 +195,32 @@ void Block::setProxyRoot(Block *proxyRoot)
     emit proxyRootChanged(m_proxyRoot);
 }
 
-Block *Block::thisBlock()
+Block *Block::thisItem()
 {
     return this;
 }
 
-void Block::setThisBlock(Block *thisBlock)
+void Block::setThisItem(Block *thisBlock)
 {
-    if (m_thisBlock == thisBlock)
+    if (m_thisItem == thisBlock)
         return;
 
-    m_thisBlock = thisBlock;
-    emit thisBlockChanged(m_thisBlock);
+    m_thisItem = thisBlock;
+    emit thisItemChanged(m_thisItem);
+}
+
+QString Block::type() const
+{
+    return m_type;
+}
+
+void Block::setType(QString type)
+{
+    if (m_type == type)
+        return;
+
+    m_type = type;
+    emit typeChanged(m_type);
 }
 
 
