@@ -24,7 +24,7 @@ QModelIndex EquationModel::index(int row, int column, const QModelIndex &parent)
         return QModelIndex();
     }
 
-    Equation *childEquationItem = m_dataSource->proxyRoot()->childEquationAt(row);
+    Equation *childEquationItem = m_dataSource->proxyRoot()->equationAt(row);
     return createIndex(row, column, childEquationItem);
 
     return QModelIndex();
@@ -59,7 +59,7 @@ QVariant EquationModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    Equation * item = m_dataSource->proxyRoot()->childEquationAt(index.row());
+    Equation * item = m_dataSource->proxyRoot()->equationAt(index.row());
     QByteArray roleName = m_roles[role];
     QVariant name = item->property(roleName.data());
     return name;
@@ -71,22 +71,11 @@ bool EquationModel::setData(const QModelIndex &index, const QVariant &value, int
 {
     bool somethingChanged = false;
 
-    Equation * equationItem = m_dataSource->proxyRoot()->childEquationAt(index.row());
+    Equation * equationItem = m_dataSource->proxyRoot()->equationAt(index.row());
     switch (role) {
-    case XposRole:
-        if(equationItem->xPos() != value.toInt()){
-            equationItem->setXPos(value.toInt());
-        }
-        break;
-    case YposRole:
-        if(equationItem->yPos() != value.toInt()){
-            equationItem->setYPos(value.toInt());
-        }
-        break;
     case EquationRole:
         if(equationItem->equationString() != value.toString()){
             equationItem->setEquationString(value.toString());
-            equationItem->eqStrToExpr();
         }
         break;
     }
@@ -125,22 +114,22 @@ void EquationModel::setdataSource(DataSource *newDataSource)
 
     m_dataSource = newDataSource;
 
-    connect(m_dataSource,&DataSource::beginResetDiagram,this,[=](){
+    connect(m_dataSource,&DataSource::beginResetEquations,this,[=](){
         beginResetModel();
     });
-    connect(m_dataSource,&DataSource::endResetDiagram,this,[=](){
+    connect(m_dataSource,&DataSource::endResetEquations,this,[=](){
         endResetModel();
     });
-    connect(m_dataSource,&DataSource::beginInsertDiagramItem,this,[=](int index){
+    connect(m_dataSource,&DataSource::beginInsertEquation,this,[=](int index){
         beginInsertRows(QModelIndex(),index,index);
     });
-    connect(m_dataSource,&DataSource::endInsertDiagramItem,this,[=](){
+    connect(m_dataSource,&DataSource::endInsertEquation,this,[=](){
         endInsertRows();
     });
-    connect(m_dataSource,&DataSource::beginRemoveDiagramItem,this,[=](int index){
+    connect(m_dataSource,&DataSource::beginRemoveEquation,this,[=](int index){
         beginRemoveRows(QModelIndex(),index,index);
     });
-    connect(m_dataSource,&DataSource::endRemoveDiagramItem,this,[=](){
+    connect(m_dataSource,&DataSource::endRemoveEquation,this,[=](){
         endRemoveRows();
     });
 

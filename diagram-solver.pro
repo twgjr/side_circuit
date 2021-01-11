@@ -10,6 +10,7 @@ SOURCES += \
         block.cpp \
         datasource.cpp \
         diagrammodel.cpp \
+        element.cpp \
         equation.cpp \
         equationmodel.cpp \
         equationparser.cpp \
@@ -20,7 +21,9 @@ SOURCES += \
         main.cpp \
         port.cpp \
         portmodel.cpp \
-        regexlist.cpp
+        regexlist.cpp \
+        result.cpp \
+        resultmodel.cpp
 
 RESOURCES += qml.qrc \
     javascript.qrc
@@ -48,6 +51,7 @@ HEADERS += \
     block.h \
     datasource.h \
     diagrammodel.h \
+    element.h \
     equation.h \
     equationmodel.h \
     equationparser.h \
@@ -57,6 +61,8 @@ HEADERS += \
     linkmodel.h \
     port.h \
     portmodel.h \
-    regexlist.h
+    regexlist.h \
+    result.h \
+    resultmodel.h
 
 DISTFILES +=

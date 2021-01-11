@@ -50,26 +50,28 @@ void DataSource::deleteBlock(int blockIndex)
     emit endResetDiagram();
 }
 
-void DataSource::addEquation(int x, int y)
+void DataSource::addEquation()
 {
     qDebug()<<"begin reset equations";
-    emit beginResetDiagram();
-    m_proxyRoot->addEquation(x,y);
-    emit endResetDiagram();
+    emit beginResetEquations();
+    m_proxyRoot->addEquation();
+    emit endResetEquations();
     qDebug()<<"end reset equations";
 }
 
 void DataSource::deleteEquation(int index)
 {
-    emit beginResetDiagram();
+    emit beginResetEquations();
     m_proxyRoot->removeEquation(index);
-    emit endResetDiagram();
+    emit endResetEquations();
 }
 
 void DataSource::downLevel(int blockIndex)
 {
     emit beginResetDiagram();
+    emit beginResetEquations();
     newProxyRoot(m_proxyRoot->childBlockAt(blockIndex));
+    emit endResetEquations();
     emit endResetDiagram();
 }
 
@@ -78,7 +80,9 @@ void DataSource::upLevel()
     if(m_proxyRoot->parentBlock()!=nullptr){
         // parent is valid, cannot go higher than actual root
         emit beginResetDiagram();
+        emit beginResetEquations();
         newProxyRoot(m_proxyRoot->parentBlock());
+        emit endResetEquations();
         emit endResetDiagram();
     }
 }
@@ -159,8 +163,10 @@ void DataSource::endLink(int blockIndex, int portIndex, Link* endLink)
 void DataSource::solveEquations()
 {
     try {
+        emit beginResetResults();
         EquationSolver equationSolver(&m_context);
         equationSolver.solveEquations(m_root);
+        emit endResetResults();
     }  catch (...) {
         qDebug()<<"Solver Error";
     }

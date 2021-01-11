@@ -4,7 +4,6 @@ import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Dialogs 1.2
 import QtQuick.Shapes 1.15
-import Qt.labs.qmlmodels 1.0
 import com.company.models 1.0
 
 MouseArea{
@@ -16,7 +15,6 @@ MouseArea{
 
     onDoubleClicked: {
         if(mouse.button & Qt.LeftButton){
-            flickableId.leveltext = dataSource.distanceFromRoot()+1
             dataSource.downLevel(model.index)
         }
     }
@@ -79,7 +77,6 @@ MouseArea{
         MenuItem {
             text: "Down Level"
             onTriggered: {
-                flickableId.leveltext = dataSource.distanceFromRoot()+1
                 dataSource.downLevel(model.index)
             }
         }

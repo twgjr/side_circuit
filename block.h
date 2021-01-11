@@ -12,9 +12,10 @@
 #include "equationparser.h"
 #include "equation.h"
 #include "port.h"
+#include "result.h"
 
 class DataSource;
-
+class Result;
 class Block : public QObject
 {
     Q_OBJECT
@@ -29,6 +30,7 @@ class Block : public QObject
     Q_PROPERTY(int itemWidth READ itemWidth WRITE setItemWidth)
     Q_PROPERTY(int itemHeight READ itemHeight WRITE setblockHeight)
     Q_PROPERTY(int numChildren READ childBlockCount)
+
 
 public:
     explicit Block(z3::context * context, Block *parentBlock,
@@ -53,15 +55,19 @@ public:
     int portCount();
 
     // Equation children
-    QVector<Equation*> equations();
+    //QVector<Equation*> equations();
     int equationCount();
-    Equation* childEquationAt(int index);
-    void addEquation(int x, int y);
+    Equation* equationAt(int index);
+    void addEquation();
     void removeEquation(int index);
 
-    // z3 solver
+    // z3 solver and results
     void setContext(z3::context *context);
     z3::context *context() const;
+    int resultCount();
+    Result* resultAt(int index);
+    void addResult(QString variable, double result);
+    void clearResults();
 
     // data save and load
     //    void jsonWrite(QJsonObject &json);
@@ -110,6 +116,7 @@ private:
     QVector<Block*> m_blockChildren;
     QVector<Port*> m_ports;
     QVector<Equation*> m_equationChildren;
+    QVector<Result*> m_results;
 
     z3::context* m_context;
 

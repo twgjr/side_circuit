@@ -28,7 +28,7 @@ public:
 
     Q_INVOKABLE void appendBlock(int x = 0, int y = 0);
     Q_INVOKABLE void deleteBlock(int blockIndex);
-    Q_INVOKABLE void addEquation(int x = 0, int y = 0);
+    Q_INVOKABLE void addEquation();
     Q_INVOKABLE void deleteEquation(int index);
     Q_INVOKABLE void downLevel(int modelIndex);
     Q_INVOKABLE void upLevel();
@@ -59,12 +59,19 @@ signals:
     void beginRemoveDiagramItem(int blockIndex);
     void endRemoveDiagramItem();
 
-//    void beginResetEquations();
-//    void endResetEquations();
-//    void beginInsertEquation(int index);
-//    void endInsertEquation();
-//    void beginRemoveEquation(int index);
-//    void endRemoveEquation();
+    void beginResetEquations();
+    void endResetEquations();
+    void beginInsertEquation(int index);
+    void endInsertEquation();
+    void beginRemoveEquation(int index);
+    void endRemoveEquation();
+
+    void beginResetResults();
+    void endResetResults();
+    void beginInsertResult(int index);
+    void endInsertResult();
+    void beginRemoveResult(int index);
+    void endRemoveResult();
 
 private:
     Block * m_root;

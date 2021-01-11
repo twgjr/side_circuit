@@ -84,28 +84,25 @@ int Block::portCount()
     return m_ports.count();
 }
 
-
-QVector<Equation*> Block::equations()
-{
-    return m_equationChildren;
-}
+//QVector<Equation*> Block::equations()
+//{
+//    return m_equationChildren;
+//}
 
 int Block::equationCount()
 {
     return m_equationChildren.count();
 }
 
-Equation *Block::childEquationAt(int index)
+Equation *Block::equationAt(int index)
 {
     return m_equationChildren[index];
 }
 
-void Block::addEquation(int x, int y)
+void Block::addEquation()
 {
-    qDebug()<<"create equation object";
+    //qDebug()<<"create equation object";
     Equation * newEquation = new Equation(m_context,this);
-    newEquation->setXPos(x);
-    newEquation->setYPos(y);
     m_equationChildren.append(newEquation);
 }
 
@@ -117,6 +114,30 @@ void Block::removeEquation(int index)
 
 void Block::setContext(z3::context *context) {m_context = context;}
 z3::context *Block::context() const {return m_context;}
+
+int Block::resultCount()
+{
+    return m_results.count();
+}
+
+Result *Block::resultAt(int index)
+{
+    return m_results[index];
+}
+
+void Block::addResult(QString variable, double result)
+{
+    Result * newResult = new Result(m_context,this);
+    newResult->setVarString(variable);
+    newResult->setValNum(result);
+    m_results.append(newResult);
+}
+
+void Block::clearResults()
+{
+    qDeleteAll(m_results);
+    m_equationChildren.clear();
+}
 
 //void BlockItem::jsonRead(QJsonObject &json)
 //{
@@ -222,5 +243,3 @@ void Block::setType(QString type)
     m_type = type;
     emit typeChanged(m_type);
 }
-
-

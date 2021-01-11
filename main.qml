@@ -4,145 +4,97 @@ import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Dialogs 1.2
 import QtQuick.Shapes 1.15
-import Qt.labs.qmlmodels 1.0
 import com.company.models 1.0
 
 Window {
     id: window
     visible: true
-    width: 640
-    height: 480
+    width: 1280
+    height: 720
     title: qsTr("Diagram Solver")
     visibility: "Maximized"
 
     DataSource{ id: dataSource }
 
+    //Main window column layout
     ColumnLayout{
-        id:columnLayoutId
-        width: window.width
-        height: window.height
-
+        anchors.fill: parent
+        Layout.margins: 5
+        // Top Menu
         RowLayout{
-            Text {
-                id: textLevelId
-                text : "Model Level: " + flickableId.leveltext
-            }
-        }//RowLayout
+            spacing: 5
 
-        // wrap Repeater in flickable to enable both h and v panning
-        RowLayout{
-            id: flickableRowLayoutId
-            Layout.fillHeight: true
-            Layout.fillWidth: true
-
-            // the diagram area
-            Flickable{
-                id:flickableId
-                property int maxFlickX: width
-                property int maxFlickY: height
-                property int leveltext: dataSource.distanceFromRoot()
-
-                flickableDirection: Flickable.HorizontalAndVerticalFlick
-                height: parent.height
-                width: parent.width
-                contentWidth: maxFlickX
-                contentHeight: maxFlickY
-                clip: true
-                ScrollBar.horizontal: ScrollBar {
-                    id: hbar
-                    active: true; visible: true
-                    policy: ScrollBar.AlwaysOn
-                }
-                ScrollBar.vertical: ScrollBar {
-                    id: vbar
-                    active: true; visible: true
-                    policy: ScrollBar.AlwaysOn
-                }
-
-
-
-                MouseArea{
-                    id: diagramMouseArea
-                    acceptedButtons: Qt.RightButton
-                    anchors.fill: parent
-
-                    onClicked: {
-                        if(mouse.button & Qt.RightButton){
-                            diagramAreaContextMenu.popup()
-                        }
+            MenuBar{
+                Layout.margins: 5
+                Menu{
+                    title: "File"
+                    Action{
+                        text : "Open"
+                        onTriggered: fileLoadDialog.open()
                     }
-                    Menu {
-                        id: diagramAreaContextMenu
-                        MenuItem {
-                            text: "New Block"
-                            onTriggered: dataSource.appendBlock(diagramMouseArea.mouseX,diagramMouseArea.mouseY)
-                        }
-                        MenuItem {
-                            text: "New Equation"
-                            onTriggered: dataSource.addEquation(diagramMouseArea.mouseX,diagramMouseArea.mouseY)
-                        }
-                        MenuItem {
-                            text: "Up Level"
-                            onTriggered: {
-                                flickableId.leveltext = Math.max(dataSource.distanceFromRoot()-1,0)
-                                dataSource.upLevel()
-                            }
-                        }
+                    MenuItem{
+                        text : "Save"
+                        onTriggered: fileSaveDialog.open()
                     }
-                }//MouseArea
-
-                DiagramModel{
-                    id: diagramModel
-                    dataSource: dataSource
                 }
-                Repeater{
-                    id : blockRepeater
-                    height: parent.height
-                    width: parent.width
-                    model : diagramModel
-                    delegate: Block{}
-                }
-
-                EquationModel{
-                    id: equationModel
-                    dataSource: dataSource
-                }
-                Repeater{
-                    id : equationRepeater
-                    height: parent.height
-                    width: parent.width
-                    model : equationModel
-                    delegate: Equation{}
-                }
-
-            } //Flickable
-        } //RowLayout
-
-        RowLayout{
-            id: buttonRow
-            Layout.fillHeight: true
-            Layout.fillWidth: true
-            Button {
-                id : mButton1
-                text : "Open"
-                Layout.fillWidth: true
-                onClicked: fileLoadDialog.open()
             }
+            ToolSeparator{}
             Button {
-                id : mButton4
-                text : "Save"
-                Layout.fillWidth: true
-                onClicked: fileSaveDialog.open()
-            }
-            Button {
-                id : mButton6
+                Layout.margins: 5
+                id : solveButton
                 text : "Solve Model"
-                Layout.fillWidth: true
                 onClicked: {
                     dataSource.solveEquations()
                 }
             }
         } //RowLayout
+
+        RowLayout{// row containing diagram area and equation list
+            spacing:5
+
+            DiagramModel{
+                id: diagramModel
+                dataSource: dataSource
+            }
+            DiagramArea{
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                Layout.margins: 5
+            }
+
+            EquationModel{
+                id: equationModel
+                dataSource: dataSource
+            }
+            ResultModel{
+                id: resultModel
+                dataSource: dataSource
+            }
+
+            ColumnLayout{
+                Button{
+                    Layout.margins: 5
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth: equationListBorder.width
+                    text: "Add Equation"
+                    onClicked: {
+                        dataSource.addEquation()
+                    }
+                }
+                Label{text: "Equations"}
+                EquationList{
+                    id: equationListBorder
+                    width:200
+                    Layout.margins: 5
+                }
+
+                ResultList{
+                    id: resultListBorder
+                    width:200
+                    Layout.margins: 5
+                }
+            }
+        }//RowLayout
     } //ColumnLayout
 
     FileDialog {

@@ -1,31 +1,21 @@
-#ifndef EQUATIONMODEL_H
-#define EQUATIONMODEL_H
+#ifndef RESULTMODEL_H
+#define RESULTMODEL_H
 
 #include <QObject>
 #include <QAbstractItemModel>
 #include "datasource.h"
 
-class EquationModel : public QAbstractItemModel
+class ResultModel : public QAbstractItemModel
 {
-    Q_OBJECT    
-    Q_PROPERTY(DataSource* dataSource READ dataSource WRITE setdataSource NOTIFY dataSourceChanged)
-
+    Q_OBJECT
 public:
-
+    Q_PROPERTY(DataSource* dataSource READ dataSource WRITE setDataSource NOTIFY dataSourceChanged)
     enum EquationRoles{
-        ProxyRoot = Qt::UserRole + 1,
-        ThisRole,
-        TypeRole,
-        DescRole,
-        IdRole,
-        XposRole,
-        YposRole,
-        WidthRole,
-        HeightRole,
-        EquationRole
+        ValRole = Qt::UserRole + 1,
+        VarRole
     };
 
-    explicit EquationModel(QObject *parent = nullptr);
+    explicit ResultModel(QObject *parent = nullptr);
 
     // QAbstractItemModel overrides
     QModelIndex index(int row,
@@ -42,7 +32,7 @@ public:
     QHash<int,QByteArray> roleNames() const override;
 
     DataSource* dataSource() const;
-    void setdataSource(DataSource* newDataSource);
+    void setDataSource(DataSource* newDataSource);
 
 signals:
     void dataSourceChanged(DataSource* dataSource);
@@ -53,4 +43,4 @@ private:
     DataSource * m_dataSource;
 };
 
-#endif // EQUATIONMODEL_H
+#endif // RESULTMODEL_H

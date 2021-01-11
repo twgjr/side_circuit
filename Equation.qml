@@ -4,40 +4,29 @@ import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Dialogs 1.2
 import QtQuick.Shapes 1.15
-import Qt.labs.qmlmodels 1.0
 import com.company.models 1.0
 
 Rectangle {
     id:eqRectId
     color: "lightblue"
-    height:50
-    width:50
-    x: xPosition
-    y: yPosition
+    border.color: "black"
+    border.width: 1
+    radius: 1
+    height: 25
+    anchors.left: parent.left
+    anchors.leftMargin: 5
+    anchors.right: parent.right
+    anchors.rightMargin: 5
 
-    property int xPosition: model.xPos
-    property int yPosition: model.yPos
     property string equationString: model.equationString
 
-    Text{
-        id: equationDisplayText
-        anchors.centerIn: parent
-        anchors.fill: parent
-        text: equationString
-    }
     MouseArea{
         id:equationMouseArea
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        drag.target: parent
-        drag.threshold: 0
-        property int posX
-        property int posY
 
         onDoubleClicked: {
             if(mouse.button & Qt.LeftButton){
-                //flickableId.leveltext = dataSource.distanceFromRoot()+1
-                //dataSource.downLevel(model.index)
                 equationDialog.open()
             }
         }
@@ -46,17 +35,6 @@ Rectangle {
             if(mouse.button & Qt.RightButton){
                 equationContextMenu.popup()
             }
-        }
-        // single click and while being held
-        onPressed: {}
-        onReleased: {}
-        onPositionChanged: {
-            model.xPos = eqRectId.x
-            model.yPos = eqRectId.y
-            xPosition = model.xPos
-            yPosition = model.yPos
-            flickableId.maxFlickX = Math.max(dataSource.maxBlockX() + width*2, flickableId.width)
-            flickableId.maxFlickY = Math.max(dataSource.maxBlockY() + height*2, flickableId.height)
         }
 
         Menu {
@@ -68,13 +46,21 @@ Rectangle {
                 }
             }
         } //Menu
+
+        Text{
+            id: equationDisplayText
+            anchors.centerIn: parent
+            anchors.fill: parent
+            text: equationString
+        }
+
         Dialog{
             id:equationDialog
-            TextInput{
+            TextField{
                 id: equationText
                 anchors.centerIn: parent
                 anchors.fill: parent
-                text: equationString
+                placeholderText: "Enter an equation"
             }
             onAccepted: {
                 equationString = equationText.text

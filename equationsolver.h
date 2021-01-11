@@ -17,9 +17,10 @@ public:
 
     void registerEquation(z3::expr z3Expr);
     void loadEquations(Block *parentItem);
-    void solveEquations(Block * parentItem);
+    void solveEquations(Block * rootItem);
     void printModel();
     void resetSolver();
+    void updateResults(Block *rootItem);
 
 signals:
 

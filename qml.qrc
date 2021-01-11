@@ -7,5 +7,9 @@
         <file>Port.qml</file>
         <file>Link.qml</file>
         <file>Equation.qml</file>
+        <file>EquationList.qml</file>
+        <file>DiagramArea.qml</file>
+        <file>ResultList.qml</file>
+        <file>Result.qml</file>
     </qresource>
 </RCC>
