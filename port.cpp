@@ -2,6 +2,7 @@
 
 Port::Port(QObject *parent) : QObject(parent),
     m_blockParent(nullptr),
+    m_elementParent(nullptr),
     m_side(0),
     m_position(0),
     m_name("label"),
@@ -19,6 +20,11 @@ Port::~Port()
 void Port::setBlockParent(Block *blockParent)
 {
     m_blockParent = blockParent;
+}
+
+void Port::setConnectedLink(Link *connectedLink)
+{
+    m_connectedLinks.append(connectedLink);
 }
 
 void Port::setSide(int side)
@@ -111,14 +117,9 @@ void Port::setState(int state)
     emit stateChanged(m_state);
 }
 
-//Link *Port::connectedLink(int index)
-//{
-//    return m_connectedLinks[index];
-//}
-
-void Port::setConnectedLink(Link *connectedLink)
+void Port::setElementParent(Element *elementParent)
 {
-    m_connectedLinks.append(connectedLink);
+    m_elementParent = elementParent;
 }
 
 

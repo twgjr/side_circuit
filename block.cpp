@@ -1,17 +1,13 @@
 #include "block.h"
 
 Block::Block(z3::context *context,
-                     Block *parentBlock,
-                     QObject * parent) :
+             Block *parentBlock,
+             QObject * parent) :
     QObject(parent),
     m_parentItem(parentBlock),
     m_context(context),
-    m_type("block"),
-    m_description(""),
     m_xPos(0),
-    m_yPos(0),
-    m_itemWidth(0),
-    m_itemHeight(0)
+    m_yPos(0)//,
 {
     //qDebug()<<"Created: "<<this<<" with Qparent: "<<qobjparent;
 }
@@ -30,6 +26,11 @@ Block *Block::childBlockAt(int index)
         return nullptr;
     }
     return m_blockChildren.at(index);
+}
+
+int Block::IndexOfBlock(Block *childBlock)
+{
+    return m_blockChildren.indexOf(childBlock);
 }
 
 int Block::childBlockNumber() const
@@ -84,11 +85,6 @@ int Block::portCount()
     return m_ports.count();
 }
 
-//QVector<Equation*> Block::equations()
-//{
-//    return m_equationChildren;
-//}
-
 int Block::equationCount()
 {
     return m_equationChildren.count();
@@ -101,7 +97,6 @@ Equation *Block::equationAt(int index)
 
 void Block::addEquation()
 {
-    //qDebug()<<"create equation object";
     Equation * newEquation = new Equation(m_context,this);
     m_equationChildren.append(newEquation);
 }
@@ -111,6 +106,37 @@ void Block::removeEquation(int index)
     delete m_equationChildren[index];
     m_equationChildren.remove(index);
 }
+
+int Block::elementCount()
+{
+    return m_elements.count();
+}
+
+Element *Block::elementAt(int index)
+{
+    return m_elements[index];
+}
+
+int Block::IndexOfElement(Element *childElement)
+{
+    return m_elements.indexOf(childElement);
+}
+
+void Block::addElement(int type, int x, int y)
+{
+    Element *childItem = new Element(type, m_context,this);
+    childItem->setParentBlock(this);
+    childItem->setXPos(x);
+    childItem->setYPos(y);
+    m_elements.append(childItem);
+}
+
+void Block::removeElement(int index)
+{
+    delete m_elements[index];
+    m_elements.remove(index);
+}
+
 
 void Block::setContext(z3::context *context) {m_context = context;}
 z3::context *Block::context() const {return m_context;}
@@ -190,17 +216,11 @@ void Block::clearResults()
 //    */
 //}
 
-QString Block::description() const {return m_description;}
-void Block::setDescription(QString category) {m_description = category;}
 int Block::id() const {return childBlockNumber();}
 int Block::xPos() const {return m_xPos;}
 void Block::setXPos(int blockXPosition){m_xPos = blockXPosition;}
 int Block::yPos() const {return m_yPos;}
 void Block::setYPos(int blockYPosition){m_yPos = blockYPosition;}
-int Block::itemWidth() const {return m_itemWidth;}
-int Block::itemHeight() const {return m_itemHeight;}
-void Block::setItemWidth(int blockWidth) {m_itemWidth = blockWidth;}
-void Block::setblockHeight(int blockHeight) {m_itemHeight = blockHeight;}
 
 Block *Block::proxyRoot()
 {
@@ -213,33 +233,9 @@ void Block::setProxyRoot(Block *proxyRoot)
         return;
 
     m_proxyRoot = proxyRoot;
-    emit proxyRootChanged(m_proxyRoot);
 }
 
 Block *Block::thisItem()
 {
     return this;
-}
-
-void Block::setThisItem(Block *thisBlock)
-{
-    if (m_thisItem == thisBlock)
-        return;
-
-    m_thisItem = thisBlock;
-    emit thisItemChanged(m_thisItem);
-}
-
-QString Block::type() const
-{
-    return m_type;
-}
-
-void Block::setType(QString type)
-{
-    if (m_type == type)
-        return;
-
-    m_type = type;
-    emit typeChanged(m_type);
 }

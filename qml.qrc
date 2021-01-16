@@ -2,14 +2,11 @@
     <qresource prefix="/">
         <file>main.qml</file>
         <file>Block.qml</file>
-        <file>BlockCornerMouseArea.qml</file>
-        <file>BlockMouseArea.qml</file>
         <file>Port.qml</file>
         <file>Link.qml</file>
         <file>Equation.qml</file>
-        <file>EquationList.qml</file>
-        <file>DiagramArea.qml</file>
-        <file>ResultList.qml</file>
         <file>Result.qml</file>
+        <file>Element.qml</file>
+        <file>Resistor.qml</file>
     </qresource>
 </RCC>

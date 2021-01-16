@@ -1,8 +1,8 @@
 import QtQuick 2.15
 import QtQuick.Window 2.15
-import QtQuick.Controls 2.12
-import QtQuick.Layouts 1.12
-import QtQuick.Dialogs 1.2
+import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.15
+import QtQuick.Dialogs 1.3
 import QtQuick.Shapes 1.15
 import com.company.models 1.0
 import "portScript.js" as PortScript
@@ -13,6 +13,9 @@ Rectangle {
     property int sideNum: model.side
     property int positionNum: model.position
     property string nameText: model.name
+    property int parentType //0:block,1:element
+    property int parentIndex
+    property bool portIsEditable: false
 
     width: 10
     height: width
@@ -21,9 +24,9 @@ Rectangle {
     border.width: 2
 
     property int leftBound: 0
-    property int rightBound: blkRectId.width
+    property int rightBound: parent.width
     property int topBound: 0
-    property int bottomBound: blkRectId.height
+    property int bottomBound: parent.height
 
     function setSide(sideType){
         anchors.horizontalCenter = undefined
@@ -32,22 +35,22 @@ Rectangle {
         switch(sideType){
         case "top":
             sideNum = 0
-            anchors.verticalCenter = blkRectId.top
+            anchors.verticalCenter = parent.top
             positionNum = portMouseArea.mouseX-radius
             break;
         case "bottom":
             sideNum = 1
-            anchors.verticalCenter = blkRectId.bottom
+            anchors.verticalCenter = parent.bottom
             positionNum = portMouseArea.mouseX-radius
             break;
         case "left":
             sideNum = 2
-            anchors.horizontalCenter = blkRectId.left
+            anchors.horizontalCenter = parent.left
             positionNum = portMouseArea.mouseY-radius
             break;
         case "right":
             sideNum = 3
-            anchors.horizontalCenter = blkRectId.right
+            anchors.horizontalCenter = parent.right
             positionNum = portMouseArea.mouseY-radius
             break;
         }
@@ -60,19 +63,19 @@ Rectangle {
         switch (sideNum){
         case 0://top
             x = positionNum
-            anchors.verticalCenter = blkRectId.top
+            anchors.verticalCenter = parent.top
             break;
         case 1://bottom
             x = positionNum
-            anchors.verticalCenter = blkRectId.bottom
+            anchors.verticalCenter = parent.bottom
             break;
         case 2://left
             y = positionNum
-            anchors.horizontalCenter = blkRectId.left
+            anchors.horizontalCenter = parent.left
             break;
         case 3://right
             y = positionNum
-            anchors.horizontalCenter = blkRectId.right
+            anchors.horizontalCenter = parent.right
             break;
         }
     }
@@ -96,8 +99,10 @@ Rectangle {
     }
 
 
+
     MouseArea {
         id: portMouseArea
+        enabled: portIsEditable
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         anchors.fill: parent
         drag.target: parent
@@ -200,14 +205,17 @@ Rectangle {
     Menu {
         id: portContextMenu
         MenuItem {
+            visible: !portIsEditable
             text: "Start Link"
             onTriggered: {
-                dataSource.startLink(proxyBlockIndex,model.index)
+                dataSource.startLink(parentType,parentIndex,model.index)
             }
-        }MenuItem {
+        }
+        MenuItem {
+            visible: portIsEditable
             text: "Delete Port"
             onTriggered: {
-                dataSource.deletePort(proxyBlockIndex,model.index)
+                //dataSource.deletePort(proxyParentIndex,model.index)
             }
         }
     } //Menu

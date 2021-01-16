@@ -11,6 +11,7 @@ SOURCES += \
         datasource.cpp \
         diagrammodel.cpp \
         element.cpp \
+        elementmodel.cpp \
         equation.cpp \
         equationmodel.cpp \
         equationparser.cpp \
@@ -52,6 +53,7 @@ HEADERS += \
     datasource.h \
     diagrammodel.h \
     element.h \
+    elementmodel.h \
     equation.h \
     equationmodel.h \
     equationparser.h \

@@ -8,13 +8,8 @@ DiagramModel::DiagramModel(QObject *parent) : QAbstractItemModel(parent),
     //set the basic roles for access of item properties in QML
     m_roles[ProxyRoot]="proxyRoot";
     m_roles[ThisRole]="thisItem";
-    m_roles[TypeRole]="type";
-    m_roles[DescRole]="description";
-    m_roles[IdRole]="id";
     m_roles[XposRole]="xPos";
     m_roles[YposRole]="yPos";
-    m_roles[WidthRole]="itemWidth";
-    m_roles[HeightRole]="itemHeight";
 }
 
 DiagramModel::~DiagramModel()
@@ -67,8 +62,6 @@ QVariant DiagramModel::data(const QModelIndex &index, int role) const
     QByteArray roleName = m_roles[role];
     QVariant name = item->property(roleName.data());
     return name;
-
-    return QVariant();
 }
 
 bool DiagramModel::setData(const QModelIndex &index, const QVariant &value, int role)
@@ -77,11 +70,6 @@ bool DiagramModel::setData(const QModelIndex &index, const QVariant &value, int 
 
     Block * blockItem = m_dataSource->proxyRoot()->childBlockAt(index.row());
     switch (role) {
-    case DescRole:
-        if(blockItem->description() != value.toString()){
-            blockItem->setDescription(value.toString());
-        }
-        break;
     case XposRole:
         if(blockItem->xPos() != value.toInt()){
             blockItem->setXPos(value.toInt());
@@ -109,7 +97,10 @@ Qt::ItemFlags DiagramModel::flags(const QModelIndex &index) const
     return Qt::ItemIsEditable | QAbstractItemModel::flags(index);
 }
 
-QHash<int, QByteArray> DiagramModel::roleNames() const {return m_roles;}
+QHash<int, QByteArray> DiagramModel::roleNames() const
+{
+    return m_roles;
+}
 
 DataSource *DiagramModel::dataSource() const
 {

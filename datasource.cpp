@@ -5,11 +5,6 @@ DataSource::DataSource(QObject *parent) : QObject(parent)
     //qDebug()<<"DataSource created";
     m_root = new Block(&m_context,nullptr,this);  // real root is empty
     m_proxyRoot = m_root;
-
-    //appendBlock(50,50);
-    //appendBlock(200,200);
-    //addPort(0,0,50);
-    //addPort(1,3,50);
 }
 
 DataSource::~DataSource()
@@ -50,13 +45,25 @@ void DataSource::deleteBlock(int blockIndex)
     emit endResetDiagram();
 }
 
+void DataSource::addElement(int type, int x, int y)
+{
+    emit beginResetDiagram();
+    m_proxyRoot->addElement(type,x,y);
+    emit endResetDiagram();
+}
+
+void DataSource::deleteElement(int index)
+{
+    emit beginResetDiagram();
+    m_proxyRoot->removeElement(index);
+    emit endResetDiagram();
+}
+
 void DataSource::addEquation()
 {
-    qDebug()<<"begin reset equations";
     emit beginResetEquations();
     m_proxyRoot->addEquation();
     emit endResetEquations();
-    qDebug()<<"end reset equations";
 }
 
 void DataSource::deleteEquation(int index)
@@ -107,12 +114,9 @@ void DataSource::printFullTree(Block *rootItem, int depth)
 void DataSource::printBlock(int blockIndex)
 {
     qDebug()<<"ID: " << m_proxyRoot->childBlockAt(blockIndex)->id();
-    qDebug()<<"Category: " << m_proxyRoot->childBlockAt(blockIndex)->description();
     qDebug()<<"Position: " << m_proxyRoot->childBlockAt(blockIndex)->xPos()
            << " x "
            << m_proxyRoot->childBlockAt(blockIndex)->yPos();
-    //qDebug()<<"Equation: " << m_proxyRoot->childBlock(blockIndex)->equationString();
-
 }
 
 int DataSource::distanceFromRoot() const
@@ -133,31 +137,70 @@ int DataSource::distanceFromRoot() const
     return count;
 }
 
-
-
-void DataSource::addPort(int blockIndex, int side, int position)
+void DataSource::addPort(int type, int index, int side, int position)
 {
-    m_proxyRoot->childBlockAt(blockIndex)->addPort(side,position);
+    if(type==0){
+        m_proxyRoot->childBlockAt(index)->addPort(side,position);
+    }else if( type==1){
+        m_proxyRoot->elementAt(index)->addPort(side, position);
+    }
 }
 
-void DataSource::deletePort(int blockIndex, int portIndex)
+void DataSource::deletePort(int type, int index, int portIndex)
 {
-    m_proxyRoot->childBlockAt(blockIndex)->removePort(portIndex);
+    if(type==0){
+        m_proxyRoot->childBlockAt(index)->removePort(portIndex);
+    }else if( type==1){
+        m_proxyRoot->elementAt(index)->removePort(portIndex);
+    }
 }
 
-void DataSource::startLink(int blockIndex, int portIndex)
+//void DataSource::addBlockPort(int blockIndex, int side, int position)
+//{
+//    m_proxyRoot->childBlockAt(blockIndex)->addPort(side,position);
+//}
+
+//void DataSource::deleteBlockPort(int blockIndex, int portIndex)
+//{
+//    m_proxyRoot->childBlockAt(blockIndex)->removePort(portIndex);
+//}
+
+//void DataSource::addElementPort(int elementIndex, int side, int position)
+//{
+//    m_proxyRoot->elementAt(elementIndex)->addPort(side, position);
+//}
+
+//void DataSource::deleteElementPort(int elementIndex, int portIndex)
+//{
+//    m_proxyRoot->elementAt(elementIndex)->removePort(portIndex);
+//}
+
+void DataSource::startLink(int type, int index, int portIndex)
 {
-    m_proxyRoot->childBlockAt(blockIndex)->portAt(portIndex)->startLink();
+    if(type == 0){//block
+        m_proxyRoot->childBlockAt(index)->portAt(portIndex)->startLink();
+    } else if(type == 1){
+        m_proxyRoot->elementAt(index)->portAt(portIndex)->startLink();
+    }
+
 }
 
-void DataSource::deleteLink(int blockIndex, int portIndex, int linkIndex)
+void DataSource::deleteLink(int type, int index, int portIndex, int linkIndex)
 {
-    m_proxyRoot->childBlockAt(blockIndex)->portAt(portIndex)->removeLink(linkIndex);
+    if(type == 0){//block
+        m_proxyRoot->childBlockAt(index)->portAt(portIndex)->removeLink(linkIndex);
+    } else if(type == 1){//element
+        m_proxyRoot->elementAt(index)->portAt(portIndex)->removeLink(linkIndex);
+    }
 }
 
-void DataSource::endLink(int blockIndex, int portIndex, Link* endLink)
+void DataSource::endLink(int type, int index, int portIndex, Link* endLink)
 {
-    m_proxyRoot->childBlockAt(blockIndex)->portAt(portIndex)->setConnectedLink(endLink);
+    if(type == 0){//block
+        m_proxyRoot->childBlockAt(index)->portAt(portIndex)->setConnectedLink(endLink);
+    } else if(type == 1){//element
+        m_proxyRoot->elementAt(index)->portAt(portIndex)->setConnectedLink(endLink);
+    }
 }
 
 void DataSource::solveEquations()

@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>portScript.js</file>
+        <file>elementScript.js</file>
     </qresource>
 </RCC>

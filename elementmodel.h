@@ -1,26 +1,25 @@
-#ifndef DIAGRAMMODEL_H
-#define DIAGRAMMODEL_H
+#ifndef ELEMENTMODEL_H
+#define ELEMENTMODEL_H
 
 #include <QObject>
 #include <QAbstractItemModel>
 #include "datasource.h"
 
-class DiagramModel : public QAbstractItemModel
+class ElementModel : public QAbstractItemModel
 {
     Q_OBJECT
+public:
     Q_PROPERTY(DataSource* dataSource READ dataSource WRITE setdataSource NOTIFY dataSourceChanged)
 
-public:
-
-    enum DiagramRoles{
-        ProxyRoot = Qt::UserRole + 1,
-        ThisRole,
-        XposRole,
+    enum ElementRoles{
+        XposRole = Qt::UserRole + 1,
         YposRole,
+        ThisRole,
+        TypeRole,
+        RotationRole,
     };
 
-    explicit DiagramModel(QObject *parent = nullptr);
-    ~DiagramModel();
+    explicit ElementModel(QObject *parent = nullptr);
 
     // QAbstractItemModel overrides
     QModelIndex index(int row,
@@ -45,7 +44,7 @@ signals:
 private:
     QHash<int, QByteArray> m_roles;
     bool m_signalConnected;
-    DataSource * m_dataSource;
+    DataSource* m_dataSource;
 };
 
-#endif // DIAGRAMMODEL_H
+#endif // ELEMENTMODEL_H

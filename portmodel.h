@@ -5,6 +5,7 @@
 #include "datasource.h"
 
 class Block;
+class Element;
 
 class PortModel : public QAbstractItemModel
 {
@@ -12,6 +13,7 @@ class PortModel : public QAbstractItemModel
 
 public:
     Q_PROPERTY(Block* proxyChildBlock READ proxyChildBlock WRITE setProxyChildBlock NOTIFY proxyChildBlockChanged)
+    Q_PROPERTY(Element* proxyElement READ proxyElement WRITE setProxyElement NOTIFY proxyElementChanged)
 
     explicit PortModel(QObject *parent = nullptr);
     ~PortModel();
@@ -46,13 +48,19 @@ public:
     Block* proxyChildBlock() const;
     void setProxyChildBlock(Block* proxyChildBlock);
 
+    Element* proxyElement() const;
+    void setProxyElement(Element* proxyElement);
+
 signals:
     void proxyChildBlockChanged(Block* proxyChildBlock);
+
+    void proxyElementChanged(Element* proxyElement);
 
 private:
     QHash<int, QByteArray> m_roles;
     bool m_signalConnected;
     Block* m_proxyChildBlock;
+    Element* m_proxyElement;
 };
 
 #endif // PORTMODEL_H

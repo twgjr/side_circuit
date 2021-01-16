@@ -6,6 +6,7 @@
 #include "portmodel.h"
 #include "linkmodel.h"
 #include "resultmodel.h"
+#include "elementmodel.h"
 
 int main(int argc, char *argv[])
 {
@@ -24,7 +25,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<PortModel>("com.company.models",1,0,"PortModel");
     qmlRegisterType<LinkModel>("com.company.models",1,0,"LinkModel");
     qmlRegisterType<ResultModel>("com.company.models",1,0,"ResultModel");
-
+    qmlRegisterType<ElementModel>("com.company.models",1,0,"ElementModel");
 
     const QUrl url(QStringLiteral("qrc:/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,

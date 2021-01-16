@@ -7,6 +7,7 @@
 #include "portmodel.h"
 
 class Block;  //added to remove circular include with blockitem.h
+class Element;
 
 class Port : public QObject
 {
@@ -26,6 +27,7 @@ public:
 
     // this port
     void setBlockParent(Block * blockParent);
+    void setElementParent(Element *elementParent);
     int side() const;
     void setSide(int side);
     int position() const;
@@ -48,6 +50,7 @@ public:
     int state() const;
     void setState(int state);
 
+
 signals:
     void beginResetPort();
     void endResetPort();
@@ -63,6 +66,7 @@ signals:
 
 private:
     Block * m_blockParent;
+    Element * m_elementParent;
     int m_side;
     int m_position;
     QString m_name;
