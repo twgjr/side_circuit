@@ -37,7 +37,6 @@ Rectangle{
                 isSelected = true
             }
         }
-
     }
 
     Component.onCompleted: {

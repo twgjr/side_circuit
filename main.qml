@@ -246,73 +246,124 @@ Window {
 
 
             ColumnLayout{
-                Button{
-                    Layout.margins: 5
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.preferredWidth: equationListBorder.width
-                    text: "Add Equation"
-                    onClicked: {
-                        dataSource.addEquation()
-                    }
-                }
+                Layout.bottomMargin: 0
+                Layout.topMargin: 0
+                spacing: 0
+                Layout.margins: 5
 
-                Label{text: "Equations"}
+
+                //                Rectangle{
+                //                    id: resultListBorder
+                //                    border.color: "black"
+                //                    border.width: 1
+                //                    Layout.margins: 5
+                //                    Layout.preferredHeight: 300
+                //                    Layout.preferredWidth: 200
 
                 Rectangle{
                     id: equationListBorder
                     width:200
                     Layout.margins: 5
-                    Layout.fillHeight: true
                     border.color: "black"
                     border.width: 1
+                    Layout.fillHeight: true
 
-                    ListView{
-                        id : equationListView
+                    ColumnLayout {
+                        id: columnLayout
                         anchors.fill: parent
-                        anchors.topMargin: 5
-                        anchors.bottomMargin: 5
-                        spacing: 5
-                        model : equationModel
-                        delegate: Equation{}
+
+                        Button{
+                            Layout.margins: 5
+                            Layout.alignment: Qt.AlignHCenter
+                            text: "Add Equation"
+                            Layout.fillWidth: true
+                            onClicked: {
+                                dataSource.addEquation()
+                            }
+                        }
+
+                        Label{ text: "Equations" ; horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true; }
+
+                        ListView{
+                            id : equationListView
+                            anchors.fill: parent
+                            Layout.fillHeight: true
+                            Layout.fillWidth: true
+                            anchors.topMargin: 5
+                            anchors.bottomMargin: 5
+                            spacing: 5
+                            model : equationModel
+                            delegate: Equation{}
+                        }
                     }
+
+
                 }
 
                 Rectangle{
                     id: resultListBorder
-                    width:200
-                    Layout.margins: 5
-
-                    Layout.fillHeight: true
                     border.color: "black"
                     border.width: 1
+                    Layout.preferredHeight: 200
+                    Layout.margins: 5
+                    //Layout.preferredHeight: 300
+                    Layout.preferredWidth: 200
 
-                    ColumnLayout{
-                        Label{
-                            text: "Results"
-                            Layout.fillWidth: true
-                        }
-                        RowLayout{
-                            Label{
-                                text: "Variable"
-                                Layout.fillWidth: true
-                            }
-                            Label{
-                                text: "Value"
-                                Layout.fillWidth: true
-                            }
-                        }
-                    }
-                    ListView{
-                        id : resultListView
+                    ColumnLayout {
+                        id: columnLayout1
                         anchors.fill: parent
-                        anchors.topMargin: 5
-                        anchors.bottomMargin: 5
-                        spacing: 5
-                        model : resultModel
-                        delegate: Result{}
+
+                        Rectangle{
+                            id: resultListLabelBorder
+                            border.color: "black"
+                            border.width: 1
+                            Layout.fillWidth: true
+                            Layout.margins: 5
+                            Layout.preferredHeight: resultHeaderColumnLayout.implicitHeight
+
+                            ColumnLayout{
+                                id: resultHeaderColumnLayout
+                                anchors.fill: parent
+                                Label{
+                                    id: resultsTitleLabel
+                                    text: "Results"
+                                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                                }
+                                RowLayout{
+                                    Layout.fillWidth: true
+                                    Label{
+                                        id: resultsVariableColLabel
+                                        text: "Variable"
+                                        horizontalAlignment: Text.AlignHCenter
+                                        Layout.fillWidth: true
+                                    }
+                                    Label{
+                                        id: resultsValueColLabel
+                                        text: "Value"
+                                        horizontalAlignment: Text.AlignHCenter
+                                        Layout.fillWidth: true
+                                    }
+                                }
+                            }
+                        }
+
+                        ListView{
+                            id : resultListView
+                            Layout.margins: 5
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            spacing: 5
+                            model : resultModel
+                            delegate: Result{}
+                        }
                     }
+
                 }
+
+
+
             }
+
         }//RowLayout
     } //ColumnLayout
 
@@ -347,3 +398,9 @@ Window {
         }
     } //FileDialog
 } //Window
+
+/*##^##
+Designer {
+    D{i:0;formeditorZoom:0.75}D{i:42}D{i:48}
+}
+##^##*/
