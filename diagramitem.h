@@ -1,7 +1,7 @@
 //PROVIDES STRUCTURE OF INDIVIDUAL BLOCK ITEMS IN THE MODEL
 
-#ifndef BLOCK_H
-#define BLOCK_H
+#ifndef DIAGRAMITEM_H
+#define DIAGRAMITEM_H
 
 #include <QObject>
 #include <QDebug>
@@ -13,37 +13,38 @@
 #include "equation.h"
 #include "port.h"
 #include "result.h"
-#include "element.h"
+#include "appenums.h"
 
 class DataSource;
 class Result;
-class Block : public QObject
+class DiagramItem : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(Block* proxyRoot READ proxyRoot WRITE setProxyRoot )
-    Q_PROPERTY(Block* thisItem READ thisItem)
+    Q_PROPERTY(DiagramItem* thisItem READ thisItem)
     Q_PROPERTY(int id READ id)
     Q_PROPERTY(int xPos READ xPos WRITE setXPos)
     Q_PROPERTY(int yPos READ yPos WRITE setYPos)
-    Q_PROPERTY(int numChildren READ childBlockCount)
+    Q_PROPERTY(int numChildren READ childItemCount)
+    Q_PROPERTY(int type READ type WRITE setType)
+    Q_PROPERTY(int rotation READ rotation WRITE setRotation)
 
 public:
-    explicit Block(z3::context * context, Block *parentBlock,
+    explicit DiagramItem(int type, z3::context * context, DiagramItem *parentBlock,
                    QObject *parent = nullptr);
-    ~Block();
+    ~DiagramItem();
 
     // parent
-    Block * parentBlock();
-    void setParentBlock(Block *parentBlock);
+    DiagramItem * parentItem();
+    void setParentItem(DiagramItem *parentBlock);
 
     // Block children
-    Block * childBlockAt(int index);
-    int IndexOfBlock(Block* childBlock);
-    int childBlockNumber() const;
-    int childBlockCount() const;
-    void addBlockChild(int x, int y);
-    void removeBlockChild(int modelIndex);
+    DiagramItem * childItemAt(int index);
+    int IndexOfItem(DiagramItem* childBlock);
+    int childItemNumber() const;
+    int childItemCount() const;
+    void addItemChild(int type, int x, int y);
+    void removeItemChild(int modelIndex);
 
     // Ports
     Port * portAt( int portIndex );
@@ -56,13 +57,6 @@ public:
     Equation* equationAt(int index);
     void addEquation();
     void removeEquation(int index);
-
-    // Element children
-    int elementCount();
-    Element* elementAt(int index);
-    int IndexOfElement(Element *childElement);
-    void addElement(int type, int x, int y);
-    void removeElement(int index);
 
     // z3 solver and results
     void setContext(z3::context *context);
@@ -80,44 +74,43 @@ public:
     int id() const;
     int xPos() const;
     int yPos() const;
-    Block* proxyRoot();
-    Block* thisItem();
+    DiagramItem* thisItem();
 
     //setters with qProperty
-    void setBlockType(int blockType);
     void setXPos(int blockXPosition);
     void setYPos(int blockYPosition);
-    void setProxyRoot(Block* proxyRoot);
 
+    int type() const;
+    void setType(int itemType);
 
+    int rotation() const;
+    void setRotation(int rotation);
 
 signals:
     // qAbstractItemModel signals
-    void beginResetBlock();
-    void endResetBlock();
+    void beginResetPorts();
+    void endResetPorts();
 
     void beginInsertPort(int portIndex);
     void endInsertPort();
     void beginRemovePort(int portIndex);
     void endRemovePort();
 
-    // qProperty signals
-
 private:
-    //object pointers
-    Block * m_parentItem;
-    QVector<Block*> m_blockChildren;
+    //data model pointers
+    DiagramItem * m_parentItem;
+    QVector<DiagramItem*> m_itemChildren;
     QVector<Port*> m_ports;
     QVector<Equation*> m_equationChildren;
     QVector<Result*> m_results;
-    QVector<Element*> m_elements;
 
     z3::context* m_context;
 
     //Data
-    Block* m_proxyRoot;
     int m_xPos;
     int m_yPos;
+    int m_type;
+    int m_rotation;
 };
 
-#endif // BLOCK_H
+#endif // DIAGRAMITEM_H

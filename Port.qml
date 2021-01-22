@@ -10,23 +10,26 @@ import "portScript.js" as PortScript
 Rectangle {
     id: portId
 
+    // QML "required" properties
+    property int parentIndex
+
+    // properties tied to model
+    property int proxyPortIndex: model.index
     property int sideNum: model.side
     property int positionNum: model.position
     property string nameText: model.name
-    property int parentType //0:block,1:element
-    property int parentIndex
-    property bool portIsEditable: false
+
+    // properties standing alone in QML
+    property int leftBound: 0
+    property int rightBound: parent.width
+    property int topBound: 0
+    property int bottomBound: parent.height
 
     width: 10
     height: width
     radius: width/2
     border.color: "black"
     border.width: 2
-
-    property int leftBound: 0
-    property int rightBound: parent.width
-    property int topBound: 0
-    property int bottomBound: parent.height
 
     function setSide(sideType){
         anchors.horizontalCenter = undefined
@@ -83,26 +86,30 @@ Rectangle {
     //property string dropKey: "dropKey"
     DropArea{
         anchors.fill: parent
+        anchors.margins: -parent.radius/2
+
         Drag.keys: [ "dropKey" ]
 
         onDropped: {
             console.log("dropped")
         }
-        onEntered: {
-            portId.color = "green"
-            console.log("entered")
-        }
-        onExited: {
-            portId.color = "orange"
-            console.log("exited")
+//        onEntered: {
+//            portId.color = "green"
+//            console.log("entered")
+//        }
+//        onExited: {
+//            portId.color = "orange"
+//            console.log("exited")
+//        }
+        onContainsDragChanged: {
+            if(containsDrag){
+                console.log("check the link for compatibility")
+            }
         }
     }
 
-
-
     MouseArea {
         id: portMouseArea
-        enabled: portIsEditable
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         anchors.fill: parent
         drag.target: parent
@@ -113,11 +120,16 @@ Rectangle {
         drag.minimumY: parent.topBound-parent.radius
         drag.maximumY: parent.bottomBound-parent.radius
 
-
-
         onClicked: {
             if(mouse.button & Qt.RightButton){
                 portContextMenu.popup()
+            }
+            if(mouse.button & Qt.LeftButton){
+                console.log(model.index)
+                console.log(model.side)
+                console.log(model.position)
+                console.log(model.name)
+                console.log(model.thisPort)
             }
         }
         onPositionChanged: {
@@ -205,17 +217,15 @@ Rectangle {
     Menu {
         id: portContextMenu
         MenuItem {
-            visible: !portIsEditable
             text: "Start Link"
             onTriggered: {
-                dataSource.startLink(parentType,parentIndex,model.index)
+                dataSource.startLink(parentIndex,model.index)
             }
         }
         MenuItem {
-            visible: portIsEditable
             text: "Delete Port"
             onTriggered: {
-                //dataSource.deletePort(proxyParentIndex,model.index)
+                dataSource.deletePort(parentIndex,model.index)
             }
         }
     } //Menu
@@ -223,10 +233,8 @@ Rectangle {
     LinkModel{
         id: linkModel
         proxyPort: model.thisPort
-        Component.onCompleted: {
-        }
     }
-    property int proxyPortIndex: model.index
+
     Repeater{
         id : portRepeater
         height: parent.height

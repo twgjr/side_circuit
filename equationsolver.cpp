@@ -14,7 +14,7 @@ void EquationSolver::registerEquation(z3::expr z3Expr)
     qDebug()<<"added :"<<QString::fromStdString(z3Expr.to_string());
 }
 
-void EquationSolver::loadEquations(Block *rootItem)
+void EquationSolver::loadEquations(DiagramItem *rootItem)
 {
     //load all equations for the current root in the recursion
     for ( int i = 0 ; i < rootItem->equationCount(); i++){
@@ -23,17 +23,17 @@ void EquationSolver::loadEquations(Block *rootItem)
     }
 
     // visit all child blocks to load equations
-    for (int i = 0 ; i < rootItem->childBlockCount() ; i++) {
-        if( rootItem->childBlockAt(i)->childBlockCount() == 0 ){
+    for (int i = 0 ; i < rootItem->childItemCount() ; i++) {
+        if( rootItem->childItemAt(i)->childItemCount() == 0 ){
             //no more child blocks to visit
             return;
         } else {
-            loadEquations(rootItem->childBlockAt(i));
+            loadEquations(rootItem->childItemAt(i));
         }
     }
 }
 
-void EquationSolver::solveEquations(Block *parentItem)
+void EquationSolver::solveEquations(DiagramItem *parentItem)
 {
     loadEquations(parentItem);
 
@@ -87,7 +87,7 @@ void EquationSolver::printModel()
     }
 }
 
-void EquationSolver::updateResults(Block *rootItem)
+void EquationSolver::updateResults(DiagramItem *rootItem)
 {
     rootItem->clearResults();
 

@@ -48,13 +48,15 @@ Rectangle {
         anchors.fill: parent
         Text{
             id: varDisplayText
-            horizontalAlignment: Text.AlignRight
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
             Layout.preferredWidth: parent.width/2
             text: varString
         }
         Text{
             id: resultDisplayText
-            //Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
             Layout.preferredWidth: parent.width/2
             text: valNum
         }

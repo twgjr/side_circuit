@@ -4,7 +4,6 @@ Result::Result(z3::context * context, QObject *parent) : QObject(parent),
     m_equationContext(context),
     m_varString(""),
     m_valNum(0)
-  //m_resultString("")
 {
 
 }

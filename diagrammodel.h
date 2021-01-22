@@ -13,10 +13,11 @@ class DiagramModel : public QAbstractItemModel
 public:
 
     enum DiagramRoles{
-        ProxyRoot = Qt::UserRole + 1,
-        ThisRole,
+        ThisRole = Qt::UserRole + 1,
         XposRole,
         YposRole,
+        TypeRole,
+        RotationRole
     };
 
     explicit DiagramModel(QObject *parent = nullptr);

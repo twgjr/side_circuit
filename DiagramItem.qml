@@ -7,47 +7,84 @@ import QtQuick.Shapes 1.15
 import com.company.models 1.0
 
 Rectangle{
-    id:blkRectId
+    id:itemRectId
 
+    // properties tied to model
+    property int itemParentIndex: model.index
     property int xPosition: model.xPos
     property int yPosition: model.yPos
+    property int itemType: model.type
+    property int itemRotation: model.rotation
 
+    // QML properties specific to diagram item type (default block)
+    property color normalColor: "beige"
+    property color selectedColor: "gold"
+    property color blockBorderColor: "black"
+    property color elementBorderColor: "transparent"
+
+
+    // properties standing alone in QML
+    property int mouseBorder: 3*border.width
+    property bool isSelected: false
+
+    rotation: itemRotation
     color: isSelected ? selectedColor : normalColor
-    border.color: "black"
     border.width: 2
     radius: 5
     height: 100; width:100
     x: xPosition
     y: yPosition
-    property int mouseBorder: 3*border.width
-    property bool isSelected
 
-    property color normalColor: "beige"
-    property color selectedColor: "gold"
-
-    property bool blockIsEditable: false
+    Component.onCompleted: {
+        //isSelected = false
+        switch(itemType){
+        case DItemTypes.BlockItem:
+            normalColor = "beige"
+            selectedColor = "gold"
+            border.color = blockBorderColor
+            break;
+        case DItemTypes.Resistor:
+            normalColor = "transparent"
+            selectedColor = "lightblue"
+            border.color = elementBorderColor
+            break;
+        }
+    }
 
     Connections{
         target: flickableId
-        function onBlockIsSelectedChanged(){
-            var pos = flickableId.blockIsSelected.indexOf(model.index)
+        function onDItemIsSelectedChanged() {
+            //itemIsEditable = false
+            var pos = flickableId.dItemIsSelected.indexOf(model.index)
             if(pos === -1){
                 isSelected = false
+
             } else {
                 isSelected = true
             }
         }
     }
-
-    Component.onCompleted: {
-        isSelected = false
+    Connections{
+        target: rotateLeftButton
+        function onClicked(){
+            if(isSelected){
+                itemRotation = (itemRotation - 45)%360
+                model.rotation = itemRotation
+            }
+        }
     }
-    Component.onDestruction: {}
-
-
+    Connections{
+        target: rotateRightButton
+        function onClicked(){
+            if(isSelected){
+                itemRotation = (itemRotation + 45)%360
+                model.rotation = itemRotation
+            }
+        }
+    }
 
     MouseArea{
-        id: blockMouseAreaId
+        id: itemMouseAreaId
         anchors.centerIn: parent
         height: parent.height - mouseBorder
         width: parent.width - mouseBorder
@@ -57,55 +94,58 @@ Rectangle{
 
         onDoubleClicked: {
             if(mouse.button & Qt.LeftButton){
-                dataSource.downLevel(model.index)
+                if(itemType === DItemTypes.BlockItem){
+                    dataSource.downLevel(model.index)
+                }
             }
         }
         // single click and release
         onClicked: {
             if(mouse.button & Qt.RightButton){
-                blockContextMenu.popup()
+                itemContextMenu.popup()
             }
             if(mouse.button & Qt.LeftButton){
                 if(isSelected){
                     //unselect
-                    var pos = flickableId.blockIsSelected.indexOf(model.index)
-                    flickableId.blockIsSelected.splice(pos,1)
+                    var pos = flickableId.dItemIsSelected.indexOf(model.index)
+                    flickableId.dItemIsSelected.splice(pos,1)
                     isSelected = false
                 } else {
                     //select
-                    flickableId.elementIsSelected.push(model.index)
+                    flickableId.dItemIsSelected.push(model.index)
                     isSelected = true
                 }
+                console.log(model.thisItem)
+                console.log(model.xPos)
+                console.log(model.yPos)
+                console.log(model.type)
+                console.log(model.rotation)
             }
         }
 
-        // single click and while being held
-        onPressed: {}
-        onReleased: {}
         onPositionChanged: {
             model.xPos = parent.x
             model.yPos = parent.y
             xPosition = model.xPos
             yPosition = model.yPos
-            flickableId.maxFlickX = Math.max(dataSource.maxBlockX() + width*2, flickableId.width)
-            flickableId.maxFlickY = Math.max(dataSource.maxBlockY() + height*2, flickableId.height)
+            flickableId.maxFlickX = Math.max(dataSource.maxItemX() + width*2, flickableId.width)
+            flickableId.maxFlickY = Math.max(dataSource.maxItemY() + height*2, flickableId.height)
         }
 
         Menu {
-            id: blockContextMenu
+            id: itemContextMenu
             MenuItem {
-                visible: !blockIsEditable
                 text: "Add Port"
                 onTriggered: {
                     //find position of port with lines crossing in an x
-                    var posX = blockMouseAreaId.mouseX
-                    var posY = blockMouseAreaId.mouseY
-                    var dy = blockMouseAreaId.height
-                    var dx = blockMouseAreaId.width
+                    var posX = itemMouseAreaId.mouseX
+                    var posY = itemMouseAreaId.mouseY
+                    var dy = itemMouseAreaId.height
+                    var dx = itemMouseAreaId.width
                     var xLineDown = dy/dx*posX
                     var xLineUp = dy-dy/dx*posX
 
-                    var position = Math.min(blkRectId.width,blkRectId.height)/2
+                    var position = Math.min(itemRectId.width,itemRectId.height)/2
                     var side = 0
                     // top
                     if(posY<=xLineDown && posY<=xLineUp){
@@ -127,27 +167,21 @@ Rectangle{
                         side = 3
                         position = posY
                     }
-                    dataSource.addPort(0,model.index,side,position)
+                    dataSource.addPort(model.index,side,position)
                 }
             }//MenuItem
             MenuItem {
-                enabled: !blockIsEditable
+                visible: itemType===DItemTypes.BlockItem ? true : false
+                height: itemType===DItemTypes.BlockItem ? implicitHeight : 0
                 text: "Down Level"
                 onTriggered: {
                     dataSource.downLevel(model.index)
                 }
             }
             MenuItem {
-                enabled: !blockIsEditable
                 text: "Delete"
                 onTriggered: {
-                    dataSource.deleteBlock(model.index)
-                }
-            }
-            MenuItem {
-                text: blockIsEditable ? "Finish Edit" : "Edit Block"
-                onTriggered: {
-                    blockIsEditable = !blockIsEditable
+                    dataSource.deleteDiagramItem(model.index)
                 }
             }
         } //Menu
@@ -162,7 +196,6 @@ Rectangle{
         opacity: 0
 
         MouseArea{
-            enabled: blockIsEditable
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
             hoverEnabled: true
@@ -172,25 +205,24 @@ Rectangle{
 
             onPositionChanged: {
                 if(pressed){
-                    blkRectId.height = Math.max(blkRectId.height+mouseY,blkRectId.border.width*4)
-                    blkRectId.width = Math.max(blkRectId.width+mouseX,blkRectId.border.width*4)
+                    itemRectId.height = Math.max(itemRectId.height+mouseY,itemRectId.border.width*4)
+                    itemRectId.width = Math.max(itemRectId.width+mouseX,itemRectId.border.width*4)
                 }
             }
         }
     }
 
     PortModel{
-        id: blockPortModel
-        proxyChildBlock: model.thisItem
-        Component.onCompleted: {}
+        id: portModel
+        parentItem: model.thisItem
     }
-    property int blockParentIndex: model.index
+
     Repeater{
-        id : blockPortRepeater
+        id : portRepeater
         height: parent.height
         width: parent.width
-        model : blockPortModel
-        delegate: Port{ parentType: 0; parentIndex: blockParentIndex; portIsEditable: blockIsEditable }
+        model : portModel
+        delegate: Port{ parentIndex: itemParentIndex }
     }
 
     ColumnLayout{
@@ -198,7 +230,7 @@ Rectangle{
         RowLayout{
             Text {
                 Layout.fillWidth: true
-                text : "Block ID:" + model.index
+                text : "Item ID:" + model.index
                 horizontalAlignment: Text.AlignHCenter
             }
         }

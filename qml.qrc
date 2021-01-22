@@ -1,12 +1,11 @@
 <RCC>
     <qresource prefix="/">
         <file>main.qml</file>
-        <file>Block.qml</file>
+        <file>DiagramItem.qml</file>
         <file>Port.qml</file>
         <file>Link.qml</file>
         <file>Equation.qml</file>
         <file>Result.qml</file>
-        <file>Element.qml</file>
         <file>Resistor.qml</file>
     </qresource>
 </RCC>

@@ -5,9 +5,9 @@
 #include <QDebug>
 #include "z3++.h"
 #include "equation.h"
-#include "block.h"
+#include "diagramitem.h"
 
-class Block;
+class DiagramItem;
 
 class EquationSolver : public QObject
 {
@@ -16,11 +16,11 @@ public:
     explicit EquationSolver(z3::context * context, QObject *parent = nullptr);
 
     void registerEquation(z3::expr z3Expr);
-    void loadEquations(Block *parentItem);
-    void solveEquations(Block * rootItem);
+    void loadEquations(DiagramItem *parentItem);
+    void solveEquations(DiagramItem * rootItem);
     void printModel();
     void resetSolver();
-    void updateResults(Block *rootItem);
+    void updateResults(DiagramItem *rootItem);
 
 signals:
 

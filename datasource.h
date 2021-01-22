@@ -8,10 +8,10 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
-#include "block.h"
+#include "diagramitem.h"
 #include "equationsolver.h"
 
-class Block;
+class DiagramItem;
 
 class DataSource : public QObject
 {
@@ -20,49 +20,41 @@ public:
     explicit DataSource(QObject *parent = nullptr);
     ~DataSource();
 
-    Block * proxyRoot();
-    Q_INVOKABLE Block * proxyChild(int blockIndex);
+    DiagramItem * proxyRoot();
+    Q_INVOKABLE DiagramItem * proxyChild(int blockIndex);
     Q_INVOKABLE Port * proxyPort(int blockIndex, int portIndex);
 
-    void newProxyRoot(Block *newProxyRoot);
+    void newProxyRoot(DiagramItem *newProxyRoot);
 
-    Q_INVOKABLE void appendBlock(int x = 0, int y = 0);
-    Q_INVOKABLE void deleteBlock(int blockIndex);
-
-    Q_INVOKABLE void addElement(int type, int x = 0, int y = 0);
-    Q_INVOKABLE void deleteElement(int index);
+    Q_INVOKABLE void appendDiagramItem(int type, int x = 0, int y = 0);
+    Q_INVOKABLE void deleteDiagramItem(int index);
 
     Q_INVOKABLE void addEquation();
     Q_INVOKABLE void deleteEquation(int index);
 
     Q_INVOKABLE void downLevel(int modelIndex);
     Q_INVOKABLE void upLevel();
-    Q_INVOKABLE void printFullTree(Block * rootItem, int depth);
+    Q_INVOKABLE void printFullTree(DiagramItem * rootItem, int depth);
     Q_INVOKABLE void printBlock(int blockIndex);
     Q_INVOKABLE int distanceFromRoot() const;
 
-    //Q_INVOKABLE void addBlockPort( int blockIndex, int side, int position );
-    //Q_INVOKABLE void deleteBlockPort( int blockIndex, int portIndex );
-    //Q_INVOKABLE void addElementPort( int elementIndex, int side, int position );
-    //Q_INVOKABLE void deleteElementPort( int elementIndex, int portIndex );
-    Q_INVOKABLE void addPort( int type, int index, int side, int position );
-    Q_INVOKABLE void deletePort( int type, int index, int portIndex );
+    Q_INVOKABLE void addPort( int index, int side, int position );
+    Q_INVOKABLE void deletePort( int index, int portIndex );
 
-    Q_INVOKABLE void startLink( int type, int index, int portIndex );
-    Q_INVOKABLE void deleteLink( int type, int index, int portIndex, int linkIndex );
-    Q_INVOKABLE void endLink(int type, int index, int portIndex, Link* endLink);
+    Q_INVOKABLE void startLink( int index, int portIndex );
+    Q_INVOKABLE void deleteLink( int index, int portIndex, int linkIndex );
 
     /* EXPOSING EQUATIONSOLVER FUNCTIONS AS SLOTS TO QML VIA BLOCKDATASOURCE->BLOCKMODEL */
     Q_INVOKABLE void solveEquations();
 
     /* FUNCTIONS AS SLOTS TO QML TO AID IN QUI OPERATIONS */
-    Q_INVOKABLE int maxBlockX();
-    Q_INVOKABLE int maxBlockY();
+    Q_INVOKABLE int maxItemX();
+    Q_INVOKABLE int maxItemY();
 
 signals:
     //blocks
-    void beginResetDiagram();
-    void endResetDiagram();
+    void beginResetDiagramItems();
+    void endResetDiagramItems();
     void beginInsertDiagramItem(int blockIndex);
     void endInsertDiagramItem();
     void beginRemoveDiagramItem(int blockIndex);
@@ -82,18 +74,10 @@ signals:
     void beginRemoveResult(int index);
     void endRemoveResult();
 
-    void beginResetElements();
-    void endResetElements();
-    void beginInsertElement(int index);
-    void endInsertElement();
-    void beginRemoveElement(int index);
-    void endRemoveElement();
-
-
 private:
-    Block * m_root;
+    DiagramItem * m_root;
     z3::context m_context;
-    Block * m_proxyRoot;
+    DiagramItem * m_proxyRoot;
 };
 
 #endif // DATASOURCE_H

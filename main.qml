@@ -16,6 +16,16 @@ Window {
 
     DataSource{ id: dataSource }
 
+    DiagramModel{
+        id: diagramModel
+        dataSource: dataSource
+    }
+
+    EquationModel{
+        id: equationModel
+        dataSource: dataSource
+    }
+
     //Main window column layout
     ColumnLayout{
         anchors.fill: parent
@@ -104,14 +114,7 @@ Window {
         RowLayout{// row containing diagram area and equation list
             spacing:5
 
-            DiagramModel{
-                id: diagramModel
-                dataSource: dataSource
-            }
-            ElementModel{
-                id: elementModel
-                dataSource: dataSource
-            }
+
 
             Rectangle{
                 Layout.fillHeight: true
@@ -150,95 +153,57 @@ Window {
                         id: diagramMouseArea
                         acceptedButtons: Qt.RightButton | Qt.LeftButton
                         anchors.fill: parent
+                        hoverEnabled: true
 
                         onClicked: {
                             if(mouse.button & Qt.RightButton){
                                 diagramAreaContextMenu.popup()
                             }
                             if(mouse.button & Qt.LeftButton){
-                                flickableId.blockIsSelected = []
-                                flickableId.elementIsSelected = []
+                                flickableId.dItemIsSelected = []
                             }
                         }
                         Menu {
                             id: diagramAreaContextMenu
                             Menu {
-                                title: "New Element"
+                                title: "New Diagram Item"
                                 MenuItem {
-                                    text: "Generic"
-                                    onTriggered: dataSource.addElement(0,diagramMouseArea.mouseX,diagramMouseArea.mouseY)
+                                    text: "Block"
+                                    onTriggered: dataSource.appendDiagramItem(
+                                                     DItemTypes.BlockItem,
+                                                     diagramMouseArea.mouseX,
+                                                     diagramMouseArea.mouseY)
                                 }
                                 MenuItem {
                                     text: "Resistor"
-                                    onTriggered: dataSource.addElement(1,diagramMouseArea.mouseX,diagramMouseArea.mouseY)
-                                }
-                                MenuItem {
-                                    text: "Capacitor"
-                                    onTriggered: dataSource.addElement(2,diagramMouseArea.mouseX,diagramMouseArea.mouseY)
-                                }
-                                MenuItem {
-                                    text: "Inductor"
-                                    onTriggered: dataSource.addElement(3,diagramMouseArea.mouseX,diagramMouseArea.mouseY)
-                                }
-                                MenuItem {
-                                    text: "Solid State Switch"
-                                    onTriggered: dataSource.addElement(4,diagramMouseArea.mouseX,diagramMouseArea.mouseY)
-                                }
-                                MenuItem {
-                                    text: "Diode"
-                                    onTriggered: dataSource.addElement(5,diagramMouseArea.mouseX,diagramMouseArea.mouseY)
-                                }
-                                MenuItem {
-                                    text: "IC"
-                                    onTriggered: dataSource.addElement(6,diagramMouseArea.mouseX,diagramMouseArea.mouseY)
-                                }
-                                MenuItem {
-                                    text: "LED"
-                                    onTriggered: dataSource.addElement(7,diagramMouseArea.mouseX,diagramMouseArea.mouseY)
-                                }
-                                MenuItem {
-                                    text: "Battery"
-                                    onTriggered: dataSource.addElement(8,diagramMouseArea.mouseX,diagramMouseArea.mouseY)
-                                }
-                                MenuItem {
-                                    text: "Connector"
-                                    onTriggered: dataSource.addElement(9,diagramMouseArea.mouseX,diagramMouseArea.mouseY)
+                                    onTriggered: dataSource.appendDiagramItem(
+                                                     DItemTypes.Resistor,
+                                                     diagramMouseArea.mouseX,
+                                                     diagramMouseArea.mouseY)
                                 }
                             }
-                            MenuItem {
-                                text: "New Block"
-                                onTriggered: dataSource.appendBlock(diagramMouseArea.mouseX,diagramMouseArea.mouseY)
-                            }
+
                             MenuItem {
                                 text: "Up Level"
                                 onTriggered: {
                                     dataSource.upLevel()
+
                                 }
                             }
                         }
                     }//MouseArea
 
-                    property var blockIsSelected: []
-                    property var elementIsSelected: []
+                    property var dItemIsSelected: []
 
                     Repeater{
-                        id : blockRepeater
+                        id : diagramRepeater
                         model : diagramModel
-                        delegate: Block{}
-                    }
-                    Repeater{
-                        id : elementRepeater
-                        model : elementModel
-                        delegate: Element{}
+                        delegate: DiagramItem{}
                     }
                 }//Flickable
             }//Rectangle
 
 
-            EquationModel{
-                id: equationModel
-                dataSource: dataSource
-            }
             ResultModel{
                 id: resultModel
                 dataSource: dataSource
@@ -250,15 +215,6 @@ Window {
                 Layout.topMargin: 0
                 spacing: 0
                 Layout.margins: 5
-
-
-                //                Rectangle{
-                //                    id: resultListBorder
-                //                    border.color: "black"
-                //                    border.width: 1
-                //                    Layout.margins: 5
-                //                    Layout.preferredHeight: 300
-                //                    Layout.preferredWidth: 200
 
                 Rectangle{
                     id: equationListBorder
@@ -286,7 +242,6 @@ Window {
 
                         ListView{
                             id : equationListView
-                            anchors.fill: parent
                             Layout.fillHeight: true
                             Layout.fillWidth: true
                             anchors.topMargin: 5
@@ -296,8 +251,6 @@ Window {
                             delegate: Equation{}
                         }
                     }
-
-
                 }
 
                 Rectangle{
@@ -306,50 +259,34 @@ Window {
                     border.width: 1
                     Layout.preferredHeight: 200
                     Layout.margins: 5
-                    //Layout.preferredHeight: 300
                     Layout.preferredWidth: 200
 
                     ColumnLayout {
                         id: columnLayout1
                         anchors.fill: parent
-
-                        Rectangle{
-                            id: resultListLabelBorder
-                            border.color: "black"
-                            border.width: 1
+                        Label{
+                            id: resultsTitleLabel
+                            text: "Results"
+                            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                        }
+                        RowLayout{
                             Layout.fillWidth: true
-                            Layout.margins: 5
-                            Layout.preferredHeight: resultHeaderColumnLayout.implicitHeight
-
-                            ColumnLayout{
-                                id: resultHeaderColumnLayout
-                                anchors.fill: parent
-                                Label{
-                                    id: resultsTitleLabel
-                                    text: "Results"
-                                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                }
-                                RowLayout{
-                                    Layout.fillWidth: true
-                                    Label{
-                                        id: resultsVariableColLabel
-                                        text: "Variable"
-                                        horizontalAlignment: Text.AlignHCenter
-                                        Layout.fillWidth: true
-                                    }
-                                    Label{
-                                        id: resultsValueColLabel
-                                        text: "Value"
-                                        horizontalAlignment: Text.AlignHCenter
-                                        Layout.fillWidth: true
-                                    }
-                                }
+                            Label{
+                                id: resultsVariableColLabel
+                                text: "Variable"
+                                horizontalAlignment: Text.AlignHCenter
+                                Layout.fillWidth: true
+                            }
+                            Label{
+                                id: resultsValueColLabel
+                                text: "Value"
+                                horizontalAlignment: Text.AlignHCenter
+                                Layout.fillWidth: true
                             }
                         }
 
                         ListView{
                             id : resultListView
-                            Layout.margins: 5
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             spacing: 5
@@ -357,11 +294,7 @@ Window {
                             delegate: Result{}
                         }
                     }
-
                 }
-
-
-
             }
 
         }//RowLayout

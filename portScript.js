@@ -6,7 +6,7 @@ function createPortObjects(side,position) {
 //    console.log(portX)
 //    console.log(portY)
 
-    var port = component.createObject(blkRectId, {x: portX, y: portY});
+    var port = component.createObject(itemRectId, {x: portX, y: portY});
 
     if (port === null) {
         // Error Handling
@@ -27,7 +27,7 @@ function setCoodinates(side,position) {
     case 1:
         // bottom
         portX = position
-        portY = blkRectId.height
+        portY = itemRectId.height
         return {portX,portY}
     case 2:
         // left
@@ -36,7 +36,7 @@ function setCoodinates(side,position) {
         return {portX,portY}
     case 3:
         // right
-        portX = blkRectId.width
+        portX = itemRectId.width
         portY = position
         return {portX,portY}
     default:

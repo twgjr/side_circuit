@@ -1,15 +1,17 @@
 #include "diagrammodel.h"
 
 DiagramModel::DiagramModel(QObject *parent) : QAbstractItemModel(parent),
-    m_signalConnected(false)
+    m_signalConnected(false),
+    m_dataSource(nullptr)
 {
     //qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 
     //set the basic roles for access of item properties in QML
-    m_roles[ProxyRoot]="proxyRoot";
     m_roles[ThisRole]="thisItem";
     m_roles[XposRole]="xPos";
     m_roles[YposRole]="yPos";
+    m_roles[TypeRole]="type";
+    m_roles[RotationRole]="rotation";
 }
 
 DiagramModel::~DiagramModel()
@@ -23,10 +25,8 @@ QModelIndex DiagramModel::index(int row, int column, const QModelIndex &parent) 
         return QModelIndex();
     }
 
-    Block *childBlockItem = m_dataSource->proxyRoot()->childBlockAt(row);
-    return createIndex(row, column, childBlockItem);
-
-    return QModelIndex();
+    DiagramItem *item = m_dataSource->proxyRoot()->childItemAt(row);
+    return createIndex(row, column, item);
 }
 
 QModelIndex DiagramModel::parent(const QModelIndex &index) const
@@ -41,9 +41,7 @@ int DiagramModel::rowCount(const QModelIndex &parent) const
         return 0;
     }
 
-    int blockCount = m_dataSource->proxyRoot()->childBlockCount();
-
-    return blockCount;
+    return m_dataSource->proxyRoot()->childItemCount();
 }
 
 int DiagramModel::columnCount(const QModelIndex &parent) const
@@ -58,7 +56,7 @@ QVariant DiagramModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    Block * item = m_dataSource->proxyRoot()->childBlockAt(index.row());
+    DiagramItem * item = m_dataSource->proxyRoot()->childItemAt(index.row());
     QByteArray roleName = m_roles[role];
     QVariant name = item->property(roleName.data());
     return name;
@@ -68,16 +66,30 @@ bool DiagramModel::setData(const QModelIndex &index, const QVariant &value, int 
 {
     bool somethingChanged = false;
 
-    Block * blockItem = m_dataSource->proxyRoot()->childBlockAt(index.row());
+    DiagramItem * item = m_dataSource->proxyRoot()->childItemAt(index.row());
     switch (role) {
     case XposRole:
-        if(blockItem->xPos() != value.toInt()){
-            blockItem->setXPos(value.toInt());
+        if(item->xPos() != value.toInt()){
+            item->setXPos(value.toInt());
+            somethingChanged = true;
         }
         break;
     case YposRole:
-        if(blockItem->yPos() != value.toInt()){
-            blockItem->setYPos(value.toInt());
+        if(item->yPos() != value.toInt()){
+            item->setYPos(value.toInt());
+            somethingChanged = true;
+        }
+        break;
+    case TypeRole:
+        if(item->type() != value.toInt()){
+            item->setType(value.toInt());
+            somethingChanged = true;
+        }
+        break;
+    case RotationRole:
+        if(item->rotation() != value.toInt()){
+            item->setRotation(value.toInt());
+            somethingChanged = true;
         }
         break;
     }
@@ -116,10 +128,10 @@ void DiagramModel::setdataSource(DataSource *newDataSource)
 
     m_dataSource = newDataSource;
 
-    connect(m_dataSource,&DataSource::beginResetDiagram,this,[=](){
+    connect(m_dataSource,&DataSource::beginResetDiagramItems,this,[=](){
         beginResetModel();
     });
-    connect(m_dataSource,&DataSource::endResetDiagram,this,[=](){
+    connect(m_dataSource,&DataSource::endResetDiagramItems,this,[=](){
         endResetModel();
     });
     connect(m_dataSource,&DataSource::beginInsertDiagramItem,this,[=](int index){

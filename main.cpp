@@ -6,7 +6,7 @@
 #include "portmodel.h"
 #include "linkmodel.h"
 #include "resultmodel.h"
-#include "elementmodel.h"
+#include "appenums.h"
 
 int main(int argc, char *argv[])
 {
@@ -19,13 +19,19 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
 
+    //QML Data and Model Types
     qmlRegisterType<DataSource>("com.company.models",1,0,"DataSource");
     qmlRegisterType<DiagramModel>("com.company.models",1,0,"DiagramModel");
     qmlRegisterType<EquationModel>("com.company.models",1,0,"EquationModel");
     qmlRegisterType<PortModel>("com.company.models",1,0,"PortModel");
     qmlRegisterType<LinkModel>("com.company.models",1,0,"LinkModel");
     qmlRegisterType<ResultModel>("com.company.models",1,0,"ResultModel");
-    qmlRegisterType<ElementModel>("com.company.models",1,0,"ElementModel");
+
+    //QML Enums
+    qmlRegisterUncreatableType<DItemTypes>("com.company.models",1,0,"DItemTypes",
+                                         "AppEnums not createdable in QML");
+    qmlRegisterUncreatableType<TestModes>("com.company.models",1,0,"TestModes",
+                                         "AppEnums not createdable in QML");
 
     const QUrl url(QStringLiteral("qrc:/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,

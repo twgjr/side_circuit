@@ -1,69 +1,72 @@
-#include "block.h"
+#include "diagramitem.h"
 
-Block::Block(z3::context *context,
-             Block *parentBlock,
+DiagramItem::DiagramItem(int type, z3::context *context,
+             DiagramItem *parentItem,
              QObject * parent) :
     QObject(parent),
-    m_parentItem(parentBlock),
+    m_parentItem(parentItem),
     m_context(context),
     m_xPos(0),
-    m_yPos(0)//,
+    m_yPos(0),
+    m_type(type),
+    m_rotation(0)
 {
-    //qDebug()<<"Created: "<<this<<" with Qparent: "<<qobjparent;
+    //qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 }
 
-Block::~Block()
+DiagramItem::~DiagramItem()
 {
     //qDebug()<<"Deleted: "<<this;
 }
 
-Block *Block::parentBlock() {return m_parentItem;}
-void Block::setParentBlock(Block *parentBlock) {m_parentItem = parentBlock;}
+DiagramItem *DiagramItem::parentItem() {return m_parentItem;}
+void DiagramItem::setParentItem(DiagramItem *parentBlock) {m_parentItem = parentBlock;}
 
-Block *Block::childBlockAt(int index)
+DiagramItem *DiagramItem::childItemAt(int index)
 {
-    if(index < 0 || index >= m_blockChildren.size()){
+    if(index < 0 || index >= m_itemChildren.size()){
         return nullptr;
     }
-    return m_blockChildren.at(index);
+    return m_itemChildren.at(index);
 }
 
-int Block::IndexOfBlock(Block *childBlock)
+int DiagramItem::IndexOfItem(DiagramItem *childBlock)
 {
-    return m_blockChildren.indexOf(childBlock);
+    return m_itemChildren.indexOf(childBlock);
 }
 
-int Block::childBlockNumber() const
+int DiagramItem::childItemNumber() const
 {
     if (m_parentItem)
-        return m_parentItem->m_blockChildren.indexOf(const_cast<Block*>(this));
+        return m_parentItem->m_itemChildren.indexOf(const_cast<DiagramItem*>(this));
     return 0;
 }
 
-int Block::childBlockCount() const {return m_blockChildren.count();}
+int DiagramItem::childItemCount() const {return m_itemChildren.count();}
 
-void Block::addBlockChild(int x, int y)
+void DiagramItem::addItemChild(int type, int x, int y)
 {
-    Block *childItem = new Block(m_context,this,this);
+    DiagramItem *childItem = new DiagramItem(type,m_context,this,this);
     childItem->setXPos(x);
     childItem->setYPos(y);
-    m_blockChildren.append(childItem);
+    m_itemChildren.append(childItem);
 }
 
-void Block::removeBlockChild(int modelIndex)
+void DiagramItem::removeItemChild(int modelIndex)
 {
-    delete m_blockChildren[modelIndex];
-    m_blockChildren.remove(modelIndex);
+    delete m_itemChildren[modelIndex];
+    m_itemChildren.remove(modelIndex);
 }
 
-Port *Block::portAt(int portIndex)
+Port *DiagramItem::portAt(int portIndex)
 {
     return m_ports[portIndex];
 }
-void Block::addPort(int side, int position){
+
+void DiagramItem::addPort(int side, int position){
     Port * newPort = new Port(this);
-    Block * thisItem = static_cast<Block*>(this);
-    newPort->setBlockParent(thisItem);
+    //DiagramItem * thisItem = static_cast<DiagramItem*>(this);
+    newPort->setItemParent(this);
     newPort->setSide(side);
     newPort->setPosition(position);
     emit beginInsertPort(m_ports.count());
@@ -71,87 +74,55 @@ void Block::addPort(int side, int position){
     emit endInsertPort();
 }
 
-void Block::removePort(int portIndex)
+void DiagramItem::removePort(int portIndex)
 {
-    qDebug()<<"port Index to be removed "<< portIndex;
     emit beginRemovePort(portIndex);
     delete m_ports[portIndex];
     m_ports.remove(portIndex);
     emit endRemovePort();
 }
 
-int Block::portCount()
+int DiagramItem::portCount()
 {
     return m_ports.count();
 }
 
-int Block::equationCount()
+int DiagramItem::equationCount()
 {
     return m_equationChildren.count();
 }
 
-Equation *Block::equationAt(int index)
+Equation *DiagramItem::equationAt(int index)
 {
     return m_equationChildren[index];
 }
 
-void Block::addEquation()
+void DiagramItem::addEquation()
 {
     Equation * newEquation = new Equation(m_context,this);
     m_equationChildren.append(newEquation);
 }
 
-void Block::removeEquation(int index)
+void DiagramItem::removeEquation(int index)
 {
     delete m_equationChildren[index];
     m_equationChildren.remove(index);
 }
 
-int Block::elementCount()
-{
-    return m_elements.count();
-}
+void DiagramItem::setContext(z3::context *context) {m_context = context;}
+z3::context *DiagramItem::context() const {return m_context;}
 
-Element *Block::elementAt(int index)
-{
-    return m_elements[index];
-}
-
-int Block::IndexOfElement(Element *childElement)
-{
-    return m_elements.indexOf(childElement);
-}
-
-void Block::addElement(int type, int x, int y)
-{
-    Element *childItem = new Element(type, m_context,this);
-    childItem->setParentBlock(this);
-    childItem->setXPos(x);
-    childItem->setYPos(y);
-    m_elements.append(childItem);
-}
-
-void Block::removeElement(int index)
-{
-    delete m_elements[index];
-    m_elements.remove(index);
-}
-
-
-void Block::setContext(z3::context *context) {m_context = context;}
-z3::context *Block::context() const {return m_context;}
-
-int Block::resultCount()
+int DiagramItem::resultCount()
 {
     return m_results.count();
 }
 
-Result *Block::resultAt(int index)
+Result *DiagramItem::resultAt(int index)
 {
     return m_results[index];
 }
 
-void Block::addResult(QString variable, double result)
+void DiagramItem::addResult(QString variable, double result)
 {
     Result * newResult = new Result(m_context,this);
     newResult->setVarString(variable);
@@ -159,7 +130,7 @@ void Block::addResult(QString variable, double result)
     m_results.append(newResult);
 }
 
-void Block::clearResults()
+void DiagramItem::clearResults()
 {
     qDeleteAll(m_results);
     m_equationChildren.clear();
@@ -216,26 +187,36 @@ void Block::clearResults()
 //    */
 //}
 
-int Block::id() const {return childBlockNumber();}
-int Block::xPos() const {return m_xPos;}
-void Block::setXPos(int blockXPosition){m_xPos = blockXPosition;}
-int Block::yPos() const {return m_yPos;}
-void Block::setYPos(int blockYPosition){m_yPos = blockYPosition;}
+int DiagramItem::id() const {return childItemNumber();}
+int DiagramItem::xPos() const {return m_xPos;}
+void DiagramItem::setXPos(int blockXPosition){m_xPos = blockXPosition;}
+int DiagramItem::yPos() const {return m_yPos;}
+void DiagramItem::setYPos(int blockYPosition){m_yPos = blockYPosition;}
 
-Block *Block::proxyRoot()
+int DiagramItem::type() const
 {
-    return m_proxyRoot;
+    return m_type;
 }
 
-void Block::setProxyRoot(Block *proxyRoot)
+void DiagramItem::setType(int itemType)
 {
-    if (m_proxyRoot == proxyRoot)
+    if (m_type == itemType)
         return;
 
-    m_proxyRoot = proxyRoot;
+    m_type = itemType;
 }
 
-Block *Block::thisItem()
+int DiagramItem::rotation() const
+{
+    return m_rotation;
+}
+
+void DiagramItem::setRotation(int rotation)
+{
+    m_rotation = rotation;
+}
+
+DiagramItem *DiagramItem::thisItem()
 {
     return this;
 }

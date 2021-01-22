@@ -1,15 +1,13 @@
 #include "port.h"
 
 Port::Port(QObject *parent) : QObject(parent),
-    m_blockParent(nullptr),
-    m_elementParent(nullptr),
+    m_itemParent(nullptr),
+    isConnected(false),
     m_side(0),
     m_position(0),
-    m_name("label"),
-    isConnected(false),
-    m_state(PortModel::NotConnected)
+    m_name("label")
 {
-    //qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
+    qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 }
 
 Port::~Port()
@@ -17,14 +15,9 @@ Port::~Port()
     //qDebug()<<"Deleted: "<<this;
 }
 
-void Port::setBlockParent(Block *blockParent)
+void Port::setItemParent(DiagramItem *itemParent)
 {
-    m_blockParent = blockParent;
-}
-
-void Port::setConnectedLink(Link *connectedLink)
-{
-    m_connectedLinks.append(connectedLink);
+    m_itemParent = itemParent;
 }
 
 void Port::setSide(int side)
@@ -82,7 +75,6 @@ void Port::startLink()
 
 void Port::removeLink(int linkIndex)
 {
-    qDebug()<<"link Index to be removed "<<linkIndex;
     emit beginRemoveLink(linkIndex);
     delete m_links[linkIndex];
     m_links.remove(linkIndex);
@@ -93,33 +85,3 @@ Port *Port::thisPort()
 {
     return this;
 }
-
-void Port::setThisPort(Port *thisPort)
-{
-    if (m_thisPort == thisPort)
-        return;
-
-    m_thisPort = thisPort;
-    emit thisPortChanged(m_thisPort);
-}
-
-int Port::state() const
-{
-    return m_state;
-}
-
-void Port::setState(int state)
-{
-    if (m_state == state)
-        return;
-
-    m_state = state;
-    emit stateChanged(m_state);
-}
-
-void Port::setElementParent(Element *elementParent)
-{
-    m_elementParent = elementParent;
-}
-
-

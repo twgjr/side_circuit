@@ -51,6 +51,8 @@ Rectangle {
             id: equationDisplayText
             anchors.centerIn: parent
             anchors.fill: parent
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
             text: equationString
         }
 
