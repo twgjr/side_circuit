@@ -5,6 +5,7 @@ import QtQuick.Layouts 1.15
 import QtQuick.Dialogs 1.3
 import QtQuick.Shapes 1.15
 import com.company.models 1.0
+
 Item{
     id: linkItemRoot
     height:implicitHeight
@@ -13,7 +14,8 @@ Item{
     Shape {
         id:shapeRoot
         ShapePath {
-            strokeWidth: 4
+            id:shapeRootPath
+            strokeWidth: 2
             strokeColor: "red"
             strokeStyle: ShapePath.DashLine
             dashPattern: [ 1, 5 ]
@@ -28,6 +30,11 @@ Item{
 
     Rectangle{
         id: endRect
+
+        property var endRectPoint: model.lastPoint
+        property real endRectX: endRectPoint.x
+        property real endRectY: endRectPoint.y
+
         width: 10
         height: width
         radius: width/2
@@ -39,9 +46,40 @@ Item{
         Drag.hotSpot.x: width/2
         Drag.hotSpot.y: height/2
 
-        Component.onCompleted: {
-            x = diagramMouseArea.mouseX-itemRectId.x-portId.x
-            y = diagramMouseArea.mouseY-itemRectId.y-portId.y
+        states: [
+            State {
+                name: "connected"; when: model.portConnected
+                PropertyChanges {
+                    target: linkMouseArea
+                    drag.target: undefined
+                    x: endRect.endRectX-itemRectId.x-portId.x
+                    y: endRect.endRectY-itemRectId.y-portId.y
+                }
+                PropertyChanges {
+                    target: shapeRootPath
+                    strokeColor: "black"
+                    strokeStyle: ShapePath.SolidLine
+                }
+            }
+        ]
+
+        Component.onCompleted:{
+            if(model.portConnected){
+                x = endRectX-itemRectId.x-portId.x
+                y = endRectY-itemRectId.y-portId.y
+            } else {
+                var extraX = 0
+                var extraY = 0
+                var extra = 10
+                switch(sideNum){
+                case 0: extraY = -extra; break;
+                case 1: extraY = extra; break;
+                case 2: extraX = -extra; break;
+                case 3: extraX = extra; break;
+                }
+                x = extraX
+                y = extraY
+            }
         }
 
         MouseArea {
@@ -52,31 +90,41 @@ Item{
             drag.threshold: 0
             drag.smoothed: false
 
+            onPositionChanged: {
+                if(!model.portConnected){
+                    var linkAbsX = itemRectId.x+portId.x+endRect.x
+                    var linkAbsY = itemRectId.y+portId.y+endRect.y
+                    model.lastPoint = Qt.point(linkAbsX,linkAbsY)
+                }
+            }
+
             onReleased: {
                 //drop handler
                 if(endRect.Drag.target !== null){
                     console.log("drag target: "+endRect.Drag.target)
-                    endRect.parent = endRect.Drag.target
-                    endRect.anchors.verticalCenter = endRect.Drag.target.verticalCenter
-                    endRect.anchors.horizontalCenter = endRect.Drag.target.horizontalCenter
+                    dataSource.endLinkFromLink(model.thisLink)
                 } else {
                     console.log("drag target was null")
-                    endRect.parent = linkItemRoot
-                    endRect.anchors.verticalCenter = undefined
-                    endRect.anchors.horizontalCenter = undefined
                 }
-                //parent.Drag.drop()
+                parent.Drag.drop()
             }
 
             onClicked: {
                 if(mouse.button & Qt.RightButton){
                     portContextMenu.popup()
-                    //cancel the link drag
+
                 }
                 if(mouse.button & Qt.LeftButton){
                     //add new segment and set new segment to follow mouse pointer
                 }
             }
+
+            onPressed: {
+                endRect.state = ""
+                dataSource.disconnectPortfromLink(model.thisLink)
+            }
+
+
         }//MouseArea
     }//Rectangle
 

@@ -14,9 +14,9 @@ Rectangle {
     radius: 1
     height: 25
     anchors.left: parent.left
-    anchors.leftMargin: 5
+    //anchors.leftMargin: 5
     anchors.right: parent.right
-    anchors.rightMargin: 5
+    //anchors.rightMargin: 5
 
     property string equationString: model.equationString
 

@@ -13,8 +13,8 @@ QModelIndex ResultModel::index(int row, int column, const QModelIndex &parent) c
         return QModelIndex();
     }
 
-    Result *childResultItem = m_dataSource->proxyRoot()->resultAt(row);
-    return createIndex(row, column, childResultItem);
+    Result *item = m_dataSource->proxyRoot()->resultAt(row);
+    return createIndex(row, column, item);
 
     return QModelIndex();
 }
@@ -31,9 +31,7 @@ int ResultModel::rowCount(const QModelIndex &parent) const
         return 0;
     }
 
-    int resultCount = m_dataSource->proxyRoot()->resultCount();
-
-    return resultCount;
+    return m_dataSource->proxyRoot()->resultCount();
 }
 
 int ResultModel::columnCount(const QModelIndex &parent) const
@@ -60,16 +58,16 @@ bool ResultModel::setData(const QModelIndex &index, const QVariant &value, int r
 {
     bool somethingChanged = false;
 
-    Result * resultItem = m_dataSource->proxyRoot()->resultAt(index.row());
+    Result * item = m_dataSource->proxyRoot()->resultAt(index.row());
     switch (role) {
     case ValRole:
-        if(resultItem->valNum() != value.toDouble()){
-            resultItem->setValNum(value.toDouble());
+        if(item->valNum() != value.toDouble()){
+            item->setValNum(value.toDouble());
         }
         break;
     case VarRole:
-        if(resultItem->varString() != value.toString()){
-            resultItem->setVarString(value.toString());
+        if(item->varString() != value.toString()){
+            item->setVarString(value.toString());
         }
         break;
     }

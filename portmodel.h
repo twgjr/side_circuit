@@ -16,7 +16,8 @@ public:
         ThisPort = Qt::UserRole + 1,
         SideRole,
         NameRole,
-        PositionRole
+        PositionRole,
+        AbsPointRole
     };
 
     explicit PortModel(QObject *parent = nullptr);

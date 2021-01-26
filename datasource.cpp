@@ -1,6 +1,8 @@
 #include "datasource.h"
 
-DataSource::DataSource(QObject *parent) : QObject(parent)
+DataSource::DataSource(QObject *parent) : QObject(parent),
+    m_pendingConnectPort(nullptr),
+    m_pendingConnectLink(nullptr)
 {
     //qDebug()<<"DataSource created";
     //by default the root node is always a block
@@ -143,6 +145,49 @@ void DataSource::startLink(int index, int portIndex)
 void DataSource::deleteLink(int index, int portIndex, int linkIndex)
 {
     m_proxyRoot->childItemAt(index)->portAt(portIndex)->removeLink(linkIndex);
+}
+
+void DataSource::endLinkFromLink( Link* thisLink )
+{
+    if(m_pendingConnectPort){
+        m_pendingConnectPort->appendConnectedLink(thisLink);
+        thisLink->setEndPort(m_pendingConnectPort);
+        //cleanup the buffer pointers when done connecting
+        m_pendingConnectPort = nullptr;
+        m_pendingConnectLink = nullptr;
+    } else {
+        m_pendingConnectLink = thisLink;
+    }
+}
+
+void DataSource::endLinkFromPort( Port* thisPort )
+{
+    if(m_pendingConnectLink){
+        thisPort->appendConnectedLink(m_pendingConnectLink);
+        m_pendingConnectLink->setEndPort(thisPort);
+        //cleanup the buffer pointers when done connecting
+        m_pendingConnectPort = nullptr;
+        m_pendingConnectLink = nullptr;
+    } else {
+        m_pendingConnectPort = thisPort;
+    }
+}
+
+void DataSource::disconnectPortfromLink(Link *thisLink)
+{
+    thisLink->disconnectEndPort();
+}
+
+void DataSource::resetLinkstoPort(Port *thisPort)
+{
+    thisPort->resetLinkModel();
+}
+
+void DataSource::resetConnectedLinkstoPort(Port *thisPort)
+{
+    for(int i = 0; i < thisPort->connectedLinks().size(); i++){
+        thisPort->connectedLinks()[i]->startPort()->resetLinkModel();
+    }
 }
 
 void DataSource::solveEquations()

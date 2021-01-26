@@ -12,6 +12,7 @@
 #include "equationsolver.h"
 
 class DiagramItem;
+class Link;
 
 class DataSource : public QObject
 {
@@ -43,6 +44,11 @@ public:
 
     Q_INVOKABLE void startLink( int index, int portIndex );
     Q_INVOKABLE void deleteLink( int index, int portIndex, int linkIndex );
+    Q_INVOKABLE void endLinkFromLink( Link* thisLink );
+    Q_INVOKABLE void endLinkFromPort( Port* thisPort );
+    Q_INVOKABLE void disconnectPortfromLink( Link* thisLink );
+    Q_INVOKABLE void resetLinkstoPort( Port * thisPort);
+    Q_INVOKABLE void resetConnectedLinkstoPort( Port * thisPort);
 
     /* EXPOSING EQUATIONSOLVER FUNCTIONS AS SLOTS TO QML VIA BLOCKDATASOURCE->BLOCKMODEL */
     Q_INVOKABLE void solveEquations();
@@ -78,6 +84,8 @@ private:
     DiagramItem * m_root;
     z3::context m_context;
     DiagramItem * m_proxyRoot;
+    Port* m_pendingConnectPort;
+    Link* m_pendingConnectLink;
 };
 
 #endif // DATASOURCE_H

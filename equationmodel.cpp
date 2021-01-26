@@ -24,8 +24,8 @@ QModelIndex EquationModel::index(int row, int column, const QModelIndex &parent)
         return QModelIndex();
     }
 
-    Equation *childEquationItem = m_dataSource->proxyRoot()->equationAt(row);
-    return createIndex(row, column, childEquationItem);
+    Equation *item = m_dataSource->proxyRoot()->equationAt(row);
+    return createIndex(row, column, item);
 
     return QModelIndex();
 }
@@ -42,9 +42,7 @@ int EquationModel::rowCount(const QModelIndex &parent) const
         return 0;
     }
 
-    int equationCount = m_dataSource->proxyRoot()->equationCount();
-
-    return equationCount;
+    return m_dataSource->proxyRoot()->equationCount();
 }
 
 int EquationModel::columnCount(const QModelIndex &parent) const
@@ -71,11 +69,11 @@ bool EquationModel::setData(const QModelIndex &index, const QVariant &value, int
 {
     bool somethingChanged = false;
 
-    Equation * equationItem = m_dataSource->proxyRoot()->equationAt(index.row());
+    Equation * item = m_dataSource->proxyRoot()->equationAt(index.row());
     switch (role) {
     case EquationRole:
-        if(equationItem->equationString() != value.toString()){
-            equationItem->setEquationString(value.toString());
+        if(item->equationString() != value.toString()){
+            item->setEquationString(value.toString());
         }
         break;
     }

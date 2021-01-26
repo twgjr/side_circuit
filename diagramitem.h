@@ -17,6 +17,8 @@
 
 class DataSource;
 class Result;
+class Port;
+
 class DiagramItem : public QObject
 {
     Q_OBJECT

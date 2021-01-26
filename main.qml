@@ -29,10 +29,8 @@ Window {
     //Main window column layout
     ColumnLayout{
         anchors.fill: parent
-        Layout.margins: 5
         // Top Menu
         RowLayout{
-            spacing: 5
 
             Button{
                 id: projectMenuButton
@@ -66,11 +64,11 @@ Window {
             ToolSeparator{}
             Button {
                 id : solveButton
-                text : "🖩"
+                text : "🖩" // unicode pocket calculator
                 bottomPadding: 15
-                // unicode pocket calculator
                 Layout.preferredWidth: 50
                 Layout.preferredHeight: 50
+                Layout.margins: 5
                 font.pointSize: 30
                 hoverEnabled: true
                 ToolTip.delay: 1000
@@ -83,10 +81,10 @@ Window {
             }
             Button {
                 id : rotateLeftButton
-                Layout.margins: 5
                 text : "⭯"
                 Layout.preferredWidth: 50
                 Layout.preferredHeight: 50
+                Layout.margins: 5
                 font.pointSize: 15
                 hoverEnabled: true
                 ToolTip.delay: 1000
@@ -97,10 +95,10 @@ Window {
             }
             Button {
                 id : rotateRightButton
-                Layout.margins: 5
                 text : "⭮"
                 Layout.preferredWidth: 50
                 Layout.preferredHeight: 50
+                Layout.margins: 5
                 font.pointSize: 15
                 hoverEnabled: true
                 ToolTip.delay: 1000
@@ -112,15 +110,9 @@ Window {
         } //RowLayout
 
         RowLayout{// row containing diagram area and equation list
-            spacing:5
-
-
-
             Rectangle{
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                Layout.margins: 5
-
                 id: diagramArea
                 border.color: "black"
                 border.width: 1
@@ -211,15 +203,10 @@ Window {
 
 
             ColumnLayout{
-                Layout.bottomMargin: 0
-                Layout.topMargin: 0
-                spacing: 0
-                Layout.margins: 5
 
                 Rectangle{
                     id: equationListBorder
                     width:200
-                    Layout.margins: 5
                     border.color: "black"
                     border.width: 1
                     Layout.fillHeight: true
@@ -227,7 +214,6 @@ Window {
                     ColumnLayout {
                         id: columnLayout
                         anchors.fill: parent
-
                         Button{
                             Layout.margins: 5
                             Layout.alignment: Qt.AlignHCenter
@@ -244,9 +230,6 @@ Window {
                             id : equationListView
                             Layout.fillHeight: true
                             Layout.fillWidth: true
-                            anchors.topMargin: 5
-                            anchors.bottomMargin: 5
-                            spacing: 5
                             model : equationModel
                             delegate: Equation{}
                         }
@@ -258,7 +241,6 @@ Window {
                     border.color: "black"
                     border.width: 1
                     Layout.preferredHeight: 200
-                    Layout.margins: 5
                     Layout.preferredWidth: 200
 
                     ColumnLayout {
@@ -289,7 +271,6 @@ Window {
                             id : resultListView
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            spacing: 5
                             model : resultModel
                             delegate: Result{}
                         }

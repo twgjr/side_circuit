@@ -15,10 +15,9 @@ public:
     ~LinkModel();
 
     enum LinkRoles{
-        StartXRole = Qt::UserRole + 1,
-        StartYRole,
-        EndXRole,
-        EndYRole
+        ThisLinkRole = Qt::UserRole + 1,
+        LastPointRole,
+        PortConnectedRole
     };
 
     // QAbstractItemModel overrides

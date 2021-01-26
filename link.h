@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QDebug>
 #include <QPainter>
+#include "port.h"
 
 class Port; // added to remove circular reference error with blockport.h
 
@@ -11,34 +12,39 @@ class Link : public QObject
 {
     Q_OBJECT
 public:
-    Q_PROPERTY(int startX READ startX WRITE setStartX)
-    Q_PROPERTY(int startY READ startY WRITE setStartY)
-    Q_PROPERTY(int endX READ endX WRITE setEndX)
-    Q_PROPERTY(int endY READ endY WRITE setEndY)
+    Q_PROPERTY(Link* thisLink READ thisLink)
+    Q_PROPERTY(QPointF lastPoint READ lastPoint WRITE setLastPoint NOTIFY lastPointChanged)
+    Q_PROPERTY(bool portConnected READ portConnected NOTIFY portConnectedChanged)
 
     explicit Link(QObject *parent = nullptr);
     ~Link();
 
-    int startX() const;
-    int startY() const;
-    int endX() const;
-    int endY() const;
+    void removePoint(int index);
+    void removeLastPoint();
+    QPointF lastPoint() const;
+    void setLastPoint(QPointF point);
+    void appendPoint(QPointF newPoint);
 
-    void setStartX(int startX);
-    void setStartY(int startY);
-    void setEndX(int endX);
-    void setEndY(int endY);
+
+    void setEndPort(Port * endPort);
+    void disconnectEndPort();
+
+    Link* thisLink();
+
+    bool portConnected() const;
+    Port* startPort();
+
+    void setStartPort(Port *startPort);
 
 signals:
+    void lastPointChanged(QPointF newPoint);
+    void portConnectedChanged(bool portConnected);
 
 private:
     Port * m_start;
     Port * m_end;
-    QVector<QPoint> points;
-    int m_startX;
-    int m_startY;
-    int m_endX;
-    int m_endY;
+    QVector<QPointF> m_points;  // absolute position within diagram mouse area
+    bool m_portConnected;
 };
 
 #endif // LINK_H

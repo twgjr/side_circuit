@@ -4,10 +4,9 @@ LinkModel::LinkModel(QObject *parent) : QAbstractItemModel(parent),
     m_signalConnected(false)
 {
     //set the basic roles for access of item properties in QML
-    m_roles[StartXRole]="startX";
-    m_roles[StartYRole]="startY";
-    m_roles[EndXRole]="endX";
-    m_roles[EndYRole]="endY";
+    m_roles[ThisLinkRole]="thisLink";
+    m_roles[LastPointRole]="lastPoint";
+    m_roles[PortConnectedRole]="portConnected";
 
     //qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 }
@@ -62,16 +61,14 @@ QVariant LinkModel::data(const QModelIndex &index, int role) const
 
 bool LinkModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    Link * linkItem = m_proxyPort->linkAt(index.row());
+    Link * item = m_proxyPort->linkAt(index.row());
     bool somethingChanged = false;
     switch (role) {
-    case StartXRole:
-        break;
-    case StartYRole:
-        break;
-    case EndXRole:
-        break;
-    case EndYRole:
+    case LastPointRole:
+        if(item->lastPoint() != value.toPoint()){
+            item->appendPoint(value.toPoint());
+            somethingChanged = true;
+        }
         break;
     }
     if(somethingChanged){

@@ -3,10 +3,7 @@
 Link::Link(QObject *parent) : QObject(parent),
     m_start(nullptr),
     m_end(nullptr),
-    m_startX(0),
-    m_startY(0),
-    m_endX(0),
-    m_endY(0)
+    m_portConnected(false)
 {
     //qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 }
@@ -14,44 +11,84 @@ Link::Link(QObject *parent) : QObject(parent),
 Link::~Link()
 {
     //qDebug()<<"Deleted: "<<this;
+    disconnectEndPort();
 }
 
-int Link::startX() const
+void Link::removePoint(int index)
 {
-    return m_startX;
+    if(!m_points.isEmpty()){
+        m_points.remove(index);
+    }
 }
 
-int Link::startY() const
+void Link::removeLastPoint()
 {
-    return m_startY;
+    removePoint(m_points.size()-1);
 }
 
-int Link::endX() const
+QPointF Link::lastPoint() const
 {
-    return m_endX;
+    if(!m_points.isEmpty()){
+        return m_points[m_points.size()-1];
+    }
+    return QPointF();
 }
 
-int Link::endY() const
+void Link::setLastPoint(QPointF point)
 {
-    return m_endY;
+    if(!m_points.isEmpty()){
+        m_points[m_points.size()-1]=point;
+    }
+    emit lastPointChanged(point);
 }
 
-void Link::setStartX(int startX)
+void Link::appendPoint(QPointF newPoint)
 {
-    m_startX = startX;
+    if (lastPoint() == newPoint)
+        return;
+
+    m_points.append(newPoint);
+    emit lastPointChanged(newPoint);
 }
 
-void Link::setStartY(int startY)
+void Link::setEndPort(Port *endPort)
 {
-    m_startY = startY;
+    if(m_end == endPort){
+        return;
+    }
+    m_end = endPort;
+    m_end->appendConnectedLink(this);
+
+    connect(m_end,&Port::absPointChanged,this,[=](QPointF point){
+        setLastPoint(point);
+    });
 }
 
-void Link::setEndX(int endX)
+void Link::disconnectEndPort()
 {
-    m_endX = endX;
+    if(m_end){
+        m_end->disconnect(this); //disconnect signals between end port and this link
+        m_end->removeConnectedLink(this); //remove the Link* from the list in connected Port
+        m_end=nullptr;
+    }
 }
 
-void Link::setEndY(int endY)
+Link *Link::thisLink()
 {
-    m_endY = endY;
+    return this;
+}
+
+bool Link::portConnected() const
+{
+    return m_end?true:false;
+}
+
+Port *Link::startPort()
+{
+    return m_start;
+}
+
+void Link::setStartPort(Port *startPort)
+{
+    m_start = startPort;
 }

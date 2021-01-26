@@ -9,6 +9,7 @@ PortModel::PortModel(QObject *parent): QAbstractItemModel(parent),
     m_roles[SideRole]="side";
     m_roles[PositionRole]="position";
     m_roles[NameRole]="name";
+    m_roles[AbsPointRole]="absPoint";
 
     //qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 }
@@ -24,8 +25,8 @@ QModelIndex PortModel::index(int row, int column, const QModelIndex &parent) con
         return QModelIndex();
     }
 
-    Port * portItem = m_parentItem->portAt(row);
-    return createIndex(row, column, portItem);
+    Port * item = m_parentItem->portAt(row);
+    return createIndex(row, column, item);
 }
 
 QModelIndex PortModel::parent(const QModelIndex &index) const
@@ -55,9 +56,9 @@ QVariant PortModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    Port * portItem = m_parentItem->portAt(index.row());
+    Port * item = m_parentItem->portAt(index.row());
     QByteArray roleName = m_roles[role];
-    QVariant name = portItem->property(roleName.data());
+    QVariant name = item->property(roleName.data());
     return name;
 }
 
@@ -65,17 +66,23 @@ bool PortModel::setData(const QModelIndex &index, const QVariant &value, int rol
 {
     bool somethingChanged = false;
 
-    Port * portItem = m_parentItem->portAt(index.row());
+    Port * item = m_parentItem->portAt(index.row());
     switch (role) {
     case SideRole:
-        if(portItem->side() != value.toInt()){
-            portItem->setSide(value.toInt());
+        if(item->side() != value.toInt()){
+            item->setSide(value.toInt());
             somethingChanged = true;
         }
         break;
     case PositionRole:
-        if(portItem->position() != value.toInt()){
-            portItem->setPosition(value.toInt());
+        if(item->position() != value.toInt()){
+            item->setPosition(value.toInt());
+            somethingChanged = true;
+        }
+        break;
+    case AbsPointRole:
+        if(item->absPoint() != value.toPoint()){
+            item->setAbsPoint(value.toPoint());
             somethingChanged = true;
         }
         break;

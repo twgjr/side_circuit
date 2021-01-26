@@ -7,6 +7,7 @@
 #include "portmodel.h"
 
 class DiagramItem;  //added to remove circular include with blockitem.h
+class Link;
 
 class Port : public QObject
 {
@@ -17,6 +18,7 @@ public:
     Q_PROPERTY(int side READ side WRITE setSide)
     Q_PROPERTY(int position READ position WRITE setPosition)
     Q_PROPERTY(QString name READ name WRITE setName)
+    Q_PROPERTY(QPointF absPoint READ absPoint WRITE setAbsPoint NOTIFY absPointChanged)
 
     explicit Port(QObject *parent = nullptr);
     ~Port();
@@ -36,8 +38,18 @@ public:
     int linkCount();
     void startLink();
     void removeLink(int linkIndex);
+    void resetLinkModel();
 
     Port* thisPort();
+
+    QPointF absPoint() const;
+    void setAbsPoint(QPointF centerPoint);
+
+    //connected links
+    QVector<Link*> connectedLinks();
+    void appendConnectedLink(Link* cLink);
+    void removeConnectedLink(Link* cLink);
+    void removeAllLinks();
 
 signals:
     void beginResetPort();
@@ -47,16 +59,17 @@ signals:
     void beginRemoveLink(int linkIndex);
     void endRemoveLink();
 
-    void connectedLinkChanged(Link* connectedLink);
+    void absPointChanged(QPointF absPoint);
 
 private:
     DiagramItem * m_itemParent;
     QVector<Link*> m_links;
-    bool isConnected;
+    QVector<Link*> m_connectedLinks;
 
     int m_side;
     int m_position;
     QString m_name;
+    QPointF m_absPoint;
 };
 
 #endif // PORT_H

@@ -2,7 +2,6 @@
 
 Port::Port(QObject *parent) : QObject(parent),
     m_itemParent(nullptr),
-    isConnected(false),
     m_side(0),
     m_position(0),
     m_name("label")
@@ -13,6 +12,7 @@ Port::Port(QObject *parent) : QObject(parent),
 Port::~Port()
 {
     //qDebug()<<"Deleted: "<<this;
+    removeAllLinks();  //cleanup
 }
 
 void Port::setItemParent(DiagramItem *itemParent)
@@ -68,6 +68,7 @@ int Port::linkCount()
 void Port::startLink()
 {
     Link * newLink = new Link(this);
+    newLink->setStartPort(this);
     emit beginInsertLink(m_links.count());
     m_links.append(newLink);
     emit endInsertLink();
@@ -81,7 +82,52 @@ void Port::removeLink(int linkIndex)
     emit endRemoveLink();
 }
 
+void Port::resetLinkModel()
+{
+    emit beginResetPort();
+    emit endResetPort();
+}
+
 Port *Port::thisPort()
 {
     return this;
+}
+
+QPointF Port::absPoint() const
+{
+    return m_absPoint;
+}
+
+void Port::setAbsPoint(QPointF absPoint)
+{
+    if (m_absPoint == absPoint)
+        return;
+
+    m_absPoint = absPoint;
+    emit absPointChanged(m_absPoint);
+}
+
+QVector<Link*> Port::connectedLinks()
+{
+    return m_connectedLinks;
+}
+
+void Port::appendConnectedLink(Link *cLink)
+{
+    if(!m_connectedLinks.contains(cLink)){
+        m_connectedLinks.append(cLink);
+    }
+}
+
+void Port::removeConnectedLink(Link *cLink)
+{
+    if(m_connectedLinks.contains(cLink)){
+        m_connectedLinks.remove(m_connectedLinks.indexOf(cLink));
+    }
+}
+
+void Port::removeAllLinks()
+{
+    m_connectedLinks.clear();
+
 }
