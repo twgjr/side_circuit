@@ -63,12 +63,12 @@ Port *DiagramItem::portAt(int portIndex)
     return m_ports[portIndex];
 }
 
-void DiagramItem::addPort(int side, int position){
+void DiagramItem::addPort(QPointF center)
+{
     Port * newPort = new Port(this);
-    //DiagramItem * thisItem = static_cast<DiagramItem*>(this);
     newPort->setItemParent(this);
-    newPort->setSide(side);
-    newPort->setPosition(position);
+    newPort->setAbsPoint(center);
+    qDebug()<<newPort->absPoint();
     emit beginInsertPort(m_ports.count());
     m_ports.append(newPort);
     emit endInsertPort();

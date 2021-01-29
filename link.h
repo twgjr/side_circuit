@@ -23,8 +23,6 @@ public:
     void removeLastPoint();
     QPointF lastPoint() const;
     void setLastPoint(QPointF point);
-    void appendPoint(QPointF newPoint);
-
 
     void setEndPort(Port * endPort);
     void disconnectEndPort();
@@ -43,8 +41,8 @@ signals:
 private:
     Port * m_start;
     Port * m_end;
-    QVector<QPointF> m_points;  // absolute position within diagram mouse area
     bool m_portConnected;
+    QPointF m_lastPoint;
 };
 
 #endif // LINK_H

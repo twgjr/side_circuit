@@ -15,20 +15,15 @@ class Port : public QObject
 
 public:
     Q_PROPERTY(Port* thisPort READ thisPort)
-    Q_PROPERTY(int side READ side WRITE setSide)
-    Q_PROPERTY(int position READ position WRITE setPosition)
-    Q_PROPERTY(QString name READ name WRITE setName)
+    Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(QPointF absPoint READ absPoint WRITE setAbsPoint NOTIFY absPointChanged)
+    Q_PROPERTY(bool linkIsValid READ linkIsValid WRITE setLinkIsValid NOTIFY linkIsValidChanged)
 
     explicit Port(QObject *parent = nullptr);
     ~Port();
 
     // this port
     void setItemParent(DiagramItem * blockParent);
-    int side() const;
-    void setSide(int side);
-    int position() const;
-    void setPosition(int position);
     QString name() const;
     void setName(QString name);
 
@@ -51,6 +46,20 @@ public:
     void removeConnectedLink(Link* cLink);
     void removeAllLinks();
 
+    bool linkIsValid() const
+    {
+        return m_linkIsValid;
+    }
+
+    void setLinkIsValid(bool connectionIsValid)
+    {
+        if (m_linkIsValid == connectionIsValid)
+            return;
+
+        m_linkIsValid = connectionIsValid;
+        emit linkIsValidChanged(m_linkIsValid);
+    }
+
 signals:
     void beginResetPort();
     void endResetPort();
@@ -60,16 +69,17 @@ signals:
     void endRemoveLink();
 
     void absPointChanged(QPointF absPoint);
+    void linkIsValidChanged(bool connectionIsValid);
+    void nameChanged(QString name);
 
 private:
     DiagramItem * m_itemParent;
     QVector<Link*> m_links;
     QVector<Link*> m_connectedLinks;
 
-    int m_side;
-    int m_position;
     QString m_name;
     QPointF m_absPoint;
+    bool m_linkIsValid;
 };
 
 #endif // PORT_H

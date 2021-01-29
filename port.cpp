@@ -2,9 +2,11 @@
 
 Port::Port(QObject *parent) : QObject(parent),
     m_itemParent(nullptr),
-    m_side(0),
-    m_position(0),
-    m_name("label")
+//    m_side(0),
+//    m_position(0),
+    m_name("label"),
+    m_absPoint(0,0),
+    m_linkIsValid(false)
 {
     qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 }
@@ -18,26 +20,6 @@ Port::~Port()
 void Port::setItemParent(DiagramItem *itemParent)
 {
     m_itemParent = itemParent;
-}
-
-void Port::setSide(int side)
-{
-    m_side = side;
-}
-
-void Port::setPosition(int position)
-{
-    m_position = position;
-}
-
-int Port::side() const
-{
-    return m_side;
-}
-
-int Port::position() const
-{
-    return m_position;
 }
 
 QString Port::name() const
@@ -129,5 +111,4 @@ void Port::removeConnectedLink(Link *cLink)
 void Port::removeAllLinks()
 {
     m_connectedLinks.clear();
-
 }

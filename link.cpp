@@ -3,7 +3,8 @@
 Link::Link(QObject *parent) : QObject(parent),
     m_start(nullptr),
     m_end(nullptr),
-    m_portConnected(false)
+    m_portConnected(false),
+    m_lastPoint(0,0)
 {
     //qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 }
@@ -14,41 +15,18 @@ Link::~Link()
     disconnectEndPort();
 }
 
-void Link::removePoint(int index)
-{
-    if(!m_points.isEmpty()){
-        m_points.remove(index);
-    }
-}
-
-void Link::removeLastPoint()
-{
-    removePoint(m_points.size()-1);
-}
-
 QPointF Link::lastPoint() const
 {
-    if(!m_points.isEmpty()){
-        return m_points[m_points.size()-1];
-    }
-    return QPointF();
+    qDebug()<<m_lastPoint;
+    return m_lastPoint;
 }
 
 void Link::setLastPoint(QPointF point)
 {
-    if(!m_points.isEmpty()){
-        m_points[m_points.size()-1]=point;
+    if(m_lastPoint != point){
+        m_lastPoint = point;
+        emit lastPointChanged(point);
     }
-    emit lastPointChanged(point);
-}
-
-void Link::appendPoint(QPointF newPoint)
-{
-    if (lastPoint() == newPoint)
-        return;
-
-    m_points.append(newPoint);
-    emit lastPointChanged(newPoint);
 }
 
 void Link::setEndPort(Port *endPort)

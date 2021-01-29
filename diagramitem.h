@@ -50,7 +50,7 @@ public:
 
     // Ports
     Port * portAt( int portIndex );
-    void addPort(int side, int position);
+    void addPort(QPointF center);
     void removePort(int portIndex);
     int portCount();
 

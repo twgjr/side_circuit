@@ -127,10 +127,15 @@ int DataSource::distanceFromRoot() const
     return count;
 }
 
-void DataSource::addPort(int index, int side, int position)
+void DataSource::addPort(int index, QPointF center)
 {
-    m_proxyRoot->childItemAt(index)->addPort(side,position);
+    m_proxyRoot->childItemAt(index)->addPort(center);
 }
+
+//void DataSource::addPort(int index, int side, int position)
+//{
+//    m_proxyRoot->childItemAt(index)->addPort(side,position);
+//}
 
 void DataSource::deletePort(int index, int portIndex)
 {
@@ -180,7 +185,9 @@ void DataSource::disconnectPortfromLink(Link *thisLink)
 
 void DataSource::resetLinkstoPort(Port *thisPort)
 {
-    thisPort->resetLinkModel();
+    if(thisPort->linkCount() > 0){
+        thisPort->resetLinkModel();
+    }
 }
 
 void DataSource::resetConnectedLinkstoPort(Port *thisPort)

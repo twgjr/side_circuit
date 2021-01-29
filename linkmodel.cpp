@@ -66,7 +66,7 @@ bool LinkModel::setData(const QModelIndex &index, const QVariant &value, int rol
     switch (role) {
     case LastPointRole:
         if(item->lastPoint() != value.toPoint()){
-            item->appendPoint(value.toPoint());
+            item->setLastPoint(value.toPoint());
             somethingChanged = true;
         }
         break;

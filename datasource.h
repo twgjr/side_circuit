@@ -39,7 +39,8 @@ public:
     Q_INVOKABLE void printBlock(int blockIndex);
     Q_INVOKABLE int distanceFromRoot() const;
 
-    Q_INVOKABLE void addPort( int index, int side, int position );
+    //Q_INVOKABLE void addPort( int index, int side, int position );
+    Q_INVOKABLE void addPort( int index, QPointF center );
     Q_INVOKABLE void deletePort( int index, int portIndex );
 
     Q_INVOKABLE void startLink( int index, int portIndex );

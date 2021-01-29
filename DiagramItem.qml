@@ -137,37 +137,10 @@ Rectangle{
             MenuItem {
                 text: "Add Port"
                 onTriggered: {
-                    //find position of port with lines crossing in an x
-                    var posX = itemMouseAreaId.mouseX
-                    var posY = itemMouseAreaId.mouseY
-                    var dy = itemMouseAreaId.height
-                    var dx = itemMouseAreaId.width
-                    var xLineDown = dy/dx*posX
-                    var xLineUp = dy-dy/dx*posX
-
-                    var position = Math.min(itemRectId.width,itemRectId.height)/2
-                    var side = 0
-                    // top
-                    if(posY<=xLineDown && posY<=xLineUp){
-                        side = 0
-                        position = posX
-                    }
-                    // bottom
-                    if (posY>xLineDown && posY>xLineUp){
-                        side = 1
-                        position = posX
-                    }
-                    // left
-                    if (posY>xLineDown && posY<xLineUp){
-                        side = 2
-                        position = posY
-                    }
-                    // right
-                    if (posY<xLineDown && posY>xLineUp){
-                        side = 3
-                        position = posY
-                    }
-                    dataSource.addPort(model.index,side,position)
+                    var portXPos = itemRectId.x + itemMouseAreaId.mouseX
+                    var portYPos = itemRectId.y + itemMouseAreaId.mouseY
+                    var portAbsPos = Qt.point(portXPos,portYPos)
+                    dataSource.addPort(model.index,portAbsPos)
                 }
             }//MenuItem
             MenuItem {

@@ -31,9 +31,50 @@ Item{
     Rectangle{
         id: endRect
 
-        property var endRectPoint: model.lastPoint
-        property real endRectX: endRectPoint.x
-        property real endRectY: endRectPoint.y
+        property var endPortCenter: model.lastPoint
+        property real endPortCenterX: endPortCenter.x
+        property real endPortCenterY: endPortCenter.y
+        property real baseX: endPortCenterX-itemRectId.x-portId.x-portId.radius
+        property real baseY: endPortCenterY-itemRectId.y-portId.y-portId.radius
+        property real deltaX: 0
+        property real deltaY: 0
+        property real correctedX: baseX+deltaX
+        property real correctedY: baseY+deltaY
+
+        Connections{
+            target: portId
+            function onPortAbsPositionChanged() {
+                endRect.updateLinkPosition()
+                endRect.x= endRect.correctedX
+                endRect.y= endRect.correctedY
+            }
+        }
+
+        function updateLinkPosition(){
+            console.log("endPortCenter: "+endRect.endPortCenter)
+            var itemAngle = itemRectId.rotation/180*Math.PI
+            var itemCenter = [itemRectId.width/2,
+                             itemRectId.height/2]
+            var endPortCenter = [
+                        endPortCenterX-itemRectId.x-itemCenter[0],
+                        endPortCenterY-itemRectId.y-itemCenter[1]]
+            var endPortDist = Math.sqrt(
+                        Math.pow(Math.abs(endPortCenter[0]),2)+
+                        Math.pow(Math.abs(endPortCenter[1]),2))
+            var endPortBaseAngle = Math.atan2(
+                        endPortCenter[0],
+                        -endPortCenter[1])
+            var endPortRotatedCenter = [
+                        endPortDist*Math.sin(endPortBaseAngle-itemAngle),
+                        -endPortDist*Math.cos(endPortBaseAngle-itemAngle)]
+            var endPortRotatedBase = [
+                        endPortRotatedCenter[0]+portId.x,
+                        endPortRotatedCenter[1]+portId.y]
+            var startPortCenter = [portId.x+portId.width/2,
+                    portId.y+portId.height/2]
+            endRect.deltaX = endPortRotatedCenter[0]-endPortCenter[0]
+            endRect.deltaY = endPortRotatedCenter[1]-endPortCenter[1]
+        }
 
         width: 10
         height: width
@@ -52,8 +93,8 @@ Item{
                 PropertyChanges {
                     target: linkMouseArea
                     drag.target: undefined
-                    x: endRect.endRectX-itemRectId.x-portId.x
-                    y: endRect.endRectY-itemRectId.y-portId.y
+                    x: endRect.correctedX
+                    y: endRect.correctedY
                 }
                 PropertyChanges {
                     target: shapeRootPath
@@ -65,8 +106,9 @@ Item{
 
         Component.onCompleted:{
             if(model.portConnected){
-                x = endRectX-itemRectId.x-portId.x
-                y = endRectY-itemRectId.y-portId.y
+                endRect.updateLinkPosition()
+                endRect.x= endRect.correctedX
+                endRect.y= endRect.correctedY
             } else {
                 var extraX = 0
                 var extraY = 0
@@ -91,11 +133,11 @@ Item{
             drag.smoothed: false
 
             onPositionChanged: {
-                if(!model.portConnected){
-                    var linkAbsX = itemRectId.x+portId.x+endRect.x
-                    var linkAbsY = itemRectId.y+portId.y+endRect.y
-                    model.lastPoint = Qt.point(linkAbsX,linkAbsY)
-                }
+//                if(!model.portConnected){
+//                    var linkAbsX = endRect.baseX
+//                    var linkAbsY = endRect.baseY
+//                    model.lastPoint = Qt.point(linkAbsX,linkAbsY)
+//                }
             }
 
             onReleased: {

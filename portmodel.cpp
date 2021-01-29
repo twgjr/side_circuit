@@ -10,6 +10,7 @@ PortModel::PortModel(QObject *parent): QAbstractItemModel(parent),
     m_roles[PositionRole]="position";
     m_roles[NameRole]="name";
     m_roles[AbsPointRole]="absPoint";
+    m_roles[LinkIsValidRole]="linkIsValid";
 
     //qDebug()<<"Created: "<<this<<" with Qparent: "<<parent;
 }
@@ -68,21 +69,15 @@ bool PortModel::setData(const QModelIndex &index, const QVariant &value, int rol
 
     Port * item = m_parentItem->portAt(index.row());
     switch (role) {
-    case SideRole:
-        if(item->side() != value.toInt()){
-            item->setSide(value.toInt());
-            somethingChanged = true;
-        }
-        break;
-    case PositionRole:
-        if(item->position() != value.toInt()){
-            item->setPosition(value.toInt());
-            somethingChanged = true;
-        }
-        break;
     case AbsPointRole:
         if(item->absPoint() != value.toPoint()){
             item->setAbsPoint(value.toPoint());
+            somethingChanged = true;
+        }
+        break;
+    case LinkIsValidRole:
+        if(item->linkIsValid() != value.toBool()){
+            item->setLinkIsValid(value.toBool());
             somethingChanged = true;
         }
         break;

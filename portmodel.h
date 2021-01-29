@@ -17,7 +17,8 @@ public:
         SideRole,
         NameRole,
         PositionRole,
-        AbsPointRole
+        AbsPointRole,
+        LinkIsValidRole
     };
 
     explicit PortModel(QObject *parent = nullptr);
