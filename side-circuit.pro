@@ -1,6 +1,6 @@
 QT += quick
 
-CONFIG += c++11
+CONFIG += c++17
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -38,14 +38,6 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-win32: LIBS += -L$$PWD/../libbuilds/z3/z3-4.8.9-x64-win/bin/ -llibz3
-
-INCLUDEPATH += $$PWD/../libbuilds/z3/z3-4.8.9-x64-win/include
-DEPENDPATH += $$PWD/../libbuilds/z3/z3-4.8.9-x64-win/include
-
-win32:!win32-g++: PRE_TARGETDEPS += $$PWD/../libbuilds/z3/z3-4.8.9-x64-win/bin/libz3.lib
-else:win32-g++: PRE_TARGETDEPS += $$PWD/../libbuilds/z3/z3-4.8.9-x64-win/bin/liblibz3.a
-
 HEADERS += \
     appenums.h \
     datasource.h \
@@ -64,4 +56,9 @@ HEADERS += \
     result.h \
     resultmodel.h
 
-DISTFILES +=
+win32: LIBS += -L$$PWD/../z3/z3-4.8.10-x64-win/bin/ -llibz3
+
+INCLUDEPATH += $$PWD/../z3/z3-4.8.10-x64-win/include
+DEPENDPATH += $$PWD/../z3/z3-4.8.10-x64-win/include
+
+win32:!win32-g++: PRE_TARGETDEPS += $$PWD/../z3/z3-4.8.10-x64-win/bin/libz3.lib
