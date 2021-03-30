@@ -20,7 +20,6 @@ SOURCES += \
         main.cpp \
         port.cpp \
         portmodel.cpp \
-        regexlist.cpp \
         result.cpp \
         resultmodel.cpp
 
@@ -52,7 +51,6 @@ HEADERS += \
     linkmodel.h \
     port.h \
     portmodel.h \
-    regexlist.h \
     result.h \
     resultmodel.h
 

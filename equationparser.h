@@ -3,14 +3,25 @@
 
 #include <QObject>
 #include <QDebug>
-#include "regexlist.h"
 #include "expressionitem.h"
 #include "z3++.h"
+#include <QRegularExpression>
 
 class EquationParser : public QObject
 {
     Q_OBJECT
 public:
+
+    //This enum controls the mathematical order of evaluation
+    //for all parsing
+    enum OrderOfOperations {
+        Parenthesis,
+        Equals,LTOE,GTOE,LessThan,GreaterThan,NotEquals,
+        //Exponent,Logarithm,Sine,ASine,Cos,ACos,Tan,ATan,
+        Power,Multiply,Divide,Add,Subtract,
+        Variable,Constant
+    };
+
     explicit EquationParser(z3::context * context, QObject *parent = nullptr);
 
     void parseEquation(QString equationString);//pre and post recursion processing
@@ -43,12 +54,14 @@ public:
     QString concatGraph(ExpressionItem * expressionItem);
     z3::expr getZeroExpression(ExpressionItem * parentNode);
 
+    void initRegExList();
 
 private:
     ExpressionItem * m_expressionGraph;  //points to the root of the abstract syntax tree
-    RegExList m_regExList;
     z3::context * m_context;
     z3::expr m_z3Expr;
+    QMap<int,QString> m_formats;
+    QVector<QString> m_regExList;
 };
 
 #endif // EQUATIONPARSER_H

@@ -2,7 +2,6 @@
 #define EXPRESSIONITEM_H
 
 #include <QObject>
-#include "regexlist.h"
 #include "z3++.h"
 
 class ExpressionItem : public QObject

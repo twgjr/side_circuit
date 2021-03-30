@@ -5,6 +5,7 @@ EquationParser::EquationParser(z3::context * context, QObject *parent) : QObject
     m_z3Expr(*context)
 {
     m_expressionGraph = new ExpressionItem(this);
+    initRegExList();
 }
 
 void EquationParser::parseEquation(QString equationString)
@@ -26,8 +27,8 @@ bool EquationParser::assembleSyntaxTree(QString equationString,
                                         int depth,
                                         ExpressionItem * parentNode)
 {
-    for(int index = 1; index < m_regExList.formats().size() ; index++){
-        QRegularExpression regex(m_regExList.formats()[index].regExStr);
+    for(int index = 0; index < m_regExList.size() ; index++){
+        QRegularExpression regex(m_regExList[index]);
         QRegularExpressionMatch match = regex.match(equationString);
         if(match.hasMatch()){
             QString matchString = match.captured(0);
@@ -38,7 +39,7 @@ bool EquationParser::assembleSyntaxTree(QString equationString,
             //no-match case 0 is skipped, checked in parseEquation() after complete parsing
             switch (index) {
 
-            case 1:{// Parenthesis
+            case Parenthesis:{// Parenthesis
                 if((length)!=equationString.length()){
                     break;
                 } else {
@@ -46,55 +47,55 @@ bool EquationParser::assembleSyntaxTree(QString equationString,
                     return true;
                 }
             }
-            case 2:{// Equals
+            case Equals:{
                 makeNodeBranchOut(equationString,matchString,start,end,depth,index,parentNode);
                 return true;
             }
-            case 3:{// Less than or Equals
+            case LTOE:{
                 makeNodeBranchOut(equationString,matchString,start,end,depth,index,parentNode);
                 return true;
             }
-            case 4:{// Greater than or Equals
+            case GTOE:{
                 makeNodeBranchOut(equationString,matchString,start,end,depth,index,parentNode);
                 return true;
             }
-            case 5:{// Less than
+            case LessThan:{
                 makeNodeBranchOut(equationString,matchString,start,end,depth,index,parentNode);
                 return true;
             }
-            case 6:{ // Greater than
+            case GreaterThan:{
                 makeNodeBranchOut(equationString,matchString,start,end,depth,index,parentNode);
                 return true;
             }
-            case 7:{ // Not Equal To
+            case NotEquals:{
                 makeNodeBranchOut(equationString,matchString,start,end,depth,index,parentNode);
                 return true;
             }
-            case 8:{ // Power
+            case Power:{
                 makeNodeBranchOut(equationString,matchString,start,end,depth,index,parentNode);
                 return true;
             }
-            case 9:{// Multiply
+            case Multiply:{
                 makeNodeBranchOut(equationString,matchString,start,end,depth,index,parentNode);
                 return true;
             }
-            case 10:{// Divide
+            case Divide:{
                 makeNodeBranchOut(equationString,matchString,start,end,depth,index,parentNode);
                 return true;
             }
-            case 11:{// Add
+            case Add:{
                 makeNodeBranchOut(equationString,matchString,start,end,depth,index,parentNode);
                 return true;
             }
-            case 12:{ // Subtract
+            case Subtract:{
                 makeNodeBranchOut(equationString,matchString,start,end,depth,index,parentNode);
                 return true;
             }
-            case 13:{// Variable
+            case Variable:{
                 makeLeaf(matchString,index,parentNode);
                 return true;
             }
-            case 14:{// Constant
+            case Constant:{
                 makeLeaf(matchString,index,parentNode);
                 return true;
             }
@@ -162,84 +163,83 @@ bool EquationParser::makeNodeBranchIn(QString equationString,
 z3::expr EquationParser::traverseSyntaxTree(ExpressionItem *parentNode)
 {
     z3::expr exprBuffer(*m_context);
-    //no-match case 0 is skipped, checked in parseEquation() after complete parsing
+
     switch (parentNode->m_exprId) {
 
-    case 1:{// Parenthesis
+    case Parenthesis:{
         exprBuffer = ( traverseSyntaxTree(parentNode->m_children[0]) );
         break;
     }
-    case 2:{// Equals
+    case Equals:{
         exprBuffer =    traverseSyntaxTree(parentNode->m_children[0])
                         ==
                         traverseSyntaxTree(parentNode->m_children[1]);
         break;
     }
-    case 3:{// Less than or Equals
+    case LTOE:{
         exprBuffer =    traverseSyntaxTree(parentNode->m_children[0])
                         <=
                         traverseSyntaxTree(parentNode->m_children[1]);
         break;
     }
-    case 4:{// Greater than or Equals
+    case GTOE:{
         exprBuffer =    traverseSyntaxTree(parentNode->m_children[0])
                         >=
                         traverseSyntaxTree(parentNode->m_children[1]);
         break;
     }
-    case 5:{// Less than
+    case LessThan:{
         exprBuffer =    traverseSyntaxTree(parentNode->m_children[0])
                         <
                         traverseSyntaxTree(parentNode->m_children[1]);
         break;
     }
-    case 6:{ // Greater than
+    case GreaterThan:{
         exprBuffer =    traverseSyntaxTree(parentNode->m_children[0])
                         >
                         traverseSyntaxTree(parentNode->m_children[1]);
         break;
     }
-    case 7:{ // Not Equal To
+    case NotEquals:{
         exprBuffer =    traverseSyntaxTree(parentNode->m_children[0])
                         !=
                         traverseSyntaxTree(parentNode->m_children[1]);
         break;
     }
-    case 8:{ // Power
-        exprBuffer =    traverseSyntaxTree(parentNode->m_children[0])
-                        ^
-                        traverseSyntaxTree(parentNode->m_children[1]);
+    case Power:{
+        exprBuffer =    z3::pw(traverseSyntaxTree(parentNode->m_children[0]),
+                        traverseSyntaxTree(parentNode->m_children[1]));
         break;
     }
-    case 9:{// Multiply
+    case Multiply:{
         exprBuffer =    traverseSyntaxTree(parentNode->m_children[0])
                         *
                         traverseSyntaxTree(parentNode->m_children[1]);
         break;
     }
-    case 10:{// Divide
+    case Divide:{
         exprBuffer =    traverseSyntaxTree(parentNode->m_children[0])
                         /
                         traverseSyntaxTree(parentNode->m_children[1]);
         break;
     }
-    case 11:{// Add
+    case Add:{
         exprBuffer =    traverseSyntaxTree(parentNode->m_children[0])
                         +
                         traverseSyntaxTree(parentNode->m_children[1]);
         break;
     }
-    case 12:{ // Subtract
+    case Subtract:{
         exprBuffer =    traverseSyntaxTree(parentNode->m_children[0])
                         -
                         traverseSyntaxTree(parentNode->m_children[1]);
         break;
     }
-    case 13:{// Variable (a z3 constant)
+    case Variable:{
         exprBuffer = m_context->real_const(parentNode->m_string.toUtf8());
         break;
     }
-    case 14:{// Constant (a z3 value)
+    case Constant:{
         std::string str = parentNode->m_string.toStdString();
         const char * value = str.c_str();
         exprBuffer = m_context->real_val(value);
@@ -275,4 +275,26 @@ QString EquationParser::concatGraph(ExpressionItem *expressionItem){
         string += concatGraph(expressionItem->m_children[1]);
     }
     return string;
+}
+
+void EquationParser::initRegExList()
+{
+    m_formats[Parenthesis]="\\(([^)]+)\\)";
+    m_formats[Equals]="\\==";
+    m_formats[LTOE]="\\<=";
+    m_formats[GTOE]="\\>=";
+    m_formats[LessThan]="\\<";
+    m_formats[GreaterThan]="\\>";
+    m_formats[NotEquals]="\\!=";
+    m_formats[Power]="\\^";
+    m_formats[Multiply]="\\*";
+    m_formats[Divide]="\\/";
+    m_formats[Add]="\\+";
+    m_formats[Subtract]="\\-";
+    m_formats[Variable]="((?=[^\\d])\\w+)"; // variable alphanumeric, not numberic alone
+    m_formats[Constant]="^[+-]?((\\d+(\\.\\d+)?)|(\\.\\d+))$";
+
+    for(int i = 0; i < m_formats.size() ; i++){
+        m_regExList.append(m_formats[i]);
+    }
 }
