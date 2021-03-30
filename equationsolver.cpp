@@ -71,34 +71,28 @@ void EquationSolver::printModel()
         QString name = QString::fromStdString(m_solverModel[i].name().str());
         qDebug()<<"Variable"<<name<<"at"<<i;
         qDebug()<<"    is const?: "<<m_solverModel[i].is_const();
-        qDebug()<<"    is const?: "<<m_solverModel[i].is_const();
         if(m_solverModel[i].is_const()){
             z3::func_decl fdecl = m_solverModel.get_const_decl(i);
             qDebug()<<"    get const declaration: "<<QString::fromStdString(fdecl.to_string());
             qDebug()<<"    get const value (interp): "<<QString::fromStdString(m_solverModel.get_const_interp(fdecl).to_string());
         }
-
-        if(m_solverModel[i].is_const()){
-            z3::func_decl fdecl = m_solverModel.get_const_decl(i);
-            qDebug()<<"    get const declaration: "<<QString::fromStdString(fdecl.to_string());
-            qDebug()<<"    get const value (interp): "<<QString::fromStdString(m_solverModel.get_const_interp(fdecl).to_string());
-        }
-        //qDebug()<<"    sort: "<<QString::fromStdString(m_solverModel[i].range().to_string()); // sort of the variable
     }
 }
 
 void EquationSolver::updateResults(DiagramItem *rootItem)
 {
     rootItem->clearResults();
-
     for (unsigned i = 0; i < m_solverModel.size(); i++) {
         QString name = QString::fromStdString(m_solverModel[i].name().str());
         if(m_solverModel[i].is_const()){
             z3::func_decl fdecl = m_solverModel.get_const_decl(i);
-            double result = 0.0;
-            //if(m_solverModel.get_const_interp(fdecl).is_real()){
-                result = m_solverModel.get_const_interp(fdecl);
-            //}
+            QString resultString = QString::fromStdString(m_solverModel.get_const_interp(fdecl).get_decimal_string(3));
+            bool doubleIsOK = false;
+            double result = resultString.toDouble(&doubleIsOK);
+            if(!doubleIsOK){
+                qDebug()<<"Error converting result to double";
+            }
+
             rootItem->addResult(name,result);
         }
     }

@@ -3,8 +3,8 @@
 ResultModel::ResultModel(QObject *parent) : QAbstractItemModel(parent),
     m_signalConnected(false)
 {
-    m_roles[VarRole]="varString";
-    m_roles[ValRole]="valNum";
+    m_roles[VarNameRole]="varName";
+    m_roles[VarNumRole]="varVal";
 }
 
 QModelIndex ResultModel::index(int row, int column, const QModelIndex &parent) const
@@ -60,14 +60,14 @@ bool ResultModel::setData(const QModelIndex &index, const QVariant &value, int r
 
     Result * item = m_dataSource->proxyRoot()->resultAt(index.row());
     switch (role) {
-    case ValRole:
-        if(item->valNum() != value.toDouble()){
-            item->setValNum(value.toDouble());
+    case VarNumRole:
+        if(item->varVal() != value.toDouble()){
+            item->setVarVal(value.toDouble());
         }
         break;
-    case VarRole:
-        if(item->varString() != value.toString()){
-            item->setVarString(value.toString());
+    case VarNameRole:
+        if(item->varName() != value.toString()){
+            item->setVarName(value.toString());
         }
         break;
     }

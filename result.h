@@ -3,30 +3,29 @@
 
 #include <QObject>
 #include "equationsolver.h"
+#include <QDebug>
 
 class Result : public QObject
 {
     Q_OBJECT
 public:
-    //Q_PROPERTY(QString resultString READ resultString)
-    Q_PROPERTY(double valNum READ valNum)
-    Q_PROPERTY(QString varString READ varString)
+    Q_PROPERTY(QString varName READ varName)
+    Q_PROPERTY(double varVal READ varVal)
 
     explicit Result(z3::context * context, QObject *parent = nullptr);
 
-    QString varString() const;
+    QString varName() const;
 
-    void setVarString(const QString &varString);
+    void setVarName(const QString &varName);
 
-    double valNum() const;
+    double varVal() const;
 
-    void setValNum(double valNum);
+    void setVarVal(double varVal);
 
-signals:
 private:
     z3::context * m_equationContext;
-    QString m_varString;
-    double m_valNum;
+    QString m_varName;
+    double m_varVal;
 };
 
 #endif // RESULT_H

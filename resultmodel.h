@@ -11,8 +11,8 @@ class ResultModel : public QAbstractItemModel
 public:
     Q_PROPERTY(DataSource* dataSource READ dataSource WRITE setDataSource NOTIFY dataSourceChanged)
     enum EquationRoles{
-        ValRole = Qt::UserRole + 1,
-        VarRole
+        VarNumRole = Qt::UserRole + 1,
+        VarNameRole
     };
 
     explicit ResultModel(QObject *parent = nullptr);

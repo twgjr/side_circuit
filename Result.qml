@@ -14,12 +14,10 @@ Rectangle {
     radius: 1
     height: 25
     anchors.left: parent.left
-    //anchors.leftMargin: 5
     anchors.right: parent.right
-    //anchors.rightMargin: 5
 
-    property string varString: model.varString
-    property double valNum: model.valNum
+    property string varName: model.varName
+    property double varVal: model.varVal
 
     MouseArea{
         id:resultMouseArea
@@ -51,14 +49,14 @@ Rectangle {
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             Layout.preferredWidth: parent.width/2
-            text: varString
+            text: varName
         }
         Text{
             id: resultDisplayText
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             Layout.preferredWidth: parent.width/2
-            text: valNum
+            text: varVal
         }
     }
 }

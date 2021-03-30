@@ -125,8 +125,8 @@ Result *DiagramItem::resultAt(int index)
 void DiagramItem::addResult(QString variable, double result)
 {
     Result * newResult = new Result(m_context,this);
-    newResult->setVarString(variable);
-    newResult->setValNum(result);
+    newResult->setVarName(variable);
+    newResult->setVarVal(result);
     m_results.append(newResult);
 }
 

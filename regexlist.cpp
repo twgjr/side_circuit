@@ -37,7 +37,8 @@ void RegExList::initRegExList()
     // 13
     m_formats.append(setRegExpr("Variable","((?=[^\\d])\\w+)")); // variable alphanumeric, not numberic alone
     // 14
-    m_formats.append(setRegExpr("Constant","\\d+"));   // just numeric
+    //m_formats.append(setRegExpr("Constant","\\d+"));   // just numeric (decimal and
+    m_formats.append(setRegExpr("Constant","^[+-]?((\\d+(\\.\\d+)?)|(\\.\\d+))$"));
 }
 
 RegExList::RegExpr RegExList::setRegExpr(QString exprCase, QString regExStr)

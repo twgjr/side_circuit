@@ -11,7 +11,7 @@ Window {
     visible: true
     width: 1280
     height: 720
-    title: qsTr("Diagram Solver")
+    title: qsTr("Side Circuit")
     visibility: "Maximized"
 
     DataSource{ id: dataSource }

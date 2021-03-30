@@ -2,28 +2,32 @@
 
 Result::Result(z3::context * context, QObject *parent) : QObject(parent),
     m_equationContext(context),
-    m_varString(""),
-    m_valNum(0)
+    m_varName(""),
+    m_varVal(0)
 {
 
 }
 
-double Result::valNum() const
+double Result::varVal() const
 {
-    return m_valNum;
+    qDebug()<<"varVal read is "<<m_varVal;
+    return m_varVal;
 }
 
-void Result::setValNum(double valNum)
+void Result::setVarVal(double valNum)
 {
-    m_valNum = valNum;
+    m_varVal = valNum;
+    qDebug()<<"varVal write is "<<m_varVal;
 }
 
-QString Result::varString() const
+QString Result::varName() const
 {
-    return m_varString;
+    qDebug()<<"varName read is "<<m_varName;
+    return m_varName;
 }
 
-void Result::setVarString(const QString &varString)
+void Result::setVarName(const QString &varString)
 {
-    m_varString = varString;
+    m_varName = varString;
+    qDebug()<<"varName write is "<<m_varName;
 }
