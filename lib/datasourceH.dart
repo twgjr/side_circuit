@@ -1,28 +1,13 @@
-#ifndef DATASOURCE_H
-#define DATASOURCE_H
+import 'diagramitemH.dart';
+import 'equationsolverH.dart';
 
-#include <QObject>
-#include <QDebug>
-#include <QFile>
-#include <QUrl>
-#include <QJsonDocument>
-#include <QJsonArray>
-#include <QJsonObject>
-#include "diagramitem.h"
-#include "equationsolver.h"
-
-class DiagramItem;
-class Link;
-
-class DataSource : public QObject
+class DataSource
 {
-    Q_OBJECT
-public:
-    explicit DataSource(QObject *parent = nullptr);
+    DataSource(var parent);
     ~DataSource();
 
     DiagramItem * proxyRoot();
-    Q_INVOKABLE DiagramItem * proxyChild(int blockIndex);
+    Q_INVOKABLE DiagramItem * proxyChild(var blockIndex);  //Q_INVOKABLE
     Q_INVOKABLE Port * proxyPort(int blockIndex, int portIndex);
 
     void newProxyRoot(DiagramItem *newProxyRoot);
@@ -87,6 +72,4 @@ private:
     DiagramItem * m_proxyRoot;
     Port* m_pendingConnectPort;
     Link* m_pendingConnectLink;
-};
-
-#endif // DATASOURCE_H
+}

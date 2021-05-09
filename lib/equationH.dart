@@ -1,10 +1,5 @@
-#ifndef EQUATION_H
-#define EQUATION_H
-
-#include <QObject>
-#include "z3++.h"
-#include <QDebug>
-#include "equationparser.h"
+//#include "z3++.h"
+import 'equationparserH.dart';
 
 class Equation : public QObject
 {

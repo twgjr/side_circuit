@@ -1,4 +1,4 @@
-#include "datasource.h"
+import 'datasourceH.dart';
 
 DataSource::DataSource(QObject *parent) : QObject(parent),
     m_pendingConnectPort(nullptr),
