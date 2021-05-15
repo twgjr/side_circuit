@@ -1,5 +1,5 @@
 //#include "z3++.h"
-import 'equationparserH.dart';
+import 'parser.dart';
 
 class Equation : public QObject
 {

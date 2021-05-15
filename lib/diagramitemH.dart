@@ -1,7 +1,7 @@
 //PROVIDES STRUCTURE OF INDIVIDUAL BLOCK ITEMS IN THE MODEL
 
 //#include "z3++.h"
-//import 'equationparserH.dart';
+//import 'parser.dart';
 import 'equationH.dart';
 import 'portH.dart';
 import 'resultH.dart';
