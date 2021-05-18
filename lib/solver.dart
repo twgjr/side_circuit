@@ -36,14 +36,7 @@ class Order {
 // During differential solve, there will be a new list of variables for each
 class Model {
   Order order = Order();
-  List<
-      Expression> expressionList; // single list of Expression roots for the Model
-
-  // points directly to all the variables in the model
-  // 0 level is base, additional levels for the differentials
-  // differential solutions are collected into the base after sat solve
-  // then diff solutions are cleared.
-  List<List<Expression>> variableList;
+  List<Expression> expressionList; // single list of Expression roots for the Model
 
   int solve() {
     bool decided = false;
@@ -52,8 +45,7 @@ class Model {
       switch (solverState) {
         case SolverState.Unknown:
           {
-            checkModel();
-            print("Solution is unknown.");
+            solverState = checkModel()?SolverState.Sat:SolverState.Unsat;
             break;
           }
         case SolverState.Sat:
@@ -73,30 +65,135 @@ class Model {
     return solverState.index;
   }
 
-  void checkModel(){
+  bool checkModel(){
+    bool modelIsSat = true;
+    /*
+    @TODO
+     set variable assignments with single level variable with constant and
+     continue until no further simplification can be made
+     set the range of possible values for remaining variables (-inf,+inf, or a finite range)
+     Use bisection to split solution ranges for variables and branch
+     heuristic to choose which expression to branch next is the simplest expression
+     with variables appearing in the most expressions. This heuristic simplifies the
+     complexity of the recursion the earliest and fastest.
+     implement SAT/UNSAT based on DPLL algorithm.
+    */
 
+
+    expressionList.forEach((exprRoot) {
+      if(!exprRoot.isSat){ //skip any that already found solution and are independent
+        modelIsSat &= checkBoolean(exprRoot,true);
+      }
+    });
+    //modelIsSat is false if any single root Expression is false;
+    return modelIsSat;
   }
 
-    void Parenthesis() {}
-    void Equals() {}
-    void Ltoe() {}
-    void Gtoe() {}
-    void LessThan() {}
-    void GreaterThan() {}
-    void NotEquals() {}
-    void Power() {}
-    void Multiply() {}
-    void Divide() {}
-    void Add() {}
-    void Subtract() {}
+  // initial pass through should remove unit literals, then pure literals,
+  // unit literal is a variable that has an exact assignment such as x=2 at the top level.
+  // pure literals are variables such that the range of values is set x<2 and x>0.
+  // The literals should be used to restrict the number of branches for the algorithm.
+  bool checkBoolean(Expression expr, bool isInitialGuess) {
+    switch (expr.type) {
+      case "Parenthesis":
+        checkBoolean(expr.children[0],false);
+        break;
+      case "Equals":
+        {
+          if (expr.children[0].value == expr.children[1].value) {
+            return true;
+          } else {
+            //change child and recurse child
+            if(expr.children[0].isSat){
+              expr.children[1].value = expr.children[0].value;
+              chooseChildValue(expr.children[1]);
+            } else if(expr.children[1].isSat){
+              expr.children[0].value = expr.children[1].value;
+              chooseChildValue(expr.children[0]);
+            }
+          }
+          break;
+        }
+      case "LTOE":
+        {
+          if (expr.children[0].value <= expr.children[1].value) {
+            return true;
+          } else if (expr.children[1].isSat) {
+            expr.children[0].value = expr.children[1].value;
+            chooseChildValue(expr.children[0]);
+          } else {
+            expr.children[1].value = expr.children[0].value;
+          }
+          break;
+        }
+      case "GTOE":
+        {
+          if (expr.children[0].value >= expr.children[1].value) {
+            return true;
+          } else if (expr.children[1].isSat) {
+            expr.children[0].value = expr.children[1].value;
+            chooseChildValue(expr.children[0]);
+          } else {
+            expr.children[1].value = expr.children[0].value;
+          }
+          break;
+        }
+      case "LessThan":
+        {
+          if (expr.children[0].value < expr.children[1].value) {
+            return true;
+          } else if (expr.children[1].isSat) {
+            expr.children[0].value = expr.children[1].value;
+            chooseChildValue(expr.children[0]);
+          } else {
+            expr.children[1].value = expr.children[0].value;
+          }
+          break;
+        }
+      case "GreaterThan":
+        {
+          if (expr.children[0].value > expr.children[1].value) {
+            return true;
+          } else if (expr.children[1].isSat) {
+            expr.children[0].value = expr.children[1].value;
+            chooseChildValue(expr.children[0]);
+          } else {
+            expr.children[1].value = expr.children[0].value;
+          }
+          break;
+        }
+      case "NotEquals":
+        {
+          if (expr.children[0].value != expr.children[1].value) {
+            return true;
+          } else {
+            chooseChildValue(expr.children[0]);
+            break;
+          }
+        }
+        return false;
+    }
+  }
+
+  bool chooseChildValue(Expression expr){
+    if(expr.children.length == 0){
+      return true;
+    }
+    switch(expr.type){
+      case "Multiply":{
+        chooseChildValue(expr.children[0]);
+        chooseChildValue(expr.children[1]);
+      }
+    }
+    return false; //unable to assign values to make expression SAT
+  }
 }
 
 // elements of the abstract syntax tree of a equation and it's sub-elements
 class Expression {
+  bool isSat=false;
   String varName;  // @TODO factory for variable name
   num value; // @TODO factory for constant value
-  Map<num,num> rangesToCheck;  //possible range of values that could be sat
-  List<num> satValues;  //range of values found to be sat
   String type; // as defined in Order.list
   Expression parent;
   List<Expression> children;
