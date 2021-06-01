@@ -1,34 +1,20 @@
-//#include "z3++.h"
-import 'parser.dart';
+import 'solver.dart';
 
-class Equation : public QObject
-{
-    Q_OBJECT
-public:
-    Q_PROPERTY(QString equationString READ equationString WRITE setEquationString NOTIFY equationStringChanged)
+class Equation {
 
-    explicit Equation(z3::context * context, QObject *parent = nullptr);
-    ~Equation();
+    String equationString;
+    Expression equationExpression;
 
-    //special functions
-    void printExprInfo();
-    z3::expr getEquationExpression();
-    void setEquationExpression(z3::expr equationExpression);
-    void eqStrToExpr();
+    void setEquationString( String value )
+    {
+        equationString = value;
+        eqStrToExpr();
+    }
 
-    // setters with qProperty
-    void setEquationString(QString value);
-
-    //getters with qProperty
-    QString equationString() const;
-
-signals:
-    void equationStringChanged(QString equationString);
-
-private:
-    z3::context * m_equationContext;
-    QString m_equationString;
-    z3::expr m_equationExpression;
-};
-
-#endif // EQUATION_H
+    void eqStrToExpr()
+    {
+        Parser equationParser = Parser();
+        equationParser.parseEquation(equationString);
+        equationExpression = equationParser.expressionGraph;
+    }
+}

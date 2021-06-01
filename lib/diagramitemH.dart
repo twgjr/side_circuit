@@ -1,24 +1,16 @@
-//PROVIDES STRUCTURE OF INDIVIDUAL BLOCK ITEMS IN THE MODEL
+import 'dart:math';
 
-//#include "z3++.h"
-//import 'parser.dart';
 import 'equationH.dart';
 import 'portH.dart';
 import 'resultH.dart';
-//import 'appenumsH.dart';
 
-class DiagramItem
-{
-    DiagramItem(int type, /*z3::context context,*/ DiagramItem parentItem);
-
+class DiagramItem {
     //data model pointers
-    DiagramItem  parentItem;
-    var items = [];  //QVector<DiagramItem>
-    var ports = []; //QVector<Port>
-    var equations = []; //QVector<Equation>
-    var results = [];  //QVector<Result>
-
-    //z3::context _m_context;
+    DiagramItem  parent;
+    List<DiagramItem> chidren;
+    List<Port> ports;
+    List<Equation> equations;
+    List<Result> results;
 
     //Data
     int xPosition;
@@ -26,14 +18,16 @@ class DiagramItem
     int type;
     int rotation;
 
+    DiagramItem(int type, DiagramItem parentItem);
+
     int indexOfItem(DiagramItem childBlock)
     {
-        return items.indexOf(childBlock);
+        return chidren.indexOf(childBlock);
     }
 
     int childItemNumber() {
-        if (parentItem!=null) {
-            return parentItem.items.indexOf(this);
+        if (parent!=null) {
+            return parent.chidren.indexOf(this);
         } else {
             return 0;
         }
@@ -41,34 +35,31 @@ class DiagramItem
 
     void addItemChild(int type, int x, int y)
     {
-        DiagramItem childItem = DiagramItem(type,/*m_context,*/this);
+        DiagramItem childItem = DiagramItem(type,this);
         childItem.xPosition=x;
         childItem.yPosition=y;
-        items.add(childItem);
+        chidren.add(childItem);
     }
 
-    void addPort(QPointF center)
+    void addPort(Point center)
     {
         Port  newPort = Port();
-        newPort->setItemParent(this);
-        newPort->setAbsPoint(center);
+        newPort.itemParent = this;
+        newPort.absPoint = center;
         ports.add(newPort);
     }
 
     void addEquation()
     {
-        Equation  newEquation = Equation(/*m_context,*/);
+        Equation  newEquation = Equation();
         equations.add(newEquation);
     }
 
-    //void setContext(z3::context context) {m_context = context;}
-    //z3::context context() const {return m_context;}
-
-    void addResult(String variable, double result)
+    void addResult(String name, num value)
     {
-        Result  newResult = Result(/*m_context,*/);
-        newResult->setVarName(variable);
-        newResult->setVarVal(result);
+        Result  newResult = Result();
+        newResult.name = name;
+        newResult.value = value;
         results.add(newResult);
     }
 }

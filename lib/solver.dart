@@ -26,26 +26,42 @@ class Order {
   }
 }
 
-// Model:  the top level list of expression roots for the base declarations of the
-// mathematical model.  For example, dx/dt object would be declared, but does
-// not store the entire set of incremental sets of equations required to solve
-// a transient, time-valued system.  If the system is non-differential, the
-// the solver will only run with the base set. If the system contains/enabled
-// differentials, then it will generated enough equation sets to solve the
-// transient from one steady state to another.
-// During differential solve, there will be a new list of variables for each
 class Model {
   Order order = Order();
-  List<Expression> expressionList; // single list of Expression roots for the Model
+  List<Expression> expressions; // single list of Expression roots for the Model
+  List<Expression> variables; //points to all of the variables in the model
+  // variable list should be populated when an larger expression is created
+
+  void sortVariables() {
+    // sort variables in order of:
+    // - most constrained (smallest range of possible solutions)
+    // - most occurrences (number of times appearing in equations
+  }
+
+  void sortExpressions() {
+    // sort expressions (roots) in order of:
+    // - containing the mose constrained variables
+    // - most occurrences (number of times appearing in equations
+  }
+
+  void simplify() {
+    // grab low hanging fruit for easy solutions:
+    // - solve simple single level expressions such as 'x = 1' or 'y > 2' or 'pi/2 = sin(theta)'
+    // - continue up the tree
+  }
 
   int solve() {
+    sortVariables();
+    sortExpressions();
+    simplify();
+
     bool decided = false;
     var solverState = SolverState.Unknown;
     while (!decided) {
       switch (solverState) {
         case SolverState.Unknown:
           {
-            solverState = checkModel()?SolverState.Sat:SolverState.Unsat;
+            solverState = check() ? SolverState.Sat : SolverState.Unsat;
             break;
           }
         case SolverState.Sat:
@@ -65,127 +81,77 @@ class Model {
     return solverState.index;
   }
 
-  bool checkModel(){
-    bool modelIsSat = true;
-    /*
-    @TODO
-     set variable assignments with single level variable with constant and
-     continue until no further simplification can be made
-     set the range of possible values for remaining variables (-inf,+inf, or a finite range)
-     Use bisection to split solution ranges for variables and branch
-     heuristic to choose which expression to branch next is the simplest expression
-     with variables appearing in the most expressions. This heuristic simplifies the
-     complexity of the recursion the earliest and fastest.
-     implement SAT/UNSAT based on DPLL algorithm.
-    */
-
-
-    expressionList.forEach((exprRoot) {
-      if(!exprRoot.isSat){ //skip any that already found solution and are independent
-        modelIsSat &= checkBoolean(exprRoot,true);
+  bool check() {
+    expressions.forEach((exprRoot) {
+      if (!checkBoolean(exprRoot)) {
+        return false;
       }
     });
-    //modelIsSat is false if any single root Expression is false;
-    return modelIsSat;
+    return true;
   }
 
-  // initial pass through should remove unit literals, then pure literals,
-  // unit literal is a variable that has an exact assignment such as x=2 at the top level.
-  // pure literals are variables such that the range of values is set x<2 and x>0.
-  // The literals should be used to restrict the number of branches for the algorithm.
-  bool checkBoolean(Expression expr, bool isInitialGuess) {
+  bool checkBoolean(Expression expr) {
     switch (expr.type) {
       case "Parenthesis":
-        checkBoolean(expr.children[0],false);
-        break;
+        return checkBoolean(expr.children[0]);
       case "Equals":
-        {
-          if (expr.children[0].value == expr.children[1].value) {
-            return true;
-          } else {
-            //change child and recurse child
-            if(expr.children[0].isSat){
-              expr.children[1].value = expr.children[0].value;
-              chooseChildValue(expr.children[1]);
-            } else if(expr.children[1].isSat){
-              expr.children[0].value = expr.children[1].value;
-              chooseChildValue(expr.children[0]);
-            }
-          }
-          break;
-        }
+        return expr.children[0].value == expr.children[1].value;
       case "LTOE":
-        {
-          if (expr.children[0].value <= expr.children[1].value) {
-            return true;
-          } else if (expr.children[1].isSat) {
-            expr.children[0].value = expr.children[1].value;
-            chooseChildValue(expr.children[0]);
-          } else {
-            expr.children[1].value = expr.children[0].value;
-          }
-          break;
-        }
+        return expr.children[0].value <= expr.children[1].value;
       case "GTOE":
-        {
-          if (expr.children[0].value >= expr.children[1].value) {
-            return true;
-          } else if (expr.children[1].isSat) {
-            expr.children[0].value = expr.children[1].value;
-            chooseChildValue(expr.children[0]);
-          } else {
-            expr.children[1].value = expr.children[0].value;
-          }
-          break;
-        }
+        return expr.children[0].value >= expr.children[1].value;
       case "LessThan":
-        {
-          if (expr.children[0].value < expr.children[1].value) {
-            return true;
-          } else if (expr.children[1].isSat) {
-            expr.children[0].value = expr.children[1].value;
-            chooseChildValue(expr.children[0]);
-          } else {
-            expr.children[1].value = expr.children[0].value;
-          }
-          break;
-        }
+        return expr.children[0].value < expr.children[1].value;
       case "GreaterThan":
-        {
-          if (expr.children[0].value > expr.children[1].value) {
-            return true;
-          } else if (expr.children[1].isSat) {
-            expr.children[0].value = expr.children[1].value;
-            chooseChildValue(expr.children[0]);
-          } else {
-            expr.children[1].value = expr.children[0].value;
-          }
-          break;
-        }
+        return expr.children[0].value > expr.children[1].value;
       case "NotEquals":
-        {
-          if (expr.children[0].value != expr.children[1].value) {
-            return true;
-          } else {
-            chooseChildValue(expr.children[0]);
-            break;
-          }
-        }
+        return expr.children[0].value != expr.children[1].value;
         return false;
     }
   }
 
-  bool chooseChildValue(Expression expr){
-    if(expr.children.length == 0){
-      return true;
+  // returns the constants and variables and propagates them upward towards
+  // the root boolean expression, starts with a variable
+  Expression updateVars(Expression expr){
+    // branch out with the variable set as the root.
+    // variable has parents in an unlimited number of root expressions
+
+    // somehow branch on variable range of values
+
+    return expr;
+  }
+
+  // returns the constants and variables and propagates them upward towards
+  // the root boolean expression, starts with a root
+  Expression updateRoots(Expression expr) {
+    switch (expr.type) {
+      case "Variable":
+        return expr;
+      case "Constant":
+        return expr;
+      case "Multiply":
+        expr.value = updateRoots(expr.children[0]).value *
+            updateRoots(expr.children[1]).value;
+        return expr;
+      case "Divide":
+        expr.value = updateRoots(expr.children[0]).value /
+            updateRoots(expr.children[1]).value;
+        return expr;
+      case "Add":
+        {
+          expr.value = updateRoots(expr.children[0]).value +
+              updateRoots(expr.children[1]).value;
+          return expr;
+        }
+      case "Subtract":
+        {
+          expr.value = updateRoots(expr.children[0]).value -
+              updateRoots(expr.children[1]).value;
+          return expr;
+        }
+      default:
+        return expr;
     }
-    switch(expr.type){
-      case "Multiply":{
-        chooseChildValue(expr.children[0]);
-        chooseChildValue(expr.children[1]);
-      }
-    }
-    return false; //unable to assign values to make expression SAT
   }
 }
 
@@ -232,11 +198,6 @@ class Expression {
     type = "NotEquals";
     children.add(exprLeft);
     children.add(exprRight);
-  }
-  Expression.power(Expression parent, Expression base, Expression power){
-    type = "Power";
-    children.add(base);
-    children.add(power);
   }
   Expression.multiply(Expression parent, Expression exprLeft, Expression exprRight){
     type = "Multiply";

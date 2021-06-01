@@ -1,75 +1,151 @@
+import 'dart:math';
+
 import 'diagramitemH.dart';
-import 'equationsolverH.dart';
+import 'portH.dart';
+import 'linkH.dart';
 
 class DataSource
 {
-    DataSource(var parent);
-    ~DataSource();
+    DiagramItem root;
+    DiagramItem proxyRoot;
+    Port pendingConnectPort;
+    Link pendingConnectLink;
 
-    DiagramItem * proxyRoot();
-    Q_INVOKABLE DiagramItem * proxyChild(var blockIndex);  //Q_INVOKABLE
-    Q_INVOKABLE Port * proxyPort(int blockIndex, int portIndex);
+    DataSource()
+    {
+        //by default the root node is always a block
+        root =  DiagramItem(0,null);  // real root is empty block
+        proxyRoot = root; // always start at empty top level
+    }
 
-    void newProxyRoot(DiagramItem *newProxyRoot);
+    void appendDiagramItem(int type, int x, int y)
+    {
+        proxyRoot.addItemChild(type,x,y);
+    }
 
-    Q_INVOKABLE void appendDiagramItem(int type, int x = 0, int y = 0);
-    Q_INVOKABLE void deleteDiagramItem(int index);
+    void addEquation()
+    {
+        proxyRoot.addEquation();
+    }
 
-    Q_INVOKABLE void addEquation();
-    Q_INVOKABLE void deleteEquation(int index);
+    void deleteEquation(int index)
+    {
+        proxyRoot.equations.removeAt(index);
+    }
 
-    Q_INVOKABLE void downLevel(int modelIndex);
-    Q_INVOKABLE void upLevel();
-    Q_INVOKABLE void printFullTree(DiagramItem * rootItem, int depth);
-    Q_INVOKABLE void printBlock(int blockIndex);
-    Q_INVOKABLE int distanceFromRoot() const;
+    void newProxyRoot(DiagramItem newProxyRoot)
+    {
+        proxyRoot=newProxyRoot;
+    }
 
-    //Q_INVOKABLE void addPort( int index, int side, int position );
-    Q_INVOKABLE void addPort( int index, QPointF center );
-    Q_INVOKABLE void deletePort( int index, int portIndex );
+    void downLevel(int index)
+    {
+        newProxyRoot(proxyRoot.chidren[index]);
+    }
 
-    Q_INVOKABLE void startLink( int index, int portIndex );
-    Q_INVOKABLE void deleteLink( int index, int portIndex, int linkIndex );
-    Q_INVOKABLE void endLinkFromLink( Link* thisLink );
-    Q_INVOKABLE void endLinkFromPort( Port* thisPort );
-    Q_INVOKABLE void disconnectPortfromLink( Link* thisLink );
-    Q_INVOKABLE void resetLinkstoPort( Port * thisPort);
-    Q_INVOKABLE void resetConnectedLinkstoPort( Port * thisPort);
+    void upLevel()
+    {
+        if(proxyRoot.parent!=null){
+            // parent is valid, cannot go higher than actual root
+            newProxyRoot(proxyRoot.parent);
+        }
+    }
 
-    /* EXPOSING EQUATIONSOLVER FUNCTIONS AS SLOTS TO QML VIA BLOCKDATASOURCE->BLOCKMODEL */
-    Q_INVOKABLE void solveEquations();
+    int distanceFromRoot()
+    {
+        int count = 0;
 
-    /* FUNCTIONS AS SLOTS TO QML TO AID IN QUI OPERATIONS */
-    Q_INVOKABLE int maxItemX();
-    Q_INVOKABLE int maxItemY();
+        if(proxyRoot.parent==null){
+            return count; //at the real root
+        }
 
-signals:
-    //blocks
-    void beginResetDiagramItems();
-    void endResetDiagramItems();
-    void beginInsertDiagramItem(int blockIndex);
-    void endInsertDiagramItem();
-    void beginRemoveDiagramItem(int blockIndex);
-    void endRemoveDiagramItem();
+        DiagramItem realItem = proxyRoot;
+        realItem = realItem.parent;
+        count+=1;
 
-    void beginResetEquations();
-    void endResetEquations();
-    void beginInsertEquation(int index);
-    void endInsertEquation();
-    void beginRemoveEquation(int index);
-    void endRemoveEquation();
+        while(realItem.parent!=null){
+            realItem = realItem.parent;
+            count+=1;
+        }
+        return count;
+    }
 
-    void beginResetResults();
-    void endResetResults();
-    void beginInsertResult(int index);
-    void endInsertResult();
-    void beginRemoveResult(int index);
-    void endRemoveResult();
+    void addPort(int index, Point center)
+    {
+        proxyRoot.chidren[index].addPort(center);
+    }
 
-private:
-    DiagramItem * m_root;
-    z3::context m_context;
-    DiagramItem * m_proxyRoot;
-    Port* m_pendingConnectPort;
-    Link* m_pendingConnectLink;
+    void deletePort(int index, int portIndex)
+    {
+        proxyRoot.chidren[index].ports.removeAt(portIndex);
+    }
+
+    void startLink(int index, int portIndex)
+    {
+        proxyRoot.chidren[index].ports[portIndex].startLink();
+    }
+
+    void deleteLink(int index, int portIndex, int linkIndex)
+    {
+        proxyRoot.chidren[index].ports[portIndex].links.removeAt(linkIndex);
+    }
+
+    void endLinkFromLink( Link link )
+    {
+        if(pendingConnectPort!=null){
+            pendingConnectPort.connectedLinks.add(link);
+            link.end = pendingConnectPort;
+            //cleanup the buffer pointers when done connecting
+            pendingConnectPort = null;
+            pendingConnectLink = null;
+        } else {
+            pendingConnectLink = link;
+        }
+    }
+
+    void endLinkFromPort( Port port )
+    {
+        if(pendingConnectLink != null){
+            port.connectedLinks.add(pendingConnectLink);
+            pendingConnectLink.end = port;
+            //cleanup the buffer pointers when done connecting
+            pendingConnectPort = null;
+            pendingConnectLink = null;
+        } else {
+            pendingConnectPort = port;
+        }
+    }
+
+    void disconnectPortfromLink(Link link)
+    {
+        link.disconnectEndPort();
+    }
+
+    void solveEquations()
+    {
+    }
+
+    int maxItemX()
+    {
+        int blockX = 0;
+        for ( int i = 0 ; i < proxyRoot.chidren.length ; i++ ) {
+            int newBlockX = proxyRoot.chidren[i].xPosition;
+            if(blockX<newBlockX){
+                blockX = newBlockX;
+            }
+        }
+        return blockX;
+    }
+
+    int maxItemY()
+    {
+        int blockY = 0;
+        for ( int i = 0 ; i < proxyRoot.chidren.length ; i++ ) {
+    int newBlockX = proxyRoot.chidren[i].yPosition;
+    if(blockY<newBlockX){
+    blockY = newBlockX;
+    }
+    }
+        return blockY;
+    }
 }
