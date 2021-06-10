@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import 'diagramitemH.dart';
-import 'linkH.dart';
+import 'diagram.dart';
+import 'link.dart';
 
 class Port {
 

@@ -5,14 +5,15 @@ class Equation {
     String equationString;
     Expression equationExpression;
 
-    void setEquationString( String value )
-    {
+    Equation();
+    Equation.string(this.equationString);
+
+    void setEquationString( String value ) {
         equationString = value;
         eqStrToExpr();
     }
 
-    void eqStrToExpr()
-    {
+    void eqStrToExpr() {
         Parser equationParser = Parser();
         equationParser.parseEquation(equationString);
         equationExpression = equationParser.expressionGraph;
