@@ -83,10 +83,10 @@ class Diagram {
     void solveEquations() {
     }
 
-    int maxItemX() {
-        int blockX = 0;
+    double maxItemX() {
+        double blockX = 0;
         for ( int i = 0 ; i < proxyRoot.children.length ; i++ ) {
-            int newBlockX = proxyRoot.children[i].xPosition;
+            double newBlockX = proxyRoot.children[i].xPosition;
             if(blockX<newBlockX){
                 blockX = newBlockX;
             }
@@ -94,10 +94,10 @@ class Diagram {
         return blockX;
     }
 
-    int maxItemY() {
-        int blockY = 0;
+    double maxItemY() {
+        double blockY = 0;
         for ( int i = 0 ; i < proxyRoot.children.length ; i++ ) {
-            int newBlockX = proxyRoot.children[i].yPosition;
+            double newBlockX = proxyRoot.children[i].yPosition;
             if(blockY<newBlockX){
                 blockY = newBlockX;
             }
@@ -115,8 +115,8 @@ class DiagramItem {
     List<Result> results = [];
 
     //Data
-    int xPosition = 0;
-    int yPosition = 0;
+    double xPosition = 0;
+    double yPosition = 0;
     int type = 0;
     int rotation = 0;
 
