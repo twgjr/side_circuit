@@ -19,11 +19,35 @@ class _DiagramAreaState extends State<DiagramArea> {
     print("added new child: ${_mainDiagram.proxyRoot.children.length}");
   }
 
+  void _downLevel(DiagramItem dItem) {
+    setState(() {
+      _mainDiagram.proxyRoot = dItem;
+      print("down one level");
+    });
+  }
+
+  void _upLevel() {
+    setState(() {
+      if(_mainDiagram.proxyRoot.parent != null) {
+        _mainDiagram.proxyRoot = _mainDiagram.proxyRoot.parent;
+        print("up one level");
+      }
+    });
+  }
+
+  void _topLevel() {
+    setState(() {
+        _mainDiagram.proxyRoot = _mainDiagram.root;
+        print("top level");
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      DiagramControls(_mainDiagram,_addNewDiagramItem),
-      DiagramChildren(_mainDiagram),
+      DiagramControls(_addNewDiagramItem,_upLevel,_topLevel),
+      Text("level: ${_mainDiagram.distanceFromRoot()}"),
+      DiagramChildren(_mainDiagram,_downLevel),
     ]);
   }
 }

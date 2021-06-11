@@ -15,23 +15,6 @@ class Diagram {
         //by default the root node is always a block
         root =  DiagramItem.root();  // real root is empty block
         proxyRoot = root; // always start at empty top level
-        proxyRoot.children.add(DiagramItem.child(proxyRoot));  // add a couple of dummy children
-        proxyRoot.children.add(DiagramItem.child(proxyRoot));  // add a couple of dummy children
-    }
-
-    void newProxyRoot(DiagramItem newProxyRoot) {
-        proxyRoot=newProxyRoot;
-    }
-
-    void downLevel(int index) {
-        newProxyRoot(proxyRoot.children[index]);
-    }
-
-    void upLevel() {
-        if(proxyRoot.parent!=null){
-            // parent is valid, cannot go higher than actual root
-            newProxyRoot(proxyRoot.parent);
-        }
     }
 
     int distanceFromRoot() {

@@ -4,9 +4,10 @@ import '../models/diagram.dart';
 import 'diagramChildItem.dart';
 
 class DiagramChildren extends StatelessWidget {
-  final Diagram mainDiagram;
+  final Diagram _mainDiagram;
+  final Function _downLevel;
 
-  DiagramChildren(this.mainDiagram);
+  DiagramChildren(this._mainDiagram,this._downLevel);
 
   @override
   Widget build(BuildContext context) {
@@ -17,8 +18,8 @@ class DiagramChildren extends StatelessWidget {
       height: 300,
         width: 300,
         child: Stack(
-      children: mainDiagram.proxyRoot.children.map((dItem) {
-        return DiagramChildItem(dItem);
+      children: _mainDiagram.proxyRoot.children.map((dItem) {
+        return DiagramChildItem(dItem,_downLevel);
       }).toList(),
     ));
   }
