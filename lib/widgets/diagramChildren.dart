@@ -6,8 +6,9 @@ import 'diagramChildItem.dart';
 class DiagramChildren extends StatelessWidget {
   final List<DiagramItem> _dItems;
   final Function _downLevel;
+  final BuildContext _diagramAreaContext;
 
-  DiagramChildren(this._dItems, this._downLevel);
+  DiagramChildren(this._dItems, this._downLevel, this._diagramAreaContext);
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +22,7 @@ class DiagramChildren extends StatelessWidget {
               Using unique key to force the children to completely
               redraw.  Fix error when switching proxyRoot.
              */
-            return DiagramChildItem(UniqueKey(),dItem, _downLevel);
+            return DiagramChildItem(UniqueKey(),dItem, _downLevel,_diagramAreaContext);
           }).toList(),
         ));
   }

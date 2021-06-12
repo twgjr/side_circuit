@@ -52,7 +52,7 @@ class _DiagramAreaState extends State<DiagramArea> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.max,
         children: [
-          DiagramChildren(_mainDiagram.proxyRoot.children, _downLevel),
+          DiagramChildren(_mainDiagram.proxyRoot.children, _downLevel,context),
         ],
       ),
     ]);

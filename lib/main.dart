@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:html';
 
 import 'widgets/diagramArea.dart';
 
-void main() => runApp(MyApp());
+void main(){
+  window.document.onContextMenu.listen((evt) => evt.preventDefault());
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
