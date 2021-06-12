@@ -27,17 +27,17 @@ class Diagram {
         if (proxyRoot.parent != null) {
             setProxyRoot(proxyRoot.parent);
         }
-        root.printTree(root);
+        //root.printTree(root);
     }
 
     void moveDown(DiagramItem dItem){
         setProxyRoot(dItem);
-        root.printTree(root);
+        //root.printTree(root);
     }
 
     void moveToTop() {
         proxyRoot = root;
-        root.printTree(root);
+        //root.printTree(root);
     }
 
     void endLinkFromLink( Link link ) {
@@ -145,7 +145,7 @@ class DiagramItem {
     void addChild() {
         DiagramItem child = DiagramItem.child(this);
         this.children.add(child);
-        printTree(getRoot());
+        //printTree(getRoot());
     }
 
     void addPort(Point center) {

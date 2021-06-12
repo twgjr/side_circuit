@@ -17,7 +17,11 @@ class DiagramChildren extends StatelessWidget {
         //width: 300,
         child: Stack(
           children: _dItems.map((dItem) {
-            return DiagramChildItem(dItem, _downLevel);
+            /*
+              Using unique key to force the children to completely
+              redraw.  Fix error when switching proxyRoot.
+             */
+            return DiagramChildItem(UniqueKey(),dItem, _downLevel);
           }).toList(),
         ));
   }

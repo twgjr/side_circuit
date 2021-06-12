@@ -6,19 +6,18 @@ class DiagramChildItem extends StatefulWidget {
   final DiagramItem _dItem;
   final Function _downLevel;
 
-  DiagramChildItem(this._dItem,this._downLevel);
+  DiagramChildItem(Key key,this._dItem, this._downLevel):super(key:key);
 
   @override
-  State<StatefulWidget> createState() {
-    return _DiagramChildItemState(_dItem,_downLevel);
-  }
+  _DiagramChildItemState createState() =>
+      _DiagramChildItemState(_dItem, _downLevel);
 }
 
 class _DiagramChildItemState extends State<DiagramChildItem> {
   final DiagramItem _dItem;
   final Function _downLevel;
 
-  _DiagramChildItemState(this._dItem,this._downLevel);
+  _DiagramChildItemState(this._dItem, this._downLevel);
 
   @override
   Widget build(BuildContext context) {
