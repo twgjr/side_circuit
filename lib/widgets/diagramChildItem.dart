@@ -39,8 +39,9 @@ class _DiagramChildItemState extends State<DiagramChildItem> {
         child: Container(
           child: Column(
             children: [
-              Text("${_dItem.childItemNumber()}"),
-              Text(_dItem.equations[0].equationString),
+              Text("depth:${_dItem.depth()}"),
+              Text("breadth:${_dItem.breadth()}"),
+              //Text(_dItem.equations[0].equationString),
             ],
           ),
         ),

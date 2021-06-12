@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:flutter/material.dart';
+
 import 'port.dart';
 import 'link.dart';
 import 'equation.dart';
@@ -17,22 +19,25 @@ class Diagram {
         proxyRoot = root; // always start at empty top level
     }
 
-    int distanceFromRoot() {
-        int count = 0;
+    void setProxyRoot(DiagramItem dItem) {
+        proxyRoot = dItem;
+    }
 
-        if(proxyRoot.parent==null){
-            return count; //at the real root
+    void moveUp(){
+        if (proxyRoot.parent != null) {
+            setProxyRoot(proxyRoot.parent);
         }
+        root.printTree(root);
+    }
 
-        DiagramItem realItem = proxyRoot;
-        realItem = realItem.parent;
-        count+=1;
+    void moveDown(DiagramItem dItem){
+        setProxyRoot(dItem);
+        root.printTree(root);
+    }
 
-        while(realItem.parent!=null) {
-            realItem = realItem.parent;
-            count+=1;
-        }
-        return count;
+    void moveToTop() {
+        proxyRoot = root;
+        root.printTree(root);
     }
 
     void endLinkFromLink( Link link ) {
@@ -109,19 +114,38 @@ class DiagramItem {
 
     DiagramItem.child(this.parent) {
         this.type = 0;
-        this.equations.add(Equation.string("test"));
+        //this.equations.add(Equation.string("test"));
     }
 
-    int indexOfItem(DiagramItem childBlock) {
-        return children.indexOf(childBlock);
-    }
-
-    int childItemNumber() {
-        if (parent!=null) {
-            return parent.children.indexOf(this);
+    int breadth() {
+        if (this.parent!=null) {
+            return this.parent.children.indexOf(this);
         } else {
             return 0;
         }
+    }
+
+    int depth() {
+        int count = 0;
+
+        if(this.parent==null){
+            return count; //at the real root
+        }
+
+        DiagramItem nextItem = this.parent;
+        count+=1;
+
+        while(nextItem.parent!=null) {
+            nextItem = nextItem.parent;
+            count+=1;
+        }
+        return count;
+    }
+
+    void addChild() {
+        DiagramItem child = DiagramItem.child(this);
+        this.children.add(child);
+        printTree(getRoot());
     }
 
     void addPort(Point center) {
@@ -141,5 +165,27 @@ class DiagramItem {
         newResult.name = name;
         newResult.value = value;
         results.add(newResult);
+    }
+
+    DiagramItem getRoot(){
+        DiagramItem dItem = this;
+        while(dItem.parent != null) {
+            dItem = dItem.parent;
+        }
+        return dItem;
+    }
+
+    void printTree(DiagramItem dItem) {
+        //breadth first print children
+        String spacer = "";
+        for ( int ctr = 0 ; ctr < dItem.depth() ; ctr++) {
+            spacer += "->";
+        }
+
+        print("$spacer${dItem.depth()},${dItem.breadth()}");
+
+        for ( DiagramItem child in dItem.children) {
+            printTree(child);
+        }
     }
 }
