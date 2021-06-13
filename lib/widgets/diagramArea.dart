@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:side_circuit/main.dart';
 
 import '../models/diagram.dart';
 import 'diagramChildren.dart';
@@ -7,31 +6,37 @@ import 'diagramControls.dart';
 
 class DiagramArea extends StatefulWidget {
   @override
-  _DiagramAreaState createState() => _DiagramAreaState();
+  DiagramAreaState createState() => DiagramAreaState();
 }
 
-class _DiagramAreaState extends State<DiagramArea> {
+class DiagramAreaState extends State<DiagramArea> {
   final Diagram _mainDiagram = Diagram();
 
-  void _addNewDiagramItem() {
+  void addItem() {
     setState(() {
       _mainDiagram.proxyRoot.addChild();
     });
   }
 
-  void _downLevel(DiagramItem dItem) {
+  void deleteItem(DiagramItem child) {
+    setState(() {
+      _mainDiagram.proxyRoot.deleteChild(child);
+    });
+  }
+
+  void downLevel(DiagramItem dItem) {
     setState(() {
       _mainDiagram.moveDown(dItem);
     });
   }
 
-  void _upLevel() {
+  void upLevel() {
     setState(() {
       _mainDiagram.moveUp();
     });
   }
 
-  void _topLevel() {
+  void topLevel() {
     setState(() {
       _mainDiagram.moveToTop();
     });
@@ -40,7 +45,7 @@ class _DiagramAreaState extends State<DiagramArea> {
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      DiagramControls(_addNewDiagramItem, _upLevel, _topLevel),
+      DiagramControls(this),
       Row(
         children: [
           Text("depth: ${_mainDiagram.proxyRoot.depth()}"),
@@ -52,7 +57,7 @@ class _DiagramAreaState extends State<DiagramArea> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.max,
         children: [
-          DiagramChildren(_mainDiagram.proxyRoot.children, _downLevel,context),
+          DiagramChildren(_mainDiagram.proxyRoot.children, this, context),
         ],
       ),
     ]);

@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../models/diagram.dart';
+import 'diagramArea.dart';
 
 class DiagramControls extends StatelessWidget {
-  final Function _addDiagramItem;
-  final Function _upLevel;
-  final Function _topLevel;
+  final DiagramAreaState diagramAreaState;
 
-  DiagramControls(this._addDiagramItem,this._upLevel,this._topLevel);
+  DiagramControls(/*this._addDiagramItem,*/ this.diagramAreaState);
 
   @override
   Widget build(BuildContext context) {
@@ -17,19 +15,19 @@ class DiagramControls extends StatelessWidget {
             icon: Icon(Icons.home),
             tooltip: "go to top level",
             onPressed: () {
-              _topLevel();
+              diagramAreaState.topLevel();
             }),
         IconButton(
             icon: Icon(Icons.arrow_back),
             tooltip: "go up one level",
             onPressed: () {
-              _upLevel();
+              diagramAreaState.upLevel();
             }),
         IconButton(
             icon: Icon(Icons.add),
             tooltip: "add new element",
             onPressed: () {
-              _addDiagramItem();
+              diagramAreaState.addItem();
             }),
       ],
     );

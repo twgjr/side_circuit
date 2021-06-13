@@ -70,28 +70,6 @@ class Diagram {
 
     void solveEquations() {
     }
-
-    double maxItemX() {
-        double blockX = 0;
-        for ( int i = 0 ; i < proxyRoot.children.length ; i++ ) {
-            double newBlockX = proxyRoot.children[i].xPosition;
-            if(blockX<newBlockX){
-                blockX = newBlockX;
-            }
-        }
-        return blockX;
-    }
-
-    double maxItemY() {
-        double blockY = 0;
-        for ( int i = 0 ; i < proxyRoot.children.length ; i++ ) {
-            double newBlockX = proxyRoot.children[i].yPosition;
-            if(blockY<newBlockX){
-                blockY = newBlockX;
-            }
-        }
-        return blockY;
-    }
 }
 
 class DiagramItem {
@@ -145,6 +123,11 @@ class DiagramItem {
     void addChild() {
         DiagramItem child = DiagramItem.child(this);
         this.children.add(child);
+        //printTree(getRoot());
+    }
+
+    void deleteChild(DiagramItem child) {
+        this.children.remove(child);
         //printTree(getRoot());
     }
 
