@@ -40,6 +40,10 @@ class Diagram {
         //root.printTree(root);
     }
 
+    void solve() {
+        print("solving");
+    }
+
     void endLinkFromLink( Link link ) {
         if(pendingConnectPort!=null){
             pendingConnectPort.connectedLinks.add(link);
@@ -66,9 +70,6 @@ class Diagram {
 
     void disconnectPortfromLink(Link link) {
         link.disconnectEndPort();
-    }
-
-    void solveEquations() {
     }
 }
 
@@ -140,6 +141,11 @@ class DiagramItem {
 
     void addEquation() {
         Equation  newEquation = Equation();
+        equations.add(newEquation);
+    }
+
+    void addEquationString(String equationString) {
+        Equation  newEquation = Equation.string(equationString);
         equations.add(newEquation);
     }
 

@@ -5,7 +5,7 @@ import 'diagramArea.dart';
 class DiagramControls extends StatelessWidget {
   final DiagramAreaState diagramAreaState;
 
-  DiagramControls(/*this._addDiagramItem,*/ this.diagramAreaState);
+  DiagramControls(this.diagramAreaState);
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +28,12 @@ class DiagramControls extends StatelessWidget {
             tooltip: "add new element",
             onPressed: () {
               diagramAreaState.addItem();
+            }),
+        IconButton(
+            icon: Icon(Icons.calculate),
+            tooltip: "solve model",
+            onPressed: () {
+              diagramAreaState.solve();
             }),
       ],
     );

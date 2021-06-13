@@ -42,6 +42,12 @@ class DiagramAreaState extends State<DiagramArea> {
     });
   }
 
+  void solve() {
+    setState(() {
+      _mainDiagram.solve();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(children: [

@@ -9,8 +9,8 @@ class DiagramChildItem extends StatefulWidget {
   final DiagramAreaState diagramAreaState;
   final BuildContext _diagramAreaContext;
 
-  DiagramChildItem(
-      Key key, this._dItem, this.diagramAreaState, this._diagramAreaContext)
+  DiagramChildItem(Key key, this._dItem, this.diagramAreaState,
+      this._diagramAreaContext)
       : super(key: key);
 
   @override
@@ -24,12 +24,15 @@ class _DiagramChildItemState extends State<DiagramChildItem> {
 
   final BuildContext _diagramAreaContext;
 
-  _DiagramChildItemState(
-      this._dItem, this.diagramAreaState, this._diagramAreaContext);
+  _DiagramChildItemState(this._dItem, this.diagramAreaState,
+      this._diagramAreaContext);
 
   void _showPopupMenu() async {
     final RenderBox overlay =
-    Overlay.of(_diagramAreaContext).context.findRenderObject();
+    Overlay
+        .of(_diagramAreaContext)
+        .context
+        .findRenderObject();
 
     await showMenu(
       context: context,
@@ -37,6 +40,7 @@ class _DiagramChildItemState extends State<DiagramChildItem> {
           Rect.fromLTWH(_dItem.xPosition, _dItem.yPosition, 50, 100),
           overlay.size),
       items: [
+        PopupMenuItem(value: "edit", child: Text("edit")),
         PopupMenuItem(value: "delete", child: Text("delete")),
       ],
       //elevation: 8.0,
@@ -45,6 +49,36 @@ class _DiagramChildItemState extends State<DiagramChildItem> {
         switch (value) {
           case "delete":
             diagramAreaState.deleteItem(_dItem);
+            break;
+          case "edit":
+            String equation = _dItem.equations.isEmpty ? "": _dItem.equations[0].equationString;
+            showDialog<String>(
+              context: context,
+              builder: (BuildContext context) =>
+                  AlertDialog(
+                    title: const Text('Edit List of Equations'),
+                    content: TextFormField(
+                      initialValue: equation,
+                      onChanged: (value) {
+                        equation = value;
+                      },
+                    ),
+                    actions: <Widget>[
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, 'Cancel'),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          _dItem.equations.clear();
+                          _dItem.addEquationString(equation);
+                          Navigator.pop(context, 'OK');
+                        },
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  ),
+            );
             break;
         }
       }
