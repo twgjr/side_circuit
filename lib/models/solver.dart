@@ -21,7 +21,7 @@ class Order {
       {"Add":"\\+"},
       {"Subtract":"\\-"},
       {"Variable":"((?=[^\\d])\\w+)"},// variable alphanumeric, not numeric alone
-      {"Constant":"^[+-]?((\\d+(\\.\\d+)?)|(\\.\\d+))"}, // had to remove "?" from the end for dart
+      {"Constant":"^[+-]?((\\d+(\\.\\d+)?)|(\\.\\d+))\$"},
     ];
   }
 }
@@ -106,8 +106,8 @@ class Model {
         return expr.children[0].value > expr.children[1].value;
       case "NotEquals":
         return expr.children[0].value != expr.children[1].value;
-        return false;
     }
+    return false;
   }
 
   // returns the constants and variables and propagates them upward towards
@@ -158,11 +158,11 @@ class Model {
 // elements of the abstract syntax tree of a equation and it's sub-elements
 class Expression {
   bool isSat=false;
-  String varName;  // @TODO factory for variable name
-  num value; // @TODO factory for constant value
-  String type; // as defined in Order.list
+  String varName = "";  // @TODO factory for variable name
+  num value = 0; // @TODO factory for constant value
+  String type = ""; // as defined in Order.list
   Expression parent;
-  List<Expression> children;
+  List<Expression> children=[];
 
   Expression(); //default expression constructor
   Expression.parenthesis(Expression parent, Expression inside){
@@ -225,6 +225,31 @@ class Expression {
   Expression.constant(Expression parent, String varName){
     type = "Constant";
   }
+
+  int breadth() {
+    if (this.parent!=null) {
+      return this.parent.children.indexOf(this);
+    } else {
+      return 0;
+    }
+  }
+
+  int depth() {
+    int count = 0;
+
+    if(this.parent==null){
+      return count; //at the real root
+    }
+
+    Expression nextItem = this.parent;
+    count+=1;
+
+    while(nextItem.parent!=null) {
+      nextItem = nextItem.parent;
+      count+=1;
+    }
+    return count;
+  }
 }
 
 //creates Expression AST's from string's of equations or functions
@@ -235,7 +260,9 @@ class Parser
   // Order of ops for parsing equations with RegEx's
   Order order = Order();
 
-  Parser();
+  Parser() {
+    Order order = Order();
+  }
 
   void parseEquation(String equationString)
   {
@@ -248,20 +275,22 @@ class Parser
 
   void assembleSyntaxTree(String equationString, int depth, Expression parentNode)
   {
-    order.list.forEach((element) {
-      int orderId = order.list.indexOf(element);
+    for( int i = 0 ; i < order.list.length; i++ ) {
+      Map<String,String> element = order.list[i];
       String regExName = element.keys.first;
       RegExp regex = RegExp(element.values.first);
 
       if(regex.hasMatch(equationString)){
+        String matchString = regex.stringMatch(equationString);
         RegExpMatch regExMatch = regex.firstMatch(equationString);
-        String matchString = regExMatch.toString();
         int start = regExMatch.start;
         int end = regExMatch.end;
 
+        bool breakForLoop = false;
         switch (regExName) {
           case "Parenthesis":{
             makeNodeBranchIn(equationString,matchString,depth,regExName,parentNode);
+            breakForLoop = true;
             break;
           }
           case "Equals":
@@ -276,25 +305,36 @@ class Parser
           case "Add":
           case "Subtract":{
             makeNodeBranchOut(equationString,matchString,start,end,depth,regExName,parentNode);
+            breakForLoop = true;
             break;
           }
           case "Variable":
           case "Constant":{
             makeLeaf(matchString,regExName,parentNode);
+            breakForLoop = true;
             break;
           }
         }
+        if(breakForLoop){
+          break;
+        }
       }
-    });
+    };
   }
 
   void makeLeaf(String matchString, String type, Expression parentNode)
   {
     Expression thisExpr = Expression();
-    thisExpr.varName = matchString;
     thisExpr.type = type;
     thisExpr.parent = parentNode;
     parentNode.children.add(thisExpr);
+
+    if(type == "Variable"){
+      thisExpr.varName = matchString;
+    }
+    if (type == "Constant") {
+      thisExpr.value = num.parse(matchString);
+    }
     return;
   }
 
@@ -307,7 +347,7 @@ class Parser
     parentNode.children.add(thisExpr);
     String sectionStr0=equationString.substring(0,start);
     assembleSyntaxTree(sectionStr0,depth+1,thisExpr);
-    String sectionStr1=equationString.substring(end+1);
+    String sectionStr1=equationString.substring(end);
     assembleSyntaxTree(sectionStr1,depth+1,thisExpr);
     return;
   }
@@ -322,5 +362,19 @@ class Parser
     String sectionStr=equationString.substring(2,-3);
     assembleSyntaxTree(sectionStr,depth+1,thisExpr);
     return;
+  }
+
+  void printTree(Expression expr) {
+    //breadth first print children
+    String spacer = "";
+    for ( int ctr = 0 ; ctr < expr.depth() ; ctr++) {
+      spacer += "->";
+    }
+
+    print("$spacer${expr.depth()},${expr.breadth()},${expr.type},${expr.varName},${expr.value}");
+
+    for (Expression child in expr.children) {
+      printTree(child);
+    }
   }
 }

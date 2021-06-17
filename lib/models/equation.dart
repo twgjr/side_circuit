@@ -6,10 +6,7 @@ class Equation {
     Expression equationExpression;
 
     Equation();
-    Equation.string(this.equationString);
-
-    void setEquationString( String value ) {
-        equationString = value;
+    Equation.string(this.equationString){
         eqStrToExpr();
     }
 
@@ -17,5 +14,7 @@ class Equation {
         Parser equationParser = Parser();
         equationParser.parseEquation(equationString);
         equationExpression = equationParser.expressionGraph;
+        print("tree:");
+        equationParser.printTree(equationExpression);
     }
 }
