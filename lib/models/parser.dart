@@ -1,32 +1,38 @@
 import 'expression.dart';
+import 'values.dart';
+import 'model.dart';
 
 //creates Expression AST's from string's of equations or functions
 class Parser {
-  Expression expressionGraph = Expression();  //points to the root of the abstract syntax tree
+  Model model;
+  Expression expressionGraph; //points to the root of the abstract syntax tree
 
   // Order of ops for parsing equations with RegEx's
   Order order = Order();
 
-  Parser() {
+  Parser(this.model) {
     Order order = Order();
+    expressionGraph = Expression(this.model);
   }
 
-  void parseEquation(String equationString)
-  {
+  void parseEquation(String equationString) {
     // clean up and simplify the string format
-    equationString.replaceAll(" ", "" ); // remove spaces
+    equationString.replaceAll(" ", ""); // remove spaces
 
     //go down the checklist
-    assembleSyntaxTree(equationString,0,expressionGraph);
+    assembleSyntaxTree(equationString, 0, expressionGraph);
+
+    model.expressions.add(expressionGraph);
   }
 
-  void assembleSyntaxTree(String equationString, int depth, Expression parentNode) {
-    for( int i = 0 ; i < order.list.length; i++ ) {
-      Map<String,String> element = order.list[i];
+  void assembleSyntaxTree(
+      String equationString, int depth, Expression parentNode) {
+    for (int i = 0; i < order.list.length; i++) {
+      Map<String, String> element = order.list[i];
       String regExName = element.keys.first;
       RegExp regex = RegExp(element.values.first);
 
-      if(regex.hasMatch(equationString)){
+      if (regex.hasMatch(equationString)) {
         String matchString = regex.stringMatch(equationString);
         RegExpMatch regExMatch = regex.firstMatch(equationString);
         int start = regExMatch.start;
@@ -34,11 +40,13 @@ class Parser {
 
         bool breakForLoop = false;
         switch (regExName) {
-          case "Parenthesis":{
-            makeNodeBranchIn(equationString,matchString,depth,regExName,parentNode);
-            breakForLoop = true;
-            break;
-          }
+          case "Parenthesis":
+            {
+              makeNodeBranchIn(
+                  equationString, matchString, depth, regExName, parentNode);
+              breakForLoop = true;
+              break;
+            }
           case "Equals":
           case "LTOE":
           case "GTOE":
@@ -49,78 +57,82 @@ class Parser {
           case "Multiply":
           case "Divide":
           case "Add":
-          case "Subtract":{
-            makeNodeBranchOut(equationString,matchString,start,end,depth,regExName,parentNode);
-            breakForLoop = true;
-            break;
-          }
+          case "Subtract":
+            {
+              makeNodeBranchOut(equationString, matchString, start, end, depth,
+                  regExName, parentNode);
+              breakForLoop = true;
+              break;
+            }
           case "Variable":
-          case "Constant":{
-            makeLeaf(matchString,regExName,parentNode);
-            breakForLoop = true;
-            break;
-          }
+          case "Constant":
+            {
+              makeLeaf(matchString, regExName, parentNode);
+              breakForLoop = true;
+              break;
+            }
         }
-        if(breakForLoop){
+        if (breakForLoop) {
           break;
         }
       }
-    };
+    }
+    ;
   }
 
-  void makeLeaf(String matchString, String type, Expression parentNode)
-  {
-    Expression thisExpr = Expression();
-    thisExpr.type = type;
-    thisExpr.parent = parentNode;
-    parentNode.children.add(thisExpr);
-
-    if(type == "Variable"){
-      thisExpr.varName = matchString;
+  void makeLeaf(String matchString, String type, Expression parentNode) {
+    if (type == "Variable") {
+      Expression thisExpr = model.addVariable(matchString);
+      thisExpr.parents.add(parentNode);
+      parentNode.children.add(thisExpr);
     }
+
     if (type == "Constant") {
-      thisExpr.value = num.parse(matchString);
+      Expression thisExpr = Expression(this.model);
+      thisExpr.type = type;
+      thisExpr.parents.add(parentNode);
+      parentNode.children.add(thisExpr);
+      thisExpr.value = Values.number(num.parse(matchString));
     }
     return;
   }
 
   void makeNodeBranchOut(String equationString, String matchString, int start,
-      int end, int depth, String type, Expression parentNode)
-  {
-    Expression thisExpr = Expression();
+      int end, int depth, String type, Expression parentNode) {
+    Expression thisExpr = Expression(this.model);
     thisExpr.type = type;
-    thisExpr.parent = parentNode;
+    thisExpr.parents.add(parentNode);
     parentNode.children.add(thisExpr);
-    String sectionStr0=equationString.substring(0,start);
-    assembleSyntaxTree(sectionStr0,depth+1,thisExpr);
-    String sectionStr1=equationString.substring(end);
-    assembleSyntaxTree(sectionStr1,depth+1,thisExpr);
+    String sectionStr0 = equationString.substring(0, start);
+    assembleSyntaxTree(sectionStr0, depth + 1, thisExpr);
+    String sectionStr1 = equationString.substring(end);
+    assembleSyntaxTree(sectionStr1, depth + 1, thisExpr);
     return;
   }
 
-  void makeNodeBranchIn( String equationString, String matchString, int depth,
-      String type, Expression parentNode)
-  {
-    Expression thisExpr = Expression();
+  void makeNodeBranchIn(String equationString, String matchString, int depth,
+      String type, Expression parentNode) {
+    Expression thisExpr = Expression(this.model);
     thisExpr.type = type;
-    thisExpr.parent = parentNode;
+    thisExpr.parents.add(parentNode);
     parentNode.children.add(thisExpr);
-    String sectionStr=equationString.substring(2,-3);
-    assembleSyntaxTree(sectionStr,depth+1,thisExpr);
+    String sectionStr = equationString.substring(2, -3);
+    assembleSyntaxTree(sectionStr, depth + 1, thisExpr);
     return;
   }
 
-  void printTree(Expression expr) {
+  void printTree(Expression expr, Expression parent) {
     //breadth first print children
     String spacer = "";
-    for ( int ctr = 0 ; ctr < expr.depth() ; ctr++) {
+    for (int ctr = 0; ctr < expr.depth(parent); ctr++) {
       spacer += "->";
     }
 
-    print("$spacer${expr.depth()},${expr.breadth()},${expr.type},${expr.varName},${expr.value}");
+    print(
+        "$spacer${expr.depth(parent)},${expr.breadth(parent)},${expr.type},${expr.varName},${expr.value.value},${this.model.variables.indexOf(expr)}");
 
     for (Expression child in expr.children) {
-      printTree(child);
+      printTree(child, expr);
     }
   }
 }

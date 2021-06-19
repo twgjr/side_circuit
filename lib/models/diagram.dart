@@ -6,16 +6,19 @@ import 'port.dart';
 import 'link.dart';
 import 'equation.dart';
 import 'result.dart';
+import 'model.dart';
 
 class Diagram {
     DiagramItem root;
     DiagramItem proxyRoot;
     Port pendingConnectPort;
     Link pendingConnectLink;
+    Model model = Model();
+
 
     Diagram() {
         //by default the root node is always a block
-        root =  DiagramItem.root();  // real root is empty block
+        root =  DiagramItem.root(this.model);  // real root is empty block
         proxyRoot = root; // always start at empty top level
     }
 
@@ -80,6 +83,7 @@ class DiagramItem {
     List<Port> ports = [];
     List<Equation> equations = [];
     List<Result> results = [];
+    Model model;
 
     //Data
     double xPosition = 0;
@@ -87,11 +91,11 @@ class DiagramItem {
     int type = 0;
     int rotation = 0;
 
-    DiagramItem(this.type, this.parent);
+    DiagramItem(this.model,this.type, this.parent);
 
-    DiagramItem.root();
+    DiagramItem.root(this.model);
 
-    DiagramItem.child(this.parent) {
+    DiagramItem.child(this.model,this.parent) {
         this.type = 0;
         //this.equations.add(Equation.string("test"));
     }
@@ -122,7 +126,7 @@ class DiagramItem {
     }
 
     void addChild() {
-        DiagramItem child = DiagramItem.child(this);
+        DiagramItem child = DiagramItem.child(this.model,this);
         this.children.add(child);
         //printTree(getRoot());
     }
@@ -140,12 +144,12 @@ class DiagramItem {
     }
 
     void addEquation() {
-        Equation  newEquation = Equation();
+        Equation  newEquation = Equation(this.model);
         equations.add(newEquation);
     }
 
     void addEquationString(String equationString) {
-        Equation  newEquation = Equation.string(equationString);
+        Equation  newEquation = Equation.string(this.model,equationString);
         equations.add(newEquation);
     }
 

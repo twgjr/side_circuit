@@ -1,21 +1,23 @@
 import 'expression.dart';
 import 'parser.dart';
+import 'model.dart';
 
 class Equation {
 
     String equationString;
     Expression equationExpression;
+    Model model;
 
-    Equation();
-    Equation.string(this.equationString){
+    Equation(this.model);
+    Equation.string(this.model,this.equationString){
         eqStrToExpr();
     }
 
     void eqStrToExpr() {
-        Parser equationParser = Parser();
+        Parser equationParser = Parser(this.model);
         equationParser.parseEquation(equationString);
         equationExpression = equationParser.expressionGraph;
         print("tree:");
-        equationParser.printTree(equationExpression);
+        equationParser.printTree(equationExpression,null);
     }
 }
