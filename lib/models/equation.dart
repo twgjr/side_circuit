@@ -1,4 +1,5 @@
-import 'solver.dart';
+import 'expression.dart';
+import 'parser.dart';
 
 class Equation {
 
