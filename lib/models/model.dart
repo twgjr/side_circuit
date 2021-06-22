@@ -9,6 +9,9 @@ class Model {
   /// points to all of the variables in the model
   List<Expression> variables = [];
 
+  /// points to all of the constants in the model
+  List<Expression> constants = [];
+
   /// Adds variable to model if does not exist.
   /// returns pointer to variable
   Expression addVariable(String variableID) {

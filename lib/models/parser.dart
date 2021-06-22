@@ -88,11 +88,10 @@ class Parser {
     }
 
     if (type == "Constant") {
-      Expression thisExpr = Expression(this.model);
-      thisExpr.type = type;
+      Expression thisExpr = Expression.constant(this.model,Values.number(num.parse(matchString)));
       thisExpr.parents.add(parentNode);
       parentNode.children.add(thisExpr);
-      thisExpr.value = Values.number(num.parse(matchString));
+      model.constants.add(thisExpr);
     }
     return;
   }
