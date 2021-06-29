@@ -17,7 +17,7 @@ class Equation {
         Parser equationParser = Parser(this.model);
         equationParser.parseEquation(equationString);
         equationExpression = equationParser.expressionGraph;
-        print("tree:");
+        //print("parsed:");
         equationParser.printTree(equationExpression,null);
     }
 }

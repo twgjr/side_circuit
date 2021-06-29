@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:side_circuit/models/solver.dart';
 
 import 'port.dart';
 import 'link.dart';
@@ -44,7 +45,12 @@ class Diagram {
     }
 
     void solve() {
-        print("solving");
+        Solver solver = Solver(this.model);
+        if(solver.solve()) {
+            print("solved");
+        } else {
+            print("not solved");
+        }
     }
 
     void endLinkFromLink( Link link ) {

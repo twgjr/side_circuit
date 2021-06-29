@@ -77,7 +77,6 @@ class Parser {
         }
       }
     }
-    ;
   }
 
   void makeLeaf(String matchString, String type, Expression parentNode) {
@@ -128,7 +127,7 @@ class Parser {
     }
 
     print(
-        "$spacer${expr.depth(parent)},${expr.breadth(parent)},${expr.type},${expr.varName},${expr.value.value},${this.model.variables.indexOf(expr)}");
+        "$spacer${expr.depth(parent)},${expr.breadth(parent)},${expr.type},${expr.varName},${this.model.variables.indexOf(expr)}");
 
     for (Expression child in expr.children) {
       printTree(child, expr);

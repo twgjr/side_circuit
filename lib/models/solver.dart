@@ -1,8 +1,10 @@
 import 'dart:html';
 
+import 'package:side_circuit/models/values.dart';
+
 import 'expression.dart';
 import 'model.dart';
-
+import 'valuerange.dart';
 
 enum SolverState { Unknown, Sat, Unsat }
 
@@ -12,120 +14,52 @@ class Solver {
 
   Solver(this.model);
 
-  int solve() {
-    bool decided = false;
-    var solverState = SolverState.Unknown;
-    while (!decided) {
-      switch (solverState) {
-        case SolverState.Unknown:
-          {
-            //solverState = check() ? SolverState.Sat : SolverState.Unsat;
-            break;
-          }
-        case SolverState.Sat:
-          {
-            print("Solution is sat.");
-            decided = true;
-            break;
-          }
-        case SolverState.Unsat:
-          {
-            print("Solution is UNSAT!");
-            decided = true;
-            break;
-          }
-      }
-    }
-    return solverState.index;
+  bool solve() {
+    model.buildRoot(); // @todo create getter for root that autobuilds
+    return check(model.root, null);
   }
 
-  // void simplify(){
-  //   List<Expression> unvisited = [];
-  //
-  //   // start by spreading out constants for simple solutions
-  //   for(Expression constant in model.constants){
-  //     unvisited.add(constant.parents[0]);  //constants have only one parent no children
-  //   }
-  //
-  //   // search by variable list instead if no constants were defined (unlikely corner case)
-  //   if(model.constants.isEmpty){
-  //     for(Expression variable in model.variables){
-  //       for(Expression parent in variable.parents)
-  //       unvisited.add(parent);  //variables have multiple parents no children
-  //     }
-  //   }
-  //   // propagate ranges throughout the model
-  //   while(unvisited.isNotEmpty){
-  //
-  //   }
-  // }
-
-  bool decide() {
-    List<Expression> unvisitedVars = [];
-    List<Expression> visited = [
-    ]; // order any expressions were visited, including variables
-    Expression destination; // points to the current expression being inspected
-    //  to track the visited variables that need to be revisited if expression
-    //  cannot be set (unsat)
-    Expression unSatExpr;
-
-
-    // create a new list that points to all the variables to be visited
-    for (Expression variable in model.variables) {
-      unvisitedVars.add(variable);
+  /// starts with the root, null range defaults to target value
+  /// branches to children and splits ranges to branch
+  /// starts at target then works outward, doubling the range
+  /// Example progression of range: target is 0...
+  /// {[0,0]} -> {[-1,0),(0,1]} -> {[-2,-1),(1,2]} -> {[-4,-2),(2,4]}...
+  /// ...-> {[-inf,-inf/2),(inf/2,inf]}
+  bool check(Expression expr, ValueRange range) {
+    // do nothing with expressions already set (like a constant)
+    if (expr.isSet()) {
+      return true;
     }
 
-    // set the destination to point to the first variable
-    if (unvisitedVars.isNotEmpty) {
-      destination = unvisitedVars.first;
+    if (range == null) {
+      range = ValueRange.startingTarget(expr.target);
+    }
+
+    // branch down each child of expr
+    for (Expression child in expr.children) {
+      if( !check(child, null)) {
+        return false;
+      }
+    }
+
+    // reaches here first at leaves (constants and variables)
+    // then continues back up the tree setting parents
+    if ( expr.setValue(range) ) {
+      print("expr ${expr.type} value set");
+      return true;
     } else {
-      return false; // no variables, nothing to solve
-    }
-
-    while (unvisitedVars.isNotEmpty) {
-      // if there are any unvisited children, that means more variables need to
-      // be explored before continuing up the tree
-      for (Expression child in destination.children) {
-        if (!child.isVisited) {
-          destination = unvisitedVars.first;
-          unvisitedVars.removeAt(0);
-        }
+      print("expr ${expr.type} value not set");
+      if( range.upper.value.value*2 < Values.posInf().value) {
+        ValueRange checkUpper = ValueRange(
+            range.upper,Boundary.includes(range.upper.value.value * 2));
+        check(expr, checkUpper);
       }
-
-      // all of destination's children have been visited, destination ready to be set
-      visited.add(destination);
-      if (!destination.setValue()) {
-        unSatExpr = destination; // remember the expression that was unsat
-
-        // starting with the destination that was unsat, set its children to make it sat
-
-        // get list of children of unsat expression in order of visited
-        List<Expression> unSatChildren = [];
-        for (Expression expr in visited) {
-          for(Expression child in unSatExpr.children) {
-            if(expr == child) {
-              unSatChildren.add(child);
-            }
-          }
-        }
-
-        //@todo add function to set values and/or ranges of unsat children in
-        //@todo starting with most recent visited
-        //@todo this would be opportunity to use some recursion to split/double ranges
-        //@todo of the children of unsatExpr.
-        //@todo would need to include a counter for max iterations
-        //@todo should always first check all combinations of boundaries of the range for children
-        // @todo of the unSat expression
-        //@todo whichever combination works first or best will then propagate down the tree to set
-        //@todo affected children.
+      if( Values.negInf().value < range.lower.value.value*2) {
+        ValueRange checkLower = ValueRange(
+            Boundary.includes(range.lower.value.value * 2), range.lower);
+        check(expr, checkLower);
       }
     }
-
-    // attempt to keep going up the expression tree towards the root
-    for (Expression parent in destination.parents) {
-      if (!parent.isVisited) {
-        destination = parent;
-      }
-    }
+    return false;
   }
-}}
+}

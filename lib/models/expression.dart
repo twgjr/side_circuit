@@ -1,6 +1,6 @@
 import 'values.dart';
 import 'model.dart';
-import 'range.dart';
+import 'valuerange.dart';
 
 class Order {
   List<Map<String, String>> list;
@@ -28,33 +28,30 @@ class Order {
 
 /// elements of the abstract syntax tree of a equation and it's sub-elements
 class Expression {
-  //bool isSat = false;
   String varName = "";
   Values value;
-  int mode = 0;
   String type = ""; // as defined in Order.list
   List<Expression> parents = []; // only variables can have multiple parents
   List<Expression> children = [];
   Model model;
-  List<Range> ranges = [];
-  bool isVisited = false;
+  ValueRange range;
+  Values target; // set to -inf for minimize, +inf for maximize,
+  // any other value with optimize near that point
 
   Expression(this.model) {
-    this.value = Values.number(0);
-    this.ranges.add(Range(Boundary.includes(Values.negInf()),
-        Boundary.includes(Values.posInf())));
+    this.range = ValueRange(
+        Boundary.includes(Values.negInf()), Boundary.includes(Values.posInf()));
   }
 
-  Expression.constant(this.model,Values val) {
+  Expression.constant(this.model, Values val) {
     this.type = "Constant";
     this.value = val;
-    this.ranges.add(Range(Boundary.includes(val),Boundary.includes(val)));
+    this.range = ValueRange(Boundary.includes(val), Boundary.includes(val));
   }
 
-  Expression.variable(this.model,Values val) {
-    this.value = Values.number(0);
-    this.ranges.add(Range(Boundary.includes(Values.negInf()),
-        Boundary.includes(Values.posInf())));
+  Expression.and(this.model) {
+    this.type = "And";
+    this.range = ValueRange(Boundary.logicLow(), Boundary.logicHigh());
   }
 
   /// returns the sibling of expr that is a constant.
@@ -71,92 +68,70 @@ class Expression {
     return expr;
   }
 
+  bool isSet() => this.value != null;
+
   bool isConstant() => this.type == "Constant";
 
-  void setRangeFor(Expression exprToSetRange) {
-    switch (this.type) {
-      case "LessThan":
-        {
-          if (this.children.indexOf(exprToSetRange) == 0) {
-            exprToSetRange.setMaxRange(
-                Boundary.excludes(Values.number(this.children[1].value.value)));
-          } else {
-            exprToSetRange.setMinRange(
-                Boundary.excludes(Values.number(this.children[0].value.value)));
-          }
-          break;
-        }
-      case "GreaterThan":
-        {
-          if (this.children.indexOf(exprToSetRange) == 0) {
-            exprToSetRange.setMinRange(
-                Boundary.excludes(Values.number(this.children[0].value.value)));
-          } else {
-            exprToSetRange.setMaxRange(
-                Boundary.excludes(Values.number(this.children[1].value.value)));
-          }
-          break;
-        }
-      case "Equals":
-        {
-          if (this.children.indexOf(exprToSetRange) == 0) {
-            exprToSetRange.setMinRange(
-                Boundary.includes(Values.number(this.children[1].value.value)));
-            exprToSetRange.setMaxRange(
-                Boundary.includes(Values.number(this.children[1].value.value)));
-          } else {
-            exprToSetRange.setMinRange(
-                Boundary.includes(Values.number(this.children[0].value.value)));
-            exprToSetRange.setMaxRange(
-                Boundary.includes(Values.number(this.children[0].value.value)));
-          }
-          break;
-        }
-      case "Add":
-        {
-          if (this.children.indexOf(exprToSetRange) == 0) {
-            exprToSetRange.setMinRange(
-                Boundary.includes(Values.number(this.children[1].value.value)));
-            exprToSetRange.setMaxRange(
-                Boundary.includes(Values.number(this.children[1].value.value)));
-          } else {
-            exprToSetRange.setMinRange(
-                Boundary.includes(Values.number(this.children[0].value.value)));
-            exprToSetRange.setMaxRange(
-                Boundary.includes(Values.number(this.children[0].value.value)));
-          }
-          break;
-        }
-    }
-  }
+  bool isVariable() => this.type == "Variable";
 
   /// sets the value for whatever the children of expression produce
   /// returns true if was possible to set value
   /// returns false if not possible to set value
-  bool setValue(){
-
-  }
-
-  bool solveFor(Expression expr){
-
+  bool setValue(ValueRange solverRange) {
+    Values targetValue;
+    if (target == null) {
+      targetValue = Values.number(0);
+    } else {
+      targetValue = this.target.value;
+    }
+    var tempVal;
+    switch (this.type) {
+      case "Variable":
+        if (solverRange.upper.value.value < targetValue.value) {
+          tempVal = solverRange.max();
+        }
+        if (targetValue.value < solverRange.lower.value.value) {
+          tempVal = solverRange.min();
+        }
+        if (solverRange.contains(targetValue.value)) {
+          tempVal = targetValue.value;
+        }
+        break;
+      case "Add":
+        tempVal = this.children[0].value.value + this.children[1].value.value;
+        break;
+      case "And":
+        tempVal = this.children[0].value.value && this.children[1].value.value;
+        break;
+      case "Equals":
+        tempVal = this.children[0].value.value == this.children[1].value.value;
+        break;
+      case "LessThan":
+        tempVal = this.children[0].value.value < this.children[1].value.value;
+        break;
+      case "GreaterThan":
+        tempVal = this.children[0].value.value > this.children[1].value.value;
+        break;
+    }
+    if (range.contains(tempVal)) {
+      this.value = Values.dynamic(tempVal);
+      return true;
+    }
+    return false;
   }
 
   void setMaxRange(Boundary newUpper) {
     // only set a new max if it is less than existing max(s)
     // therefore shrinks the range.  Ignore otherwise
     //  @todo return with error if it ends up with a range of size 0 (no solution possible)
-    for (Range range in this.ranges) {
-      range.setUpper(newUpper);
-    }
+    range.setUpper(newUpper);
   }
 
   void setMinRange(Boundary newLower) {
     // only set a new min if it is more than existing min(s)
     // therefore shrinks the range.  Ignore otherwise
     //  @todo return with error if it ends up with a range of size 0 (no solution possible)
-    for (Range range in this.ranges) {
-      range.setLower(newLower);
-    }
+    range.setLower(newLower);
   }
 
   /// Find which sibling number an expression has in a proxy parent expression
