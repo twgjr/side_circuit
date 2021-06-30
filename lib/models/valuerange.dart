@@ -5,42 +5,48 @@ class ValueRange {
   Boundary lower;
 
   ValueRange(this.lower, this.upper);
+
   ValueRange.dynamic(var lower, var upper) {
     this.lower = Boundary.includes(Values.dynamic(lower));
     this.upper = Boundary.includes(Values.dynamic(upper));
   }
 
-  ValueRange.copy( ValueRange toCopy ) {
+  ValueRange.copy(ValueRange toCopy) {
     this.upper = Boundary.copy(toCopy.upper);
     this.lower = Boundary.copy(toCopy.lower);
   }
 
-  bool contains( var value ) {
-    if(lower.isInclusive() && upper.isInclusive()){
-      if( (lower.value.value <= value) && (value <= upper.value.value) ) {
+  bool contains(var value) {
+    if (value is bool) {
+      return value;
+    }
+
+    // otherwise value is num
+    if (lower.isInclusive() && upper.isInclusive()) {
+      if ((lower.value.value <= value) && (value <= upper.value.value)) {
         return true;
       }
     }
-    if(lower.isInclusive() && upper.isExclusive()){
-      if( (lower.value.value <= value) && (value < upper.value.value) ) {
+    if (lower.isInclusive() && upper.isExclusive()) {
+      if ((lower.value.value <= value) && (value < upper.value.value)) {
         return true;
       }
     }
-    if(lower.isExclusive() && upper.isInclusive()){
-      if( (lower.value.value < value) && (value <= upper.value.value) ) {
+    if (lower.isExclusive() && upper.isInclusive()) {
+      if ((lower.value.value < value) && (value <= upper.value.value)) {
         return true;
       }
     }
-    if(lower.isExclusive() && upper.isExclusive()){
-      if( (lower.value.value < value) && (value < upper.value.value) ) {
+    if (lower.isExclusive() && upper.isExclusive()) {
+      if ((lower.value.value < value) && (value < upper.value.value)) {
         return true;
       }
     }
     return false;
   }
 
-  ValueRange.startingTarget(Values target){
-    if(target == null) {
+  ValueRange.startingTarget(Values target) {
+    if (target == null) {
       target = Values.number(0);
     }
     this.upper = Boundary.includes(target);
@@ -50,15 +56,19 @@ class ValueRange {
   Values mid() {
     var upperVal = upper.value.value;
     var lowerVal = lower.value.value;
-    return (upperVal+lowerVal)/2;
+    return Values.number((upperVal + lowerVal) / 2);
   }
 
   Values min() {
-    return lower.value.value;
+    return lower.value;
   }
 
   Values max() {
-    return upper.value.value;
+    return upper.value;
+  }
+
+  num rangeWidth() {
+    return upper.value.value - lower.value.value;
   }
 
   void setUpper(Boundary newUpper) {
@@ -135,19 +145,21 @@ class Boundary {
     this.value = Values.copy(toCopy.value);
   }
 
-  void includes(Values value){
+  void includes(Values value) {
     this.type = 2;
     this.value = value;
   }
 
-  void excludes(Values value){
+  void excludes(Values value) {
     this.type = 3;
     this.value = value;
   }
 
   bool isLogicLow() => this.type == 0;
-  bool isLogicHigh() => this.type == 1;
-  bool isInclusive() => this.type == 2;
-  bool isExclusive() => this.type == 3;
 
+  bool isLogicHigh() => this.type == 1;
+
+  bool isInclusive() => this.type == 2;
+
+  bool isExclusive() => this.type == 3;
 }

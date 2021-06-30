@@ -46,6 +46,7 @@ class Expression {
   Expression.constant(this.model, Values val) {
     this.type = "Constant";
     this.value = val;
+    this.target = val;
     this.range = ValueRange(Boundary.includes(val), Boundary.includes(val));
   }
 

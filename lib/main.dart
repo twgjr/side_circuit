@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'dart:html';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
+import 'preventDefault.dart';
 import 'widgets/diagramArea.dart';
 
 void main(){
-  window.document.onContextMenu.listen((evt) => evt.preventDefault());
+  if(kIsWeb) {
+    PreventDefault rightClickMenu = PreventDefault();
+  }
   runApp(MyApp());
 }
 
