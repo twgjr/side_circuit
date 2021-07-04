@@ -4,8 +4,8 @@ import 'model.dart';
 
 //creates Expression AST's from string's of equations or functions
 class Parser {
-  Model model;
-  Expression expressionGraph; //points to the root of the abstract syntax tree
+  Model? model;
+  Expression? expressionGraph; //points to the root of the abstract syntax tree
 
   // Order of ops for parsing equations with RegEx's
   Order order = Order();
@@ -19,10 +19,13 @@ class Parser {
     // clean up and simplify the string format
     equationString.replaceAll(" ", ""); // remove spaces
 
-    //go down the checklist
-    assembleSyntaxTree(equationString, 0, expressionGraph);
+    //go down the checklist starting with dummy root expression
+    assembleSyntaxTree(equationString, 0, expressionGraph!);
 
-    model.expressions.add(expressionGraph);
+    expressionGraph =
+        expressionGraph!.children[0]; //remove the dummy root expression
+
+    model!.expressions.add(expressionGraph!);
   }
 
   void assembleSyntaxTree(
@@ -33,8 +36,8 @@ class Parser {
       RegExp regex = RegExp(element.values.first);
 
       if (regex.hasMatch(equationString)) {
-        String matchString = regex.stringMatch(equationString);
-        RegExpMatch regExMatch = regex.firstMatch(equationString);
+        String matchString = regex.stringMatch(equationString)!;
+        RegExpMatch regExMatch = regex.firstMatch(equationString)!;
         int start = regExMatch.start;
         int end = regExMatch.end;
 
@@ -81,16 +84,17 @@ class Parser {
 
   void makeLeaf(String matchString, String type, Expression parentNode) {
     if (type == "Variable") {
-      Expression thisExpr = model.addVariable(matchString);
+      Expression thisExpr = model!.addVariable(matchString);
       thisExpr.parents.add(parentNode);
       parentNode.children.add(thisExpr);
     }
 
     if (type == "Constant") {
-      Expression thisExpr = Expression.constant(this.model,Values.number(num.parse(matchString)));
+      Expression thisExpr = Expression.constant(
+          this.model, Values.number(num.parse(matchString)));
       thisExpr.parents.add(parentNode);
       parentNode.children.add(thisExpr);
-      model.constants.add(thisExpr);
+      model!.constants.add(thisExpr);
     }
     return;
   }
@@ -117,20 +121,5 @@ class Parser {
     String sectionStr = equationString.substring(2, -3);
     assembleSyntaxTree(sectionStr, depth + 1, thisExpr);
     return;
-  }
-
-  void printTree(Expression expr, Expression parent) {
-    //breadth first print children
-    String spacer = "";
-    for (int ctr = 0; ctr < expr.depth(parent); ctr++) {
-      spacer += "->";
-    }
-
-    print(
-        "$spacer${expr.depth(parent)},${expr.breadth(parent)},${expr.type},${expr.varName},${this.model.variables.indexOf(expr)}");
-
-    for (Expression child in expr.children) {
-      printTree(child, expr);
-    }
   }
 }

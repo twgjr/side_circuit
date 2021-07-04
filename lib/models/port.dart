@@ -5,13 +5,13 @@ import 'link.dart';
 
 class Port {
 
-    DiagramItem itemParent;
-    List<Link> links;
-    List<Link> connectedLinks;
+    DiagramItem? itemParent;
+    List<Link> links = [];
+    List<Link> connectedLinks = [];
 
-    String name;
-    Point absPoint;
-    bool linkIsValid;
+    String name = "";
+    Point? absPoint;
+    bool linkIsValid = false;
 
     Port();
 

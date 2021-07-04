@@ -3,30 +3,30 @@ import 'dart:math';
 import 'port.dart';
 
 class Link {
-    Port start;
-    Port end;
-    Point lastPoint;
+    Port? start;
+    Port? end;
+    Point? lastPoint;
 
     Link();
 
     void setEndPort(Port endPort)
     {
-        if(end == endPort){
+        if(this.end == endPort){
             return;
         }
-        end = endPort;
-        end.connectedLinks.add(this);
+        this.end = endPort;
+        this.end!.connectedLinks.add(this);
     }
 
     void disconnectEndPort()
     {
-        if(end!=null){
-            end.connectedLinks.remove(this);
+        if(this.end!=null){
+            this.end!.connectedLinks.remove(this);
         }
     }
 
     bool portConnected()
     {
-        return end!=null?true:false;
+        return this.end!=null?true:false;
     }
 }

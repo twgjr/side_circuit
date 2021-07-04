@@ -14,7 +14,7 @@ class Model {
   List<Expression> constants = [];
 
   // the root expression that is a logical and of all expressions
-  Expression root;
+  Expression? root;
 
   Model() {
     root = Expression.constant(this, Values.logic(true));
@@ -23,22 +23,14 @@ class Model {
   /// Adds variable to model if does not exist.
   /// returns pointer to variable
   Expression addVariable(String variableID) {
-    bool variableExists = false;
-    Expression tempVar;
     for (Expression variable in this.variables) {
       if (variable.varName == variableID) {
-        variableExists = true;
-        tempVar = variable;
-        break;
+        return variable;
       }
     }
-    if (!variableExists) {
-      tempVar = Expression(this);
-      tempVar.type = "Variable";
-      tempVar.varName = variableID;
-      this.variables.add(tempVar);
-    }
-    return tempVar;
+    Expression varToAdd = Expression.variable(this, variableID);
+    this.variables.add(varToAdd);
+    return varToAdd;
   }
 
   void buildRoot() {
@@ -51,27 +43,25 @@ class Model {
     Expression iterator = andRoot;
 
     for (int i = 0; i < expressions.length; i++) {
-      // odd number of expressions
-      if (i.isEven) {
-        iterator.children.add(expressions[i]);
-      }
+      expressions[i].parents.add(iterator);
+      iterator.children.add(expressions[i]);
       // even number of expressions
       if (i.isOdd) {
         Expression newAnd = Expression.and(this);
         iterator.children.add(newAnd);
         iterator = newAnd;
-        iterator.children.add(expressions[i]);
       }
-
     }
 
     // add a dummy true logic constant to satisfy the and expression
     // for expressions list that have odd number
     if (expressions.length.isOdd) {
-      iterator.children.add(Expression.constant(this, Values.logic(true)));
+      Expression constant = Expression.constant(this, Values.logic(true));
+      constant.parents.add(iterator);
+      iterator.children.add(constant);
     }
-    for(int j =0; j<iterator.children.length;j++) {
-      print("$j is ${iterator.type} with child ${iterator.children[j].type}");
+    for (int j = 0; j < iterator.children.length; j++) {
+      print("${iterator.type} with child $j as ${iterator.children[j].type}");
     }
 
     root = andRoot;

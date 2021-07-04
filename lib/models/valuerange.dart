@@ -1,54 +1,26 @@
+import 'expression.dart';
 import 'values.dart';
 
 class ValueRange {
+  //Expression expr; // expression related to this range
   Boundary upper;
   Boundary lower;
 
   ValueRange(this.lower, this.upper);
 
-  ValueRange.dynamic(var lower, var upper) {
-    this.lower = Boundary.includes(Values.dynamic(lower));
-    this.upper = Boundary.includes(Values.dynamic(upper));
-  }
+  ValueRange.target(Values target)
+      : this.upper = Boundary.includes(target),
+        this.lower = Boundary.includes(target);
 
-  ValueRange.copy(ValueRange toCopy) {
-    this.upper = Boundary.copy(toCopy.upper);
-    this.lower = Boundary.copy(toCopy.lower);
-  }
+  ValueRange.num()
+      : this.upper = Boundary.posInf(),
+        this.lower = Boundary.negInf();
 
-  bool contains(var value) {
-    if (value is bool) {
-      return value;
-    }
+  ValueRange.logic()
+      : this.upper = Boundary.logicHigh(),
+        this.lower = Boundary.logicLow();
 
-    // otherwise value is num
-    if (lower.isInclusive() && upper.isInclusive()) {
-      if ((lower.value.value <= value) && (value <= upper.value.value)) {
-        return true;
-      }
-    }
-    if (lower.isInclusive() && upper.isExclusive()) {
-      if ((lower.value.value <= value) && (value < upper.value.value)) {
-        return true;
-      }
-    }
-    if (lower.isExclusive() && upper.isInclusive()) {
-      if ((lower.value.value < value) && (value <= upper.value.value)) {
-        return true;
-      }
-    }
-    if (lower.isExclusive() && upper.isExclusive()) {
-      if ((lower.value.value < value) && (value < upper.value.value)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  ValueRange.startingTarget(Values target) {
-    if (target == null) {
-      target = Values.number(0);
-    }
+  void setRangeTo(Values target) {
     this.upper = Boundary.includes(target);
     this.lower = Boundary.includes(target);
   }
@@ -116,34 +88,62 @@ class ValueRange {
       }
     }
   }
+
+  bool contains(var value) {
+    if (value is bool) {
+      return value;
+    }
+
+    // otherwise value is num
+    if (lower.isInclusive() && upper.isInclusive()) {
+      if ((lower.value.value <= value) && (value <= upper.value.value)) {
+        return true;
+      }
+    }
+    if (lower.isInclusive() && upper.isExclusive()) {
+      if ((lower.value.value <= value) && (value < upper.value.value)) {
+        return true;
+      }
+    }
+    if (lower.isExclusive() && upper.isInclusive()) {
+      if ((lower.value.value < value) && (value <= upper.value.value)) {
+        return true;
+      }
+    }
+    if (lower.isExclusive() && upper.isExclusive()) {
+      if ((lower.value.value < value) && (value < upper.value.value)) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
 
 class Boundary {
-  int type;
+  int type = 0;
   Values value;
 
-  Boundary.logicLow() {
-    this.type = 0;
-    this.value = Values.logic(false);
-  }
+  Boundary(this.value, this.type);
 
-  Boundary.logicHigh() {
-    this.type = 1;
-    this.value = Values.logic(true);
-  }
+  Boundary.logicLow()
+      : this.type = 0,
+        this.value = Values.logic(false);
 
-  Boundary.includes(this.value) {
+  Boundary.logicHigh()
+      : this.type = 1,
+        this.value = Values.logic(true);
+
+  Boundary.includes(this.value) : this.type = 2;
+
+  Boundary.excludes(this.value) : this.type = 3;
+
+  Boundary.negInf()
+      : this.value = Values.negInf(),
+        this.type = 2;
+
+  Boundary.posInf() :
+    this.value = Values.posInf(),
     this.type = 2;
-  }
-
-  Boundary.excludes(this.value) {
-    this.type = 3;
-  }
-
-  Boundary.copy(Boundary toCopy) {
-    this.type = toCopy.type;
-    this.value = Values.copy(toCopy.value);
-  }
 
   void includes(Values value) {
     this.type = 2;

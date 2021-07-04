@@ -3,6 +3,8 @@
 class Values {
   var value;
 
+  Values();
+
   Values.dynamic(this.value);
 
   Values.number(num val) {
@@ -17,11 +19,6 @@ class Values {
   Values.posInf(){
     this.value = 1073741823;  // dart VM maximum small integer on 32 bit system
   }
-  Values.copy(Values toCopy) {
-    this.value = toCopy.value;
-  }
-
-  //Values operator <=(Values values) => this.value <= values.value;
 
   bool isLogic() => this.value is bool;
   bool isNumber() => this.value is num;

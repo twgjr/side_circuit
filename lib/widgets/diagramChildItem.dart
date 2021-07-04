@@ -29,9 +29,9 @@ class _DiagramChildItemState extends State<DiagramChildItem> {
   void _showPopupMenu() async {
     final RenderBox overlay =
     Overlay
-        .of(_diagramAreaContext)
+        .of(_diagramAreaContext)!
         .context
-        .findRenderObject();
+        .findRenderObject() as RenderBox;
 
     await showMenu(
       context: context,
@@ -50,7 +50,7 @@ class _DiagramChildItemState extends State<DiagramChildItem> {
             diagramAreaState.deleteItem(_dItem);
             break;
           case "edit":
-            String equation = _dItem.equations.isEmpty ? "": _dItem.equations[0].equationString;
+            String equation = (_dItem.equations.isEmpty ? "": _dItem.equations[0].equationString)!;
             showDialog<String>(
               context: context,
               builder: (BuildContext context) =>

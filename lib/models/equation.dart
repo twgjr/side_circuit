@@ -4,9 +4,9 @@ import 'model.dart';
 
 class Equation {
 
-    String equationString;
-    Expression equationExpression;
-    Model model;
+    String? equationString;
+    Expression? equationExpression;
+    Model? model;
 
     Equation(this.model);
     Equation.string(this.model,this.equationString){
@@ -15,9 +15,8 @@ class Equation {
 
     void eqStrToExpr() {
         Parser equationParser = Parser(this.model);
-        equationParser.parseEquation(equationString);
+        equationParser.parseEquation(equationString!);
         equationExpression = equationParser.expressionGraph;
-        //print("parsed:");
-        equationParser.printTree(equationExpression,null);
+        //equationExpression!.printTree();
     }
 }

@@ -10,10 +10,10 @@ import 'result.dart';
 import 'model.dart';
 
 class Diagram {
-    DiagramItem root;
-    DiagramItem proxyRoot;
-    Port pendingConnectPort;
-    Link pendingConnectLink;
+    DiagramItem? root;
+    DiagramItem? proxyRoot;
+    Port? pendingConnectPort;
+    Link? pendingConnectLink;
     Model model = Model();
 
 
@@ -28,8 +28,8 @@ class Diagram {
     }
 
     void moveUp(){
-        if (proxyRoot.parent != null) {
-            setProxyRoot(proxyRoot.parent);
+        if (proxyRoot!.parent != null) {
+            setProxyRoot(proxyRoot!.parent!);
         }
         //root.printTree(root);
     }
@@ -55,7 +55,7 @@ class Diagram {
 
     void endLinkFromLink( Link link ) {
         if(pendingConnectPort!=null){
-            pendingConnectPort.connectedLinks.add(link);
+            pendingConnectPort!.connectedLinks.add(link);
             link.end = pendingConnectPort;
             //cleanup the buffer pointers when done connecting
             pendingConnectPort = null;
@@ -67,8 +67,8 @@ class Diagram {
 
     void endLinkFromPort( Port port ) {
         if(pendingConnectLink != null){
-            port.connectedLinks.add(pendingConnectLink);
-            pendingConnectLink.end = port;
+            port.connectedLinks.add(pendingConnectLink!);
+            pendingConnectLink!.end = port;
             //cleanup the buffer pointers when done connecting
             pendingConnectPort = null;
             pendingConnectLink = null;
@@ -84,12 +84,12 @@ class Diagram {
 
 class DiagramItem {
     //data model pointers
-    DiagramItem  parent;
+    DiagramItem?  parent;
     List<DiagramItem> children = [];
     List<Port> ports = [];
     List<Equation> equations = [];
     List<Result> results = [];
-    Model model;
+    Model? model;
 
     //Data
     double xPosition = 0;
@@ -108,7 +108,7 @@ class DiagramItem {
 
     int breadth() {
         if (this.parent!=null) {
-            return this.parent.children.indexOf(this);
+            return this.parent!.children.indexOf(this);
         } else {
             return 0;
         }
@@ -121,11 +121,11 @@ class DiagramItem {
             return count; //at the real root
         }
 
-        DiagramItem nextItem = this.parent;
+        DiagramItem nextItem = this.parent!;
         count+=1;
 
         while(nextItem.parent!=null) {
-            nextItem = nextItem.parent;
+            nextItem = nextItem.parent!;
             count+=1;
         }
         return count;
@@ -169,7 +169,7 @@ class DiagramItem {
     DiagramItem getRoot(){
         DiagramItem dItem = this;
         while(dItem.parent != null) {
-            dItem = dItem.parent;
+            dItem = dItem.parent!;
         }
         return dItem;
     }
