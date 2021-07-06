@@ -25,6 +25,8 @@ class Order {
 
 /// elements of the abstract syntax tree of a equation and it's sub-elements
 class Expression {
+  //bool isSat = false;
+  bool isVisited = false;
   String varName = "";
   Values value;
   String type = ""; // as defined in Order.list
@@ -40,17 +42,18 @@ class Expression {
         this.range = ValueRange(Boundary.negInf(), Boundary.posInf());
 
   Expression.constant(this.model, Values val)
-      : this.value = Values(),
+      : this.value = val,
         this.range = ValueRange.target(val) {
     this.type = "Constant";
-    this.value = val;
     this._target = val;
+    this.isVisited = true;
   }
 
   Expression.variable(this.model, this.varName)
       : this.value = Values(),
         this.range = ValueRange.num() {
     this.type = "Variable";
+    this.isVisited = true;
   }
 
   Expression.and(this.model)
@@ -91,14 +94,21 @@ class Expression {
         this.type == "GreaterThan" ||
         this.type == "LessThan" ||
         this.type == "LTOE" ||
-        this.type == "GTOE");
+        this.type == "GTOE" ||
+        ((this.type == "Constant") && this.value.isLogic()));
   }
-
-  //bool isSet() => this.value != null;
 
   bool isConstant() => this.type == "Constant";
 
   bool isVariable() => this.type == "Variable";
+
+  bool hasLogicChildren() {
+    for (Expression child in this.children)
+      if (!child.isLogic()) {
+        return false;
+      }
+    return true;
+  }
 
   void setMaxRange(Boundary newUpper) {
     // only set a new max if it is less than existing max(s)

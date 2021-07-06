@@ -22,10 +22,9 @@ class Parser {
     //go down the checklist starting with dummy root expression
     assembleSyntaxTree(equationString, 0, expressionGraph!);
 
-    expressionGraph =
-        expressionGraph!.children[0]; //remove the dummy root expression
-
-    model!.expressions.add(expressionGraph!);
+     Expression realRoot = expressionGraph!.children[0]; //remove the dummy root expression
+    realRoot.parents.clear();
+    model!.expressions.add(realRoot);
   }
 
   void assembleSyntaxTree(

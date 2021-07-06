@@ -14,10 +14,14 @@ class Values {
     this.value = val;
   }
   Values.negInf(){
-    this.value = -1073741824;  // dart VM minimum small integer on 32 bit system
+    this.value = -1073741823;  // dart VM minimum small integer on 32 bit system
   }
   Values.posInf(){
     this.value = 1073741823;  // dart VM maximum small integer on 32 bit system
+  }
+
+  Values.copy(Values copyValue){
+    this.value = copyValue.value;
   }
 
   bool isLogic() => this.value is bool;

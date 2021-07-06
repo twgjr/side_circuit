@@ -66,4 +66,10 @@ class Model {
 
     root = andRoot;
   }
+
+  void printSolution() {
+    for( Expression variable in this.variables){
+      print("${variable.varName} = ${variable.value.value}");
+    }
+  }
 }

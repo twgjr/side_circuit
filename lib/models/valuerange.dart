@@ -20,27 +20,47 @@ class ValueRange {
       : this.upper = Boundary.logicHigh(),
         this.lower = Boundary.logicLow();
 
+  ValueRange.copy(ValueRange copy)
+      : this.upper = Boundary.copy(copy.upper),
+        this.lower = Boundary.copy(copy.lower);
+
+  ValueRange.splitLeft(ValueRange rangeToSplit)
+      : this.upper = Boundary.copy(rangeToSplit.upper),
+        this.lower = Boundary.copy(rangeToSplit.lower){
+    this.upper = this.mid();
+  }
+
+  ValueRange.splitRight(ValueRange rangeToSplit)
+      : this.upper = Boundary.copy(rangeToSplit.upper),
+        this.lower = Boundary.copy(rangeToSplit.lower){
+    this.lower = this.mid();
+  }
+
   void setRangeTo(Values target) {
     this.upper = Boundary.includes(target);
     this.lower = Boundary.includes(target);
   }
 
-  Values mid() {
+  Boundary mid() {
     var upperVal = upper.value.value;
     var lowerVal = lower.value.value;
-    return Values.number((upperVal + lowerVal) / 2);
+    return Boundary.includes(Values.number((upperVal + lowerVal) / 2));
   }
 
-  Values min() {
-    return lower.value;
+  Boundary min() {
+    return lower;
   }
 
-  Values max() {
-    return upper.value;
+  Boundary max() {
+    return upper;
   }
 
   num rangeWidth() {
     return upper.value.value - lower.value.value;
+  }
+
+  bool isLogic() {
+    return this.upper.hasLogicValue();
   }
 
   void setUpper(Boundary newUpper) {
@@ -141,9 +161,13 @@ class Boundary {
       : this.value = Values.negInf(),
         this.type = 2;
 
-  Boundary.posInf() :
-    this.value = Values.posInf(),
-    this.type = 2;
+  Boundary.posInf()
+      : this.value = Values.posInf(),
+        this.type = 2;
+
+  Boundary.copy(Boundary copy)
+      : this.type = copy.type,
+        this.value = Values.copy(copy.value);
 
   void includes(Values value) {
     this.type = 2;
@@ -155,9 +179,7 @@ class Boundary {
     this.value = value;
   }
 
-  bool isLogicLow() => this.type == 0;
-
-  bool isLogicHigh() => this.type == 1;
+  bool hasLogicValue() => this.value.isLogic();
 
   bool isInclusive() => this.type == 2;
 

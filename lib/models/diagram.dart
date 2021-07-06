@@ -48,6 +48,7 @@ class Diagram {
         Solver solver = Solver(this.model);
         if(solver.solve()) {
             print("solved");
+            this.model.printSolution();
         } else {
             print("not solved");
         }
