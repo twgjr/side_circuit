@@ -53,7 +53,6 @@ class Expression {
       : this.value = Values(),
         this.range = ValueRange.num() {
     this.type = "Variable";
-    this.isVisited = true;
   }
 
   Expression.and(this.model)
