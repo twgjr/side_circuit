@@ -63,7 +63,6 @@ class Model {
     for (int j = 0; j < iterator.children.length; j++) {
       print("${iterator.type} with child $j as ${iterator.children[j].type}");
     }
-
     root = andRoot;
   }
 

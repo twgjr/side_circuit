@@ -61,18 +61,16 @@ class Expression {
     this.type = "And";
   }
 
-  /// returns the sibling of expr that is a constant.
-  /// Return expr if no other siblings are constants
-  Expression constantChild(Expression expr) {
-    for (Expression child in this.children) {
-      if (child == expr) {
-        continue;
-      }
-      if (child.isConstant()) {
-        return child;
+  int siblingIndex(Expression parent) {
+    if (parent.children.length > 1) {
+      int index = parent.children.indexOf(this);
+      if(index == 0){
+        return 1;
+      } else {
+        return 0;
       }
     }
-    return expr;
+    return -1; // no sibling
   }
 
   Values? get target {
@@ -106,6 +104,15 @@ class Expression {
       if (!child.isLogic()) {
         return false;
       }
+    return true;
+  }
+
+  bool allChildrenAreVisited(){
+    for(Expression child in this.children){
+      if(!child.isVisited){
+        return false;
+      }
+    }
     return true;
   }
 

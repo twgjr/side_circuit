@@ -113,7 +113,7 @@ class ValueRange {
     if (value is bool) {
       return value;
     }
-
+    print("${lower.value.value}<${value}<${upper.value.value}");
     // otherwise value is num
     if (lower.isInclusive() && upper.isInclusive()) {
       if ((lower.value.value <= value) && (value <= upper.value.value)) {
