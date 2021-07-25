@@ -17,7 +17,7 @@ class Model {
   Expression? root;
 
   Model() {
-    root = Expression.constant(this, Values.logic(true));
+    root = Expression.constant(this, Value.logic(true));
   }
 
   /// Adds variable to model if does not exist.
@@ -56,7 +56,7 @@ class Model {
     // add a dummy true logic constant to satisfy the and expression
     // for expressions list that have odd number
     if (expressions.length.isOdd) {
-      Expression constant = Expression.constant(this, Values.logic(true));
+      Expression constant = Expression.constant(this, Value.logic(true));
       constant.parents.add(iterator);
       iterator.children.add(constant);
     }
@@ -68,7 +68,7 @@ class Model {
 
   void printSolution() {
     for( Expression variable in this.variables){
-      print("${variable.varName} = ${variable.value.value}");
+      print("${variable.varName} = ${variable.value.stored}");
     }
   }
 }

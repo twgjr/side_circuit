@@ -90,7 +90,7 @@ class Parser {
 
     if (type == "Constant") {
       Expression thisExpr = Expression.constant(
-          this.model, Values.number(num.parse(matchString)));
+          this.model, Value.number(num.parse(matchString)));
       thisExpr.parents.add(parentNode);
       parentNode.children.add(thisExpr);
       model!.constants.add(thisExpr);

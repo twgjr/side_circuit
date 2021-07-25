@@ -25,39 +25,38 @@ class Order {
 
 /// elements of the abstract syntax tree of a equation and it's sub-elements
 class Expression {
-  //bool isSat = false;
   bool isVisited = false;
   String varName = "";
-  Values value;
+  Value value;
   String type = ""; // as defined in Order.list
   List<Expression> parents = []; // only variables can have multiple parents
   List<Expression> children = [];
   Model? model;
-  ValueRange range;
-  Values? _target; // set to -inf for minimize, +inf for maximize,
+  Range range;
+  Value? _target; // set to -inf for minimize, +inf for maximize,
   // any other value with optimize near that point
 
   Expression(this.model)
-      : this.value = Values(),
-        this.range = ValueRange(Boundary.negInf(), Boundary.posInf());
+      : this.value = Value.empty(),
+        this.range = Range.empty();
 
-  Expression.constant(this.model, Values val)
+  Expression.constant(this.model, Value val)
       : this.value = val,
-        this.range = ValueRange.target(val) {
+        this.range = Range.empty() {
     this.type = "Constant";
     this._target = val;
     this.isVisited = true;
   }
 
   Expression.variable(this.model, this.varName)
-      : this.value = Values(),
-        this.range = ValueRange.num() {
+      : this.value = Value.empty(),
+        this.range = Range.empty() {
     this.type = "Variable";
   }
 
   Expression.and(this.model)
-      : this.value = Values(),
-        this.range = ValueRange.logic() {
+      : this.value = Value.empty(),
+        this.range = Range.logic() {
     this.type = "And";
   }
 
@@ -73,16 +72,20 @@ class Expression {
     return -1; // no sibling
   }
 
-  Values? get target {
+  Value? get target {
     if (this._target == null) {
       if (this.isLogic()) {
         //set true
-        this._target = Values.logic(true);
+        this._target = Value.logic(true);
       } else {
-        this._target = Values.number(0);
+        this._target = Value.number(0);
       }
     }
     return this._target;
+  }
+
+  void setMid() {
+    this.value.stored = this.range.midVal();
   }
 
   bool isLogic() {
@@ -109,21 +112,21 @@ class Expression {
 
   bool allChildrenAreVisited(){
     for(Expression child in this.children){
-      if(!child.isVisited){
+      if(!child.isVisited || (child.value.stored == null)){
         return false;
       }
     }
     return true;
   }
 
-  void setMaxRange(Boundary newUpper) {
+  void setMaxRange(Value newUpper) {
     // only set a new max if it is less than existing max(s)
     // therefore shrinks the range.  Ignore otherwise
     //  @todo return with error if it ends up with a range of size 0 (no solution possible)
     range.setUpper(newUpper);
   }
 
-  void setMinRange(Boundary newLower) {
+  void setMinRange(Value newLower) {
     // only set a new min if it is more than existing min(s)
     // therefore shrinks the range.  Ignore otherwise
     //  @todo return with error if it ends up with a range of size 0 (no solution possible)
