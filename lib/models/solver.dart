@@ -14,9 +14,9 @@ class Solver {
     model.buildRoot(); // @todo create getter for root that auto builds
     model.root!.printTree();
 
-    // simplify all the constants
+    // simplify formulas with constants
     for (Expression constant in model.constants) {
-      if (!propagate(constant)) {
+      if (!propagateValue(constant)) {
         return false;
       }
     }
@@ -33,34 +33,45 @@ class Solver {
 
     // begin attempt to set variables to satisfy formulas
     Expression firstVariable = unvisitedVars[0];
-    Range varRange = Range.copy(firstVariable.range);
-    return checkVariable(firstVariable, 0, varRange);
+    return checkVariable(firstVariable, 0);
   }
 
-  /// check takes in a variable, then propagates that variable up the tree
+  /// checkVariable sets a variable, then propagates that variable up the tree
   /// return false if any variable does not satisfy a formula
-  /// return true for all variables resulted in SAT
-  bool checkVariable(Expression variable, int varNum, Range varRange) {
-    if(decide(variable, varRange)) {
-      if(checkNextVariable(variable, varNum)){
-        // no more variables left or all were satisfied
-        return true;
-      } else {
-        // one of the next variables was not satisfied, adjust this variable's range
-        if( varRange.width() >= 1) {
-          // has not reached a limit yet, can keep branching the variable ranges
-          if (checkVariable(variable, varNum, Range.splitLeft(varRange))) {
-            return true;
-          } else {
-            return checkVariable(variable, varNum, Range.splitRight(varRange));
-          }
-        }
-        // failure if reached the recursion limit
-        return false;
-      }
-    } else {
+  /// return true if variable and following variables resulted in SAT
+  bool checkVariable(Expression variable, int varNum) {
+    // identify a range that satisfies all parents and siblings
+    // if empty range returned, then cannot satisfy, return unsat
+    Range range = satRange(variable);
+    if(range.isEmpty){
       return false;
     }
+    variable.range = range;
+
+    // set the value based on the sat range
+    variable.setMid();
+    if (propagateValue(variable)) {
+      if (checkNextVariable(variable, varNum)) {
+        return true;
+      }
+    }
+
+    // try the min value from the sat range
+    variable.setMin();
+    if (propagateValue(variable)) {
+      if (checkNextVariable(variable, varNum)) {
+        return true;
+      }
+    }
+
+    // finally try the max value from the sat range
+    variable.setMax();
+    if (propagateValue(variable)) {
+      return checkNextVariable(variable, varNum);
+    }
+
+    // all attempts failed, return unsat
+    return false;
   }
 
   bool checkNextVariable(Expression variable, int varNum) {
@@ -68,25 +79,22 @@ class Solver {
     if (varNum < unvisitedVars.length) {
       // another variable was available, check it
       Expression nextVariable = unvisitedVars[varNum + 1];
-      Range nextVarRange = Range.copy(nextVariable.range);
-      return checkVariable(nextVariable, varNum + 1, nextVarRange);
+      return checkVariable(nextVariable, varNum + 1);
     }
     return true;
   }
 
   /// assumes expr is already set
   /// false = failure to set a value that was ready to be set (not sat)
+  ///         and populate propRange with a range that would satisfy all parents
   /// true = was able to set all expressions that were ready to be set
   ///        or reached an expression that was not ready to be set
-  bool propagate(Expression expr) {
-    //print("propagate");
+  bool propagateValue(Expression expr) {
     for (Expression parent in expr.parents) {
-      // children ready to set parent (e.g. has two constants as args
       if (parent.allChildrenAreVisited()) {
-        if (evaluate(parent)) {
+        if (evaluateChildren(parent)) {
           // branch up and attempt to propagate the parent
-          if (!propagate(parent)) {
-            // somewhere up the tree a parent was found to be unsat
+          if (!propagateValue(parent)) {
             return false;
           }
         } else {
@@ -100,19 +108,7 @@ class Solver {
     return true;
   }
 
-  bool setVarMid(Expression variable, Range range) {
-    var tempVal = range.midVal();
-    variable.value = Value.dynamic(tempVal);
-    print("set mid, ${variable.varName} = ${variable.value.stored}");
-    if (variable.range.contains(tempVal)) {
-      variable.isVisited = true;
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  bool evaluate(Expression expr) {
+  bool evaluateChildren(Expression expr) {
     print("evaluate");
     var tempVal;
     switch (expr.type) {
@@ -120,10 +116,12 @@ class Solver {
         tempVal = expr.children[0].value.stored + expr.children[1].value.stored;
         break;
       case "And":
-        tempVal = expr.children[0].value.stored && expr.children[1].value.stored;
+        tempVal =
+            expr.children[0].value.stored && expr.children[1].value.stored;
         break;
       case "Equals":
-        tempVal = expr.children[0].value.stored == expr.children[1].value.stored;
+        tempVal =
+            expr.children[0].value.stored == expr.children[1].value.stored;
         break;
       case "LessThan":
         tempVal = expr.children[0].value.stored < expr.children[1].value.stored;
@@ -147,78 +145,85 @@ class Solver {
 
   /// return the range of the given variable that satisfies its immediate
   /// parent(s) and sibling(s).  If cannot satisfy, return the empty range
-  Range satRangeFromMultipleOf(Expression variable, Range checkRange) {
+  Range satRange(Expression variable) {
     List<Range> varRanges = [];
-    // fill the varRange list for each parent
-    for( Expression parent in variable.parents){
-      // add the new range to the list of ranges in order of lower
-      // remove any overlap, possibly eliminating some ranges
-
-      Range newRange = satRangeFromSingleOf(variable,parent,checkRange);
-
-      // return empty range if any range is empty
-      if(newRange.isEmpty) {
+    for (Expression parent in variable.parents) {
+      Range newRange = singleSatRange(variable, parent);
+      if (newRange.isEmpty) {
         return newRange;
       }
-
       varRanges.add(newRange);
     }
+    return consolidateRanges(varRanges);
+  }
 
-    // pass the list of ranges into a function that returns one consolidated range
-
-
-
-    Range varRange;
-    if(varRanges.isEmpty) {
-      varRange = Range.empty();
-    } else {
-      varRange = varRanges[0];
+  Range consolidateRanges(List<Range> ranges){
+    Value lowestUpper = Value.negInf();  // lowest upper as possible
+    Value highestLower = Value.posInf();  // highest lower possible
+    for(Range range in ranges) {
+      // get highest lower
+      if(range.lower.isHigherThan(highestLower)){
+        highestLower = range.lower;
+      }
+      // get lowest upper
+      if(range.upper.isLowerThan(lowestUpper)){
+        lowestUpper = range.upper;
+      }
     }
-    return varRange;
+
+    if(highestLower.isHigherThan(lowestUpper)) {
+      return Range.empty();
+    }
+
+    if(highestLower.isSameAs(lowestUpper) &&
+        highestLower.isExclusive) {
+      return Range.empty();
+    }
+
+    return Range.boundary(highestLower, lowestUpper);
   }
 
   /// check check one parent and sibling for a sat range for the variable
   /// return the range if available, return empty range if not.
-  Range satRangeFromSingleOf(Expression variable, Expression parent, Range checkRange) {
+  Range singleSatRange(
+      Expression variable, Expression parent) {
     int sibIndex = variable.siblingIndex(parent);
     Expression sibling = parent.children[sibIndex];
-    if(!sibling.isVisited){
-      // this variable is free to decide by it's own range
-      return checkRange;
+    if (sibling.isVisited) {
+      return withSibVal(variable, parent, sibling);
     } else {
-      // need to satisfy the sibling
-      var sibVal = parent.children[sibIndex].value.stored;
-      print("satisfy");
-      Range tempRange;
-      switch (parent.type) {
-        case "Add":
-          tempRange = Range.copyShiftLeft(sibVal, parent.range);
-          break;
-        case "LessThan":
-
-          break;
-        default:
-          break;
-      }
-      expr.value = Value.dynamic(tempVal);
-      print("${expr.type} = ${expr.value.stored}");
-      if (expr.range.contains(tempVal)) {
-        expr.isVisited = true;
-        return true;
-      } else {
-        return false;
-      }
+      return withNoSibVal(variable, parent, sibling);
     }
-    return Range.empty();
   }
 
-  bool decide(Expression variable, Range checkRange) {
-    Range varSatRange = satRangeFromMultipleOf(variable, checkRange);
-    if (varSatRange.isEmpty) {
-      return false;
-    } else {
-      variable.setMid();
-      return true;
+  /// variable must have a range that satisfies the sibling VALUE and parent range
+  Range withSibVal(Expression variable, Expression parent, Expression sibling){
+    Range range = Range.empty();
+
+    var sibVal = sibling.value.stored;
+    print("satisfy range");
+    switch (parent.type) {
+      case "Add":
+        {
+          range = Range.copyShiftLeftValue(sibVal, parent.range);
+          break;
+        }
     }
+    return range;
+  }
+
+  /// variable must have a range that satisfies the sibling RANGE and parent range
+  Range withNoSibVal(Expression variable, Expression parent, Expression sibling){
+    Range range = Range.empty();
+
+    print("satisfy value");
+    switch (parent.type) {
+      case "Add":
+        {
+          range = Range.copyShiftLeftValue(sibVal, parent.range);
+          break;
+        }
+    }
+    return range;
   }
 }

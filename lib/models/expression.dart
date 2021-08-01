@@ -84,8 +84,23 @@ class Expression {
     return this._target;
   }
 
+  bool get isNotVisited {
+    return !this.isVisited;
+  }
+
   void setMid() {
     this.value.stored = this.range.midVal();
+    this.isVisited = true;
+  }
+
+  void setMax() {
+    this.value.stored = this.range.upper;
+    this.isVisited = true;
+  }
+
+  void setMin() {
+    this.value.stored = this.range.lower;
+    this.isVisited = true;
   }
 
   bool isLogic() {
@@ -108,6 +123,28 @@ class Expression {
         return false;
       }
     return true;
+  }
+
+  List<Expression> unvisitedSiblings(){
+    List<Expression> siblings = [];
+    for(Expression parent in this.parents){
+      Expression sibling = parent.children[this.siblingIndex(parent)];
+      if(sibling.isNotVisited){
+        siblings.add(sibling);
+      }
+    }
+    return siblings;
+  }
+
+  List<Expression> visitedSiblings(){
+    List<Expression> siblings = [];
+    for(Expression parent in this.parents){
+      Expression sibling = parent.children[this.siblingIndex(parent)];
+      if(sibling.isVisited){
+        siblings.add(sibling);
+      }
+    }
+    return siblings;
   }
 
   bool allChildrenAreVisited(){

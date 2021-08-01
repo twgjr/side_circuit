@@ -94,7 +94,7 @@ class Value {
     return false;
   }
 
-  bool isSame(Value value){
+  bool isSameAs(Value value){
     return false;
   }
 }

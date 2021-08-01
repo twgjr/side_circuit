@@ -6,6 +6,11 @@ class Range {
 
   Range.empty();
 
+  Range.boundary(Value lower, Value upper){
+    this.values.add(lower);
+    this.values.add(upper);
+  }
+
   Range.num(){
     this.values.add(Value.posInf());
     this.values.add(Value.negInf());
@@ -40,9 +45,14 @@ class Range {
     }
   }
 
-  Range.copyShiftLeft(num shift, Range toCopy){
+  Range.copyShiftLeftValue(num shift, Range toCopy){
     values.add(Value.copyShiftLeft(shift, toCopy.upper));
     values.add(Value.copyShiftLeft(shift, toCopy.lower));
+  }
+
+  Range.satisfyRangeAdd(Range operand, Range operator){
+    values.add(Value.copyShiftLeft(operand.upper.stored, operator.lower));
+    values.add(Value.copyShiftRight(operand.lower.stored, operator.upper));
   }
 
   num midVal() {
