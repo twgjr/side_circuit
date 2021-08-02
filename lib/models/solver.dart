@@ -40,6 +40,7 @@ class Solver {
   /// return false if any variable does not satisfy a formula
   /// return true if variable and following variables resulted in SAT
   bool checkVariable(Expression variable, int varNum) {
+    print("checking variable ${variable.varName}");
     // identify a range that satisfies all parents and siblings
     // if empty range returned, then cannot satisfy, return unsat
     Range range = satRange(variable);
@@ -50,6 +51,7 @@ class Solver {
 
     // set the value based on the sat range
     variable.setMid();
+    print("set variable to mid ${variable.value.stored}");
     if (propagateValue(variable)) {
       if (checkNextVariable(variable, varNum)) {
         return true;
@@ -58,6 +60,7 @@ class Solver {
 
     // try the min value from the sat range
     variable.setMin();
+    print("set variable to min ${variable.value.stored}");
     if (propagateValue(variable)) {
       if (checkNextVariable(variable, varNum)) {
         return true;
@@ -66,6 +69,7 @@ class Solver {
 
     // finally try the max value from the sat range
     variable.setMax();
+    print("set variable to max ${variable.value.stored}");
     if (propagateValue(variable)) {
       return checkNextVariable(variable, varNum);
     }
@@ -76,7 +80,7 @@ class Solver {
 
   bool checkNextVariable(Expression variable, int varNum) {
     // variable was set, check next variable
-    if (varNum < unvisitedVars.length) {
+    if (varNum+1 < unvisitedVars.length) {
       // another variable was available, check it
       Expression nextVariable = unvisitedVars[varNum + 1];
       return checkVariable(nextVariable, varNum + 1);
@@ -90,6 +94,7 @@ class Solver {
   /// true = was able to set all expressions that were ready to be set
   ///        or reached an expression that was not ready to be set
   bool propagateValue(Expression expr) {
+    print("propagating expression ${expr.type}");
     for (Expression parent in expr.parents) {
       if (parent.allChildrenAreVisited()) {
         if (evaluateChildren(parent)) {
@@ -109,7 +114,7 @@ class Solver {
   }
 
   bool evaluateChildren(Expression expr) {
-    print("evaluate");
+    print("evaluating ${expr.type}: ${expr.children[0].value.stored}, ${expr.children[1].value.stored}");
     var tempVal;
     switch (expr.type) {
       case "Add":
@@ -133,10 +138,11 @@ class Solver {
         tempVal = Value.logic(false).stored;
         break;
     }
-    expr.value = Value.dynamic(tempVal);
-    print("${expr.type} = ${expr.value.stored}");
+
     if (expr.range.contains(tempVal)) {
       expr.isVisited = true;
+      expr.value = Value.dynamic(tempVal);
+      print("${expr.type} = ${expr.value.stored}");
       return true;
     } else {
       return false;
@@ -146,6 +152,7 @@ class Solver {
   /// return the range of the given variable that satisfies its immediate
   /// parent(s) and sibling(s).  If cannot satisfy, return the empty range
   Range satRange(Expression variable) {
+    print("getting sat range");
     List<Range> varRanges = [];
     for (Expression parent in variable.parents) {
       Range newRange = singleSatRange(variable, parent);
@@ -158,8 +165,8 @@ class Solver {
   }
 
   Range consolidateRanges(List<Range> ranges){
-    Value lowestUpper = Value.negInf();  // lowest upper as possible
-    Value highestLower = Value.posInf();  // highest lower possible
+    Value lowestUpper = Value.posInf();  // starting with highest upper
+    Value highestLower = Value.negInf();  // starting with lowest lower
     for(Range range in ranges) {
       // get highest lower
       if(range.lower.isHigherThan(highestLower)){
@@ -170,6 +177,8 @@ class Solver {
         lowestUpper = range.upper;
       }
     }
+
+    print("consolidated sat range will be: {${highestLower.stored},${lowestUpper.stored}}");
 
     if(highestLower.isHigherThan(lowestUpper)) {
       return Range.empty();
@@ -187,6 +196,7 @@ class Solver {
   /// return the range if available, return empty range if not.
   Range singleSatRange(
       Expression variable, Expression parent) {
+    print("getting single sat range for ${parent.type}/${variable.varName}");
     int sibIndex = variable.siblingIndex(parent);
     Expression sibling = parent.children[sibIndex];
     if (sibling.isVisited) {
@@ -199,28 +209,37 @@ class Solver {
   /// variable must have a range that satisfies the sibling VALUE and parent range
   Range withSibVal(Expression variable, Expression parent, Expression sibling){
     Range range = Range.empty();
-
     var sibVal = sibling.value.stored;
-    print("satisfy range");
     switch (parent.type) {
+      case "Equals":
+        {
+          range = Range.singleNum(sibVal);
+          break;
+        }
       case "Add":
         {
-          range = Range.copyShiftLeftValue(sibVal, parent.range);
+          range = Range.shiftLeft(sibVal, parent.range);
           break;
         }
     }
+    print("with sibling value sat range: ${range.lower.stored},${range.upper.stored}");
     return range;
   }
 
   /// variable must have a range that satisfies the sibling RANGE and parent range
   Range withNoSibVal(Expression variable, Expression parent, Expression sibling){
+    print("getting sat range for from sib range");
     Range range = Range.empty();
-
     print("satisfy value");
     switch (parent.type) {
+      case "Equals":
+        {
+          range = Range.copy(sibling.range);
+          break;
+        }
       case "Add":
         {
-          range = Range.copyShiftLeftValue(sibVal, parent.range);
+          range = Range.satisfyAdd(variable.range, parent.range, sibling.range);
           break;
         }
     }

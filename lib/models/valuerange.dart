@@ -45,14 +45,19 @@ class Range {
     }
   }
 
-  Range.copyShiftLeftValue(num shift, Range toCopy){
+  Range.shiftLeft(num shift, Range toCopy){
     values.add(Value.copyShiftLeft(shift, toCopy.upper));
     values.add(Value.copyShiftLeft(shift, toCopy.lower));
   }
 
-  Range.satisfyRangeAdd(Range operand, Range operator){
-    values.add(Value.copyShiftLeft(operand.upper.stored, operator.lower));
-    values.add(Value.copyShiftRight(operand.lower.stored, operator.upper));
+  Range.satisfyAdd(Range variable, Range parent, Range sibling){
+    values.add(Value.subtract(parent.lower, sibling.upper, false));
+    values.add(Value.subtract(parent.upper, sibling.lower, true));
+  }
+
+  Range.singleNum(num value){
+    this.values.add(Value.lowerBound(value, false));
+    this.values.add(Value.upperBound(value, false));
   }
 
   num midVal() {
@@ -80,11 +85,11 @@ class Range {
   }
 
   bool get isEmpty {
-    return this.upper.isZeroExclusive() && this.lower.isZeroExclusive();
+    return this.values.isEmpty;
   }
 
   bool get isNotEmpty {
-    return !(this.upper.isZeroExclusive() && this.lower.isZeroExclusive());
+    return this.values.isNotEmpty;
   }
 
   bool isLogic() {

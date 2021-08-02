@@ -100,8 +100,7 @@ class Parser {
 
   void makeNodeBranchOut(String equationString, String matchString, int start,
       int end, int depth, String type, Expression parentNode) {
-    Expression thisExpr = Expression(this.model);
-    thisExpr.type = type;
+    Expression thisExpr = newExpression(type);
     thisExpr.parents.add(parentNode);
     parentNode.children.add(thisExpr);
     String sectionStr0 = equationString.substring(0, start);
@@ -120,5 +119,23 @@ class Parser {
     String sectionStr = equationString.substring(2, -3);
     assembleSyntaxTree(sectionStr, depth + 1, thisExpr);
     return;
+  }
+
+  Expression newExpression(String type){
+    switch(type) {
+      case "Parenthesis": return Expression(this.model);
+      case "Equals": return Expression(this.model);
+      case "LTOE": return Expression(this.model);
+      case "GTOE": return Expression(this.model);
+      case "LessThan": return Expression(this.model);
+      case "GreaterThan": return Expression(this.model);
+      case "NotEquals": return Expression(this.model);
+      case "Power": return Expression.power(this.model);
+      case "Multiply": return Expression.multiply(this.model);
+      case "Divide": return Expression.divide(this.model);
+      case "Add": return Expression.add(this.model);
+      case "Subtract": return Expression.subtract(this.model);
+    }
+    return Expression.constant(this.model, Value.empty());
   }
 }

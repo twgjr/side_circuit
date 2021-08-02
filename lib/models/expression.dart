@@ -60,6 +60,36 @@ class Expression {
     this.type = "And";
   }
 
+  Expression.power(this.model)
+      : this.value = Value.empty(),
+        this.range = Range.num() {
+    this.type = "Power";
+  }
+
+  Expression.multiply(this.model)
+      : this.value = Value.empty(),
+        this.range = Range.num() {
+    this.type = "Multiply";
+  }
+
+  Expression.divide(this.model)
+      : this.value = Value.empty(),
+        this.range = Range.num() {
+    this.type = "Divide";
+  }
+
+  Expression.add(this.model)
+      : this.value = Value.empty(),
+        this.range = Range.num() {
+    this.type = "Add";
+  }
+
+  Expression.subtract(this.model)
+      : this.value = Value.empty(),
+        this.range = Range.num() {
+    this.type = "Subtract";
+  }
+
   int siblingIndex(Expression parent) {
     if (parent.children.length > 1) {
       int index = parent.children.indexOf(this);
