@@ -36,6 +36,7 @@ class Parser {
 
       if (regex.hasMatch(equationString)) {
         String matchString = regex.stringMatch(equationString)!;
+        print(matchString);
         RegExpMatch regExMatch = regex.firstMatch(equationString)!;
         int start = regExMatch.start;
         int end = regExMatch.end;
@@ -49,6 +50,8 @@ class Parser {
               breakForLoop = true;
               break;
             }
+          case "And":
+          case "Or":
           case "Equals":
           case "LTOE":
           case "GTOE":
@@ -124,6 +127,8 @@ class Parser {
   Expression newExpression(String type){
     switch(type) {
       case "Parenthesis": return Expression(this.model);
+      case "And": return Expression.and(this.model);
+      case "Or": return Expression.or(this.model);
       case "Equals": return Expression(this.model);
       case "LTOE": return Expression(this.model);
       case "GTOE": return Expression(this.model);

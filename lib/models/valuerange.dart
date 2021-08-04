@@ -29,8 +29,8 @@ class Range {
 
   /// midpoint of the range becomes the upper bound, lower bound unchanged
   Range.splitLeft(Range rangeToSplit) {
-    this.lower = rangeToSplit.lower; // lower bound
-    this.upper = Value.upperBound(rangeToSplit.midVal(),true);
+    this.lowest = rangeToSplit.lowest; // lower bound
+    this.highest = Value.upperBound(rangeToSplit.midVal(),true);
     if(this.useDiscrete) {
       // @todo remove values greater than the new upper bound
     }
@@ -38,21 +38,21 @@ class Range {
 
   /// midpoint of the range becomes the lower bound, upper bound unchanged
   Range.splitRight(Range rangeToSplit) {
-    this.upper = rangeToSplit.upper; //upper bound
-    this.lower = Value.lowerBound(rangeToSplit.midVal(),true);
+    this.highest = rangeToSplit.highest; //upper bound
+    this.lowest = Value.lowerBound(rangeToSplit.midVal(),true);
     if(this.useDiscrete) {
       // @todo remove values lesser than the new lower bound
     }
   }
 
   Range.shiftLeft(num shift, Range toCopy){
-    values.add(Value.copyShiftLeft(shift, toCopy.upper));
-    values.add(Value.copyShiftLeft(shift, toCopy.lower));
+    values.add(Value.copyShiftLeft(shift, toCopy.highest));
+    values.add(Value.copyShiftLeft(shift, toCopy.lowest));
   }
 
   Range.satisfyAdd(Range variable, Range parent, Range sibling){
-    values.add(Value.subtract(parent.lower, sibling.upper, false));
-    values.add(Value.subtract(parent.upper, sibling.lower, true));
+    values.add(Value.subtract(parent.lowest, sibling.highest, false));
+    values.add(Value.subtract(parent.highest, sibling.lowest, true));
   }
 
   Range.singleNum(num value){
@@ -61,27 +61,36 @@ class Range {
   }
 
   num midVal() {
-    return (this.upper.stored + this.lower.stored) / 2;
+    return (this.highest.stored + this.lowest.stored) / 2;
   }
 
-  Value get lower {
+  Value get lowest {
     return this.values.first;
   }
 
-  set lower(Value value){
+  set lowest(Value value){
     this.values.first = value;
   }
 
-  Value get upper {
+  Value get highest {
     return values.last;
   }
 
-  set upper(Value value){
+  set highest(Value value){
     this.values.last = value;
   }
 
+  void insert(Value value){
+    if(value.isLowerThan(this.lowest)){
+      values.insert(0,value);
+    }
+    if(value is ){
+
+    }
+  }
+
   num width() {
-    return this.upper.stored - this.lower.stored;
+    return this.highest.stored - this.lowest.stored;
   }
 
   bool get isEmpty {
@@ -93,51 +102,51 @@ class Range {
   }
 
   bool isLogic() {
-    return this.upper.isLogic();
+    return this.highest.isLogic();
   }
 
   void setUpper(Value newUpper) {
-    if (newUpper.isExclusive && this.upper.isExclusive) {
-      if (newUpper.stored < this.upper.stored) {
-        this.upper = newUpper;
+    if (newUpper.isExclusive && this.highest.isExclusive) {
+      if (newUpper.stored < this.highest.stored) {
+        this.highest = newUpper;
       }
     }
-    if (newUpper.isNotExclusive && this.upper.isNotExclusive) {
-      if (newUpper.stored < this.upper.stored) {
-        this.upper = newUpper;
+    if (newUpper.isNotExclusive && this.highest.isNotExclusive) {
+      if (newUpper.stored < this.highest.stored) {
+        this.highest = newUpper;
       }
     }
-    if (newUpper.isExclusive && this.upper.isNotExclusive) {
-      if (newUpper.stored <= this.upper.stored) {
-        this.upper = newUpper;
+    if (newUpper.isExclusive && this.highest.isNotExclusive) {
+      if (newUpper.stored <= this.highest.stored) {
+        this.highest = newUpper;
       }
     }
-    if (newUpper.isNotExclusive && this.upper.isExclusive) {
-      if (newUpper.stored < this.upper.stored) {
-        this.upper = newUpper;
+    if (newUpper.isNotExclusive && this.highest.isExclusive) {
+      if (newUpper.stored < this.highest.stored) {
+        this.highest = newUpper;
       }
     }
   }
 
   void setLower(Value newLower) {
-    if (newLower.isExclusive && this.lower.isExclusive) {
-      if (newLower.stored > this.lower.stored) {
-        this.lower = newLower;
+    if (newLower.isExclusive && this.lowest.isExclusive) {
+      if (newLower.stored > this.lowest.stored) {
+        this.lowest = newLower;
       }
     }
-    if (newLower.isNotExclusive && this.lower.isNotExclusive) {
-      if (newLower.stored > this.lower.stored) {
-        this.lower = newLower;
+    if (newLower.isNotExclusive && this.lowest.isNotExclusive) {
+      if (newLower.stored > this.lowest.stored) {
+        this.lowest = newLower;
       }
     }
-    if (newLower.isExclusive && this.lower.isNotExclusive) {
-      if (newLower.stored >= this.lower.stored) {
-        this.lower = newLower;
+    if (newLower.isExclusive && this.lowest.isNotExclusive) {
+      if (newLower.stored >= this.lowest.stored) {
+        this.lowest = newLower;
       }
     }
-    if (newLower.isNotExclusive && this.lower.isExclusive) {
-      if (newLower.stored > this.lower.stored) {
-        this.lower = newLower;
+    if (newLower.isNotExclusive && this.lowest.isExclusive) {
+      if (newLower.stored > this.lowest.stored) {
+        this.lowest = newLower;
       }
     }
   }
@@ -146,67 +155,41 @@ class Range {
     if (value is bool) {
       return value;
     }
+
     //print("${this.lower.value.value}<${value}<${this.upper.value.value}");
     // otherwise value is num
-    if (this.lower.isNotExclusive && this.upper.isNotExclusive) {
-      if ((this.lower.stored <= value) &&
-          (value <= this.upper.stored)) {
+    if (this.lowest.isNotExclusive && this.highest.isNotExclusive) {
+      if ((this.lowest.stored <= value) &&
+          (value <= this.highest.stored)) {
         return true;
       }
     }
-    if (this.lower.isNotExclusive && this.upper.isExclusive) {
-      if ((this.lower.stored <= value) &&
-          (value < this.upper.stored)) {
+    if (this.lowest.isNotExclusive && this.highest.isExclusive) {
+      if ((this.lowest.stored <= value) &&
+          (value < this.highest.stored)) {
         return true;
       }
     }
-    if (this.lower.isExclusive && this.upper.isNotExclusive) {
-      if ((this.lower.stored < value) &&
-          (value <= this.upper.stored)) {
+    if (this.lowest.isExclusive && this.highest.isNotExclusive) {
+      if ((this.lowest.stored < value) &&
+          (value <= this.highest.stored)) {
         return true;
       }
     }
-    if (this.lower.isExclusive && this.upper.isExclusive) {
-      if ((this.lower.stored < value) &&
-          (value < this.upper.stored)) {
+    if (this.lowest.isExclusive && this.highest.isExclusive) {
+      if ((this.lowest.stored < value) &&
+          (value < this.highest.stored)) {
         return true;
       }
     }
     return false;
   }
 
-  // Range containing(Range range) {
-  //   if (range.isLogic()) {
-  //     return range;
-  //   }
-  //   // otherwise value is num
-  //
-  //   // the given range is contained in this range
-  //   if (this.contains(range.lower.stored) &&
-  //       this.contains(range.upper.stored)) {
-  //     return range;
-  //   }
-  //
-  //   // this range is contained in the given range
-  //   if (range.contains(this.lower.stored) &&
-  //       range.contains(this.upper.stored)) {
-  //     return Range.copy(this);
-  //   }
-  //
-  //   // only given range upper is contained in this range
-  //   if (!this.contains(range.lower.stored) &&
-  //       this.contains(range.upper.stored)) {
-  //     return Range(Boundary.copy(this.lower), Boundary.copy(range.upper));
-  //   }
-  //
-  //   // only given range lower is contained in this range
-  //   if (this.contains(range.lower.stored) &&
-  //       !this.contains(range.upper.stored)) {
-  //     return Range(Boundary.copy(range.lower), Boundary.copy(this.upper));
-  //   }
-  //
-  //   // return empty range
-  //   return Range(Boundary.excludes(Value.number(0),true),
-  //       Boundary.excludes(Value.number(0),false));
-  // }
+  printRange(){
+    String rangeString = "{";
+    for(Value value in values) {
+      rangeString += value.valueString();
+    }
+    rangeString += "}";
+  }
 }

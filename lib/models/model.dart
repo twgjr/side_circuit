@@ -22,6 +22,7 @@ class Model {
 
   /// Adds variable to model if does not exist.
   /// returns pointer to variable
+  //@todo choose the variable isBool based on it's parent
   Expression addVariable(String variableID) {
     for (Expression variable in this.variables) {
       if (variable.varName == variableID) {

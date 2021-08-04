@@ -5,7 +5,8 @@ import 'valuerange.dart';
 class Order {
   List<Map<String, String>> list = [
     {"Parenthesis": "\\(([^)]+)\\)"},
-    {"And": "\\(and([^)]+)\\)"},
+    {"And": "\\&\\&"},
+    {"Or": "\\|\\|"},
     {"Equals": "\\=="},
     {"LTOE": "\\<="},
     {"GTOE": "\\>="},
@@ -60,6 +61,12 @@ class Expression {
     this.type = "And";
   }
 
+  Expression.or(this.model)
+      : this.value = Value.empty(),
+        this.range = Range.logic() {
+    this.type = "Or";
+  }
+
   Expression.power(this.model)
       : this.value = Value.empty(),
         this.range = Range.num() {
@@ -93,7 +100,7 @@ class Expression {
   int siblingIndex(Expression parent) {
     if (parent.children.length > 1) {
       int index = parent.children.indexOf(this);
-      if(index == 0){
+      if (index == 0) {
         return 1;
       } else {
         return 0;
@@ -104,7 +111,7 @@ class Expression {
 
   Value? get target {
     if (this._target == null) {
-      if (this.isLogic()) {
+      if (this.valueIsLogic()) {
         //set true
         this._target = Value.logic(true);
       } else {
@@ -124,62 +131,74 @@ class Expression {
   }
 
   void setMax() {
-    this.value.stored = this.range.upper;
+    this.value.stored = this.range.highest;
     this.isVisited = true;
   }
 
   void setMin() {
-    this.value.stored = this.range.lower;
+    this.value.stored = this.range.lowest;
     this.isVisited = true;
   }
 
-  bool isLogic() {
-    return (this.type == "And" ||
-        this.type == "Equals" ||
+  bool valueIsLogic() {
+    return this.type == "And" ||
+        this.type == "Or" ||
+        ((this.type == "Constant") && this.value.isLogic()) ||
+        this.parents.every((element) => element.argIsLogic()) ||
+        isComparison();
+  }
+
+  bool argIsLogic() {
+    return this.type == "And" ||
+        this.type == "Or" ||
+        ((this.type == "Constant") && this.value.isLogic());
+  }
+
+  bool isComparison() {
+    return this.type == "Equals" ||
         this.type == "GreaterThan" ||
         this.type == "LessThan" ||
         this.type == "LTOE" ||
-        this.type == "GTOE" ||
-        ((this.type == "Constant") && this.value.isLogic()));
+        this.type == "GTOE";
   }
 
   bool isConstant() => this.type == "Constant";
 
   bool isVariable() => this.type == "Variable";
 
-  bool hasLogicChildren() {
+  bool childrenHaveLogicValue() {
     for (Expression child in this.children)
-      if (!child.isLogic()) {
+      if (!child.valueIsLogic()) {
         return false;
       }
     return true;
   }
 
-  List<Expression> unvisitedSiblings(){
+  List<Expression> unvisitedSiblings() {
     List<Expression> siblings = [];
-    for(Expression parent in this.parents){
+    for (Expression parent in this.parents) {
       Expression sibling = parent.children[this.siblingIndex(parent)];
-      if(sibling.isNotVisited){
+      if (sibling.isNotVisited) {
         siblings.add(sibling);
       }
     }
     return siblings;
   }
 
-  List<Expression> visitedSiblings(){
+  List<Expression> visitedSiblings() {
     List<Expression> siblings = [];
-    for(Expression parent in this.parents){
+    for (Expression parent in this.parents) {
       Expression sibling = parent.children[this.siblingIndex(parent)];
-      if(sibling.isVisited){
+      if (sibling.isVisited) {
         siblings.add(sibling);
       }
     }
     return siblings;
   }
 
-  bool allChildrenAreVisited(){
-    for(Expression child in this.children){
-      if(!child.isVisited || (child.value.stored == null)){
+  bool allChildrenAreVisited() {
+    for (Expression child in this.children) {
+      if (!child.isVisited || (child.value.stored == null)) {
         return false;
       }
     }
