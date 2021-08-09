@@ -1,30 +1,32 @@
+import 'formula.dart';
 import 'expression.dart';
 import 'values.dart';
 import 'model.dart';
 
 //creates Expression AST's from string's of equations or functions
 class Parser {
-  Model? model;
-  Expression? expressionGraph; //points to the root of the abstract syntax tree
+  Model model;
+  Expression? formulaGraph; //points to the root of the abstract syntax tree
+  Formula formula;
 
   // Order of ops for parsing equations with RegEx's
   Order order = Order();
 
-  Parser(this.model) {
+  Parser(this.model, this.formula) {
     Order order = Order();
-    expressionGraph = Expression(this.model);
+    formulaGraph = Expression.empty(this.model);
   }
 
-  void parseEquation(String equationString) {
+  void parseFormula(String equationString) {
     // clean up and simplify the string format
     equationString.replaceAll(" ", ""); // remove spaces
 
     //go down the checklist starting with dummy root expression
-    assembleSyntaxTree(equationString, 0, expressionGraph!);
+    assembleSyntaxTree(equationString, 0, formulaGraph!);
 
-     Expression realRoot = expressionGraph!.children[0]; //remove the dummy root expression
+     Expression realRoot = formulaGraph!.children[0]; //remove the dummy root expression
     realRoot.parents.clear();
-    model!.expressions.add(realRoot);
+    model.addFormula(realRoot);
   }
 
   void assembleSyntaxTree(
@@ -86,7 +88,8 @@ class Parser {
 
   void makeLeaf(String matchString, String type, Expression parentNode) {
     if (type == "Variable") {
-      Expression thisExpr = model!.addVariable(matchString);
+      Expression thisExpr = model.addVariable(matchString);
+      formula.variables.add(thisExpr);
       thisExpr.parents.add(parentNode);
       parentNode.children.add(thisExpr);
     }
@@ -96,7 +99,7 @@ class Parser {
           this.model, Value.number(num.parse(matchString)));
       thisExpr.parents.add(parentNode);
       parentNode.children.add(thisExpr);
-      model!.constants.add(thisExpr);
+      model.constants.add(thisExpr);
     }
     return;
   }
@@ -115,7 +118,7 @@ class Parser {
 
   void makeNodeBranchIn(String equationString, String matchString, int depth,
       String type, Expression parentNode) {
-    Expression thisExpr = Expression(this.model);
+    Expression thisExpr = Expression.empty(this.model);
     thisExpr.type = type;
     thisExpr.parents.add(parentNode);
     parentNode.children.add(thisExpr);
@@ -126,20 +129,20 @@ class Parser {
 
   Expression newExpression(String type){
     switch(type) {
-      case "Parenthesis": return Expression(this.model);
-      case "And": return Expression.and(this.model);
-      case "Or": return Expression.or(this.model);
-      case "Equals": return Expression(this.model);
-      case "LTOE": return Expression(this.model);
-      case "GTOE": return Expression(this.model);
-      case "LessThan": return Expression(this.model);
-      case "GreaterThan": return Expression(this.model);
-      case "NotEquals": return Expression(this.model);
-      case "Power": return Expression.power(this.model);
-      case "Multiply": return Expression.multiply(this.model);
-      case "Divide": return Expression.divide(this.model);
-      case "Add": return Expression.add(this.model);
-      case "Subtract": return Expression.subtract(this.model);
+      case "Parenthesis": return Expression.empty(this.model);
+      case "And": return Expression.logic(this.model,type);
+      case "Or": return Expression.logic(this.model,type);
+      case "Equals": return Expression.logic(this.model,type);
+      case "LTOE": return Expression.logic(this.model,type);
+      case "GTOE": return Expression.logic(this.model,type);
+      case "LessThan": return Expression.logic(this.model,type);
+      case "GreaterThan": return Expression.logic(this.model,type);
+      case "NotEquals": return Expression.logic(this.model,type);
+      case "Power": return Expression.number(this.model,type);
+      case "Multiply": return Expression.number(this.model,type);
+      case "Divide": return Expression.number(this.model,type);
+      case "Add": return Expression.number(this.model,type);
+      case "Subtract": return Expression.number(this.model,type);
     }
     return Expression.constant(this.model, Value.empty());
   }

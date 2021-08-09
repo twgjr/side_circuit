@@ -37,7 +37,7 @@ class Expression {
   Value? _target; // set to -inf for minimize, +inf for maximize,
   // any other value with optimize near that point
 
-  Expression(this.model)
+  Expression.empty(this.model)
       : this.value = Value.empty(),
         this.range = Range.empty();
 
@@ -47,6 +47,11 @@ class Expression {
     this.type = "Constant";
     this._target = val;
     this.isVisited = true;
+    if (this.value.isLogic()) {
+      this.range = Range.singleLogic(val.stored);
+    } else {
+      this.range = Range.singleNum(val.stored);
+    }
   }
 
   Expression.variable(this.model, this.varName)
@@ -55,48 +60,21 @@ class Expression {
     this.type = "Variable";
   }
 
-  Expression.and(this.model)
+  Expression.logic(this.model, this.type)
       : this.value = Value.empty(),
-        this.range = Range.logic() {
+        this.range = Range.initLogic();
+
+  Expression.number(this.model, this.type)
+      : this.value = Value.empty(),
+        this.range = Range.initNumber();
+
+  Expression.solverAnd(this.model)
+      : this.value = Value.empty(),
+        this.range = Range.singleLogic(true) {
     this.type = "And";
   }
 
-  Expression.or(this.model)
-      : this.value = Value.empty(),
-        this.range = Range.logic() {
-    this.type = "Or";
-  }
-
-  Expression.power(this.model)
-      : this.value = Value.empty(),
-        this.range = Range.num() {
-    this.type = "Power";
-  }
-
-  Expression.multiply(this.model)
-      : this.value = Value.empty(),
-        this.range = Range.num() {
-    this.type = "Multiply";
-  }
-
-  Expression.divide(this.model)
-      : this.value = Value.empty(),
-        this.range = Range.num() {
-    this.type = "Divide";
-  }
-
-  Expression.add(this.model)
-      : this.value = Value.empty(),
-        this.range = Range.num() {
-    this.type = "Add";
-  }
-
-  Expression.subtract(this.model)
-      : this.value = Value.empty(),
-        this.range = Range.num() {
-    this.type = "Subtract";
-  }
-
+  /// find index of the sibling of this expression under the given parent
   int siblingIndex(Expression parent) {
     if (parent.children.length > 1) {
       int index = parent.children.indexOf(this);
@@ -107,6 +85,17 @@ class Expression {
       }
     }
     return -1; // no sibling
+  }
+
+  /// tell if this expression is the left child of the given parent
+  bool isLeftChildOf(Expression parent) {
+    return parent.children.indexOf(this) == 0;
+  }
+
+  /// tell if this expression is the right child of the given parent
+  bool isRightChildOf(Expression parent) {
+    assert(parent.children.length == 2);
+    return parent.children.indexOf(this) == 1;
   }
 
   Value? get target {
@@ -125,18 +114,43 @@ class Expression {
     return !this.isVisited;
   }
 
+  void setNearTarget() {
+    bool upperContains = this.range.highest.boundaryContains(this.target!);
+    bool lowerContains = this.range.lowest.boundaryContains(this.target!);
+    if( this.range.width() > 1) {
+      if (lowerContains && upperContains) {
+        this.value = this.target!;
+      } else if (!lowerContains && upperContains) {
+        if (this.range.lowest.isExclusive) {
+          this.value.stored = this.range.lowest.stored + 1;
+        } else {
+          this.value.stored = this.range.lowest.stored;
+        }
+      } else if (lowerContains && !upperContains) {
+        if (this.range.highest.isExclusive) {
+          this.value.stored = this.range.highest.stored - 1;
+        } else {
+          this.value.stored = this.range.highest.stored;
+        }
+      }
+    } else {
+      this.value.stored = this.range.midVal();
+    }
+    this.isVisited = true;
+  }
+
   void setMid() {
     this.value.stored = this.range.midVal();
     this.isVisited = true;
   }
 
   void setMax() {
-    this.value.stored = this.range.highest;
+    this.value.stored = this.range.highest.stored;
     this.isVisited = true;
   }
 
   void setMin() {
-    this.value.stored = this.range.lowest;
+    this.value.stored = this.range.lowest.stored;
     this.isVisited = true;
   }
 
@@ -162,9 +176,55 @@ class Expression {
         this.type == "GTOE";
   }
 
+  bool isBracket() {
+    return this.type == "Parenthesis";
+  }
+
   bool isConstant() => this.type == "Constant";
 
   bool isVariable() => this.type == "Variable";
+
+  /// looks at surrounding expression to determine whether a variable is a logic
+  /// or a number kind.  Default to number kind if cannot determine.
+  void setInitialRange() {
+    assert(this.isVariable(), "only setInitialRange() with variables");
+    for (Expression parent in this.parents) {
+      if (parent.argIsLogic()) {
+        this.range = Range.initLogic();
+        return; //found a parent to set the kind
+      }
+    }
+
+    List<Expression> visited = [];
+    List<Expression> siblings = this.siblings();
+    for (Expression sibling in siblings) {
+      visited.add(sibling);
+      if (anySiblingIsLogic(this, sibling, visited)) {
+        return; //found a sibling to set the kind
+      }
+    }
+    this.range = Range.initNumber();
+  }
+
+  bool anySiblingIsLogic(
+      Expression variable, Expression sibling, List<Expression> visited) {
+    if (sibling.valueIsLogic()) {
+      variable.range = Range.initLogic();
+      return true;
+    }
+
+    List<Expression> nextSiblings = sibling.siblings();
+    for (Expression nextSibling in nextSiblings) {
+      if (visited.contains(nextSibling)) {
+        continue;
+      }
+      visited.add(nextSibling);
+      if (anySiblingIsLogic(variable, nextSibling, visited)) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   bool childrenHaveLogicValue() {
     for (Expression child in this.children)
@@ -174,24 +234,11 @@ class Expression {
     return true;
   }
 
-  List<Expression> unvisitedSiblings() {
+  List<Expression> siblings() {
     List<Expression> siblings = [];
     for (Expression parent in this.parents) {
       Expression sibling = parent.children[this.siblingIndex(parent)];
-      if (sibling.isNotVisited) {
-        siblings.add(sibling);
-      }
-    }
-    return siblings;
-  }
-
-  List<Expression> visitedSiblings() {
-    List<Expression> siblings = [];
-    for (Expression parent in this.parents) {
-      Expression sibling = parent.children[this.siblingIndex(parent)];
-      if (sibling.isVisited) {
-        siblings.add(sibling);
-      }
+      siblings.add(sibling);
     }
     return siblings;
   }
@@ -203,20 +250,6 @@ class Expression {
       }
     }
     return true;
-  }
-
-  void setMaxRange(Value newUpper) {
-    // only set a new max if it is less than existing max(s)
-    // therefore shrinks the range.  Ignore otherwise
-    //  @todo return with error if it ends up with a range of size 0 (no solution possible)
-    range.setUpper(newUpper);
-  }
-
-  void setMinRange(Value newLower) {
-    // only set a new min if it is more than existing min(s)
-    // therefore shrinks the range.  Ignore otherwise
-    //  @todo return with error if it ends up with a range of size 0 (no solution possible)
-    range.setLower(newLower);
   }
 
   /// Find which sibling number an expression has in a proxy parent expression
@@ -287,5 +320,45 @@ class Expression {
     for (Expression child in expr.children) {
       continuePrintTree(child);
     }
+  }
+
+  String toString() {
+    switch (this.type) {
+      case "And":
+        return "&&";
+      case "Or":
+        return "||";
+      case "Equals":
+        return "==";
+      case "LTOE":
+        return "<=";
+      case "GTOE":
+        return ">=";
+      case "LessThan":
+        return "<";
+      case "GreaterThan":
+        return ">";
+      case "NotEquals":
+        return "!=";
+      case "Power":
+        return "^";
+      case "Multiply":
+        return "*";
+      case "Divide":
+        return "/";
+      case "Add":
+        return "+";
+      case "Subtract":
+        return "-";
+      case "Variable":
+        return varName;
+      case "Constant":
+        return value.stored.toString();
+    }
+    return "";
+  }
+
+  void printRange() {
+    print("${this.toString()} range is ${this.range.toString()}");
   }
 }

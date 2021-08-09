@@ -1,11 +1,12 @@
 import 'expression.dart';
 import 'values.dart';
+import 'formula.dart';
 
 class Model {
   Order order = Order();
 
   /// single list of equation roots (highest order expression)
-  List<Expression> expressions = [];
+  List<Formula> formulas = [];
 
   /// points to all of the variables in the model
   List<Expression> variables = [];
@@ -18,6 +19,10 @@ class Model {
 
   Model() {
     root = Expression.constant(this, Value.logic(true));
+  }
+
+  void addFormula(Expression expr){
+    formulas.add(Formula.expr(this,expr));
   }
 
   /// Adds variable to model if does not exist.
@@ -35,20 +40,20 @@ class Model {
   }
 
   void buildRoot() {
-    if (expressions.isEmpty) {
+    if (formulas.isEmpty) {
       return; // keep default logic true constant for root
     }
 
-    Expression andRoot = Expression.and(this);
+    Expression andRoot = Expression.solverAnd(this);
 
     Expression iterator = andRoot;
 
-    for (int i = 0; i < expressions.length; i++) {
-      expressions[i].parents.add(iterator);
-      iterator.children.add(expressions[i]);
+    for (int i = 0; i < formulas.length; i++) {
+      formulas[i].expr.parents.add(iterator);
+      iterator.children.add(formulas[i].expr);
       // even number of expressions
       if (i.isOdd) {
-        Expression newAnd = Expression.and(this);
+        Expression newAnd = Expression.solverAnd(this);
         iterator.children.add(newAnd);
         iterator = newAnd;
       }
@@ -56,13 +61,13 @@ class Model {
 
     // add a dummy true logic constant to satisfy the and expression
     // for expressions list that have odd number
-    if (expressions.length.isOdd) {
+    if (formulas.length.isOdd) {
       Expression constant = Expression.constant(this, Value.logic(true));
       constant.parents.add(iterator);
       iterator.children.add(constant);
     }
     for (int j = 0; j < iterator.children.length; j++) {
-      print("${iterator.type} with child $j as ${iterator.children[j].type}");
+      print("${iterator.type} child $j = ${iterator.children[j].type}");
     }
     root = andRoot;
   }

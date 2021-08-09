@@ -1,11 +1,10 @@
 import 'dart:math';
 
-import 'package:flutter/material.dart';
 import 'package:side_circuit/models/solver.dart';
 
 import 'port.dart';
 import 'link.dart';
-import 'equation.dart';
+import 'formula.dart';
 import 'result.dart';
 import 'model.dart';
 
@@ -88,9 +87,9 @@ class DiagramItem {
     DiagramItem?  parent;
     List<DiagramItem> children = [];
     List<Port> ports = [];
-    List<Equation> equations = [];
+    List<Formula> equations = [];
     List<Result> results = [];
-    Model? model;
+    Model model;
 
     //Data
     double xPosition = 0;
@@ -150,13 +149,8 @@ class DiagramItem {
         ports.add(newPort);
     }
 
-    void addEquation() {
-        Equation  newEquation = Equation(this.model);
-        equations.add(newEquation);
-    }
-
     void addEquationString(String equationString) {
-        Equation  newEquation = Equation.string(this.model,equationString);
+        Formula  newEquation = Formula.string(this.model,equationString);
         equations.add(newEquation);
     }
 

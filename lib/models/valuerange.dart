@@ -1,28 +1,28 @@
 import 'values.dart';
 
+/// empty values is "empty range" indicating no solution is possible
 class Range {
   List<Value> values = [];
-  bool useDiscrete = false;
 
   Range.empty();
 
-  Range.boundary(Value lower, Value upper){
+  Range.pair(Value lower, Value upper) {
     this.values.add(lower);
     this.values.add(upper);
   }
 
-  Range.num(){
-    this.values.add(Value.posInf());
+  Range.initNumber() {
     this.values.add(Value.negInf());
+    this.values.add(Value.posInf());
   }
 
-  Range.logic(){
-    this.values.add(Value.logic(true));
-    this.values.add(Value.logic(false));
+  Range.initLogic() {
+    this.values.add(Value.logicLowBound());
+    this.values.add(Value.logicHighBound());
   }
 
-  Range.copy(Range copy){
-    for(Value value in copy.values){
+  Range.copy(Range copy) {
+    for (Value value in copy.values) {
       this.values.add(Value.copy(value));
     }
   }
@@ -30,34 +30,44 @@ class Range {
   /// midpoint of the range becomes the upper bound, lower bound unchanged
   Range.splitLeft(Range rangeToSplit) {
     this.lowest = rangeToSplit.lowest; // lower bound
-    this.highest = Value.upperBound(rangeToSplit.midVal(),true);
-    if(this.useDiscrete) {
-      // @todo remove values greater than the new upper bound
-    }
+    this.highest = Value.upperBound(rangeToSplit.midVal(), true);
   }
 
   /// midpoint of the range becomes the lower bound, upper bound unchanged
   Range.splitRight(Range rangeToSplit) {
     this.highest = rangeToSplit.highest; //upper bound
-    this.lowest = Value.lowerBound(rangeToSplit.midVal(),true);
-    if(this.useDiscrete) {
-      // @todo remove values lesser than the new lower bound
-    }
+    this.lowest = Value.lowerBound(rangeToSplit.midVal(), true);
   }
 
-  Range.shiftLeft(num shift, Range toCopy){
+  Range.shiftLeft(num shift, Range toCopy) {
     values.add(Value.copyShiftLeft(shift, toCopy.highest));
     values.add(Value.copyShiftLeft(shift, toCopy.lowest));
   }
 
-  Range.satisfyAdd(Range variable, Range parent, Range sibling){
+  Range.satisfyAdd(Range variable, Range parent, Range sibling) {
     values.add(Value.subtract(parent.lowest, sibling.highest, false));
     values.add(Value.subtract(parent.highest, sibling.lowest, true));
   }
 
-  Range.singleNum(num value){
+  Range.singleNum(num value) {
     this.values.add(Value.lowerBound(value, false));
     this.values.add(Value.upperBound(value, false));
+  }
+
+  Range.upperBoundNum(num value, bool isExclusive) {
+    this.values.add(Value.upperBound(value, isExclusive));
+  }
+
+  Range.lowerBoundNum(num value, bool isExclusive) {
+    this.values.add(Value.lowerBound(value, isExclusive));
+  }
+
+  Range.singleLogic(bool value) {
+    if (value) {
+      this.values.add(Value.logicHighBound());
+    } else {
+      this.values.add(Value.logicLowBound());
+    }
   }
 
   num midVal() {
@@ -68,7 +78,7 @@ class Range {
     return this.values.first;
   }
 
-  set lowest(Value value){
+  set lowest(Value value) {
     this.values.first = value;
   }
 
@@ -76,17 +86,21 @@ class Range {
     return values.last;
   }
 
-  set highest(Value value){
+  set highest(Value value) {
     this.values.last = value;
   }
 
-  void insert(Value value){
-    if(value.isLowerThan(this.lowest)){
-      values.insert(0,value);
+  void insert(Value value) {
+    for (Value listVal in values) {
+      if (value.isSameAs(listVal)) {
+        return; // don't add duplicates
+      }
+      if (value.isBelow(listVal)) {
+        values.insert(values.indexOf(listVal), value);
+        return;
+      }
     }
-    if(value is ){
-
-    }
+    values.add(value);
   }
 
   num width() {
@@ -105,91 +119,58 @@ class Range {
     return this.highest.isLogic();
   }
 
-  void setUpper(Value newUpper) {
-    if (newUpper.isExclusive && this.highest.isExclusive) {
-      if (newUpper.stored < this.highest.stored) {
-        this.highest = newUpper;
+  /// generates list of ranges that only contain one valid upper and lower
+  /// boundary pair in each range
+  List<Range> validRanges() {
+    List<Range> ranges = [];
+    for (int i = 0; i < this.values.length; i++) {
+      int j = i + 1;
+      if (j < this.values.length) {
+        Value left = this.values[i];
+        Value right = this.values[j];
+        if (left.isLower && right.isUpper) {
+          ranges.add(Range.pair(left, right));
+        }
       }
     }
-    if (newUpper.isNotExclusive && this.highest.isNotExclusive) {
-      if (newUpper.stored < this.highest.stored) {
-        this.highest = newUpper;
-      }
-    }
-    if (newUpper.isExclusive && this.highest.isNotExclusive) {
-      if (newUpper.stored <= this.highest.stored) {
-        this.highest = newUpper;
-      }
-    }
-    if (newUpper.isNotExclusive && this.highest.isExclusive) {
-      if (newUpper.stored < this.highest.stored) {
-        this.highest = newUpper;
-      }
-    }
+    return ranges;
   }
 
-  void setLower(Value newLower) {
-    if (newLower.isExclusive && this.lowest.isExclusive) {
-      if (newLower.stored > this.lowest.stored) {
-        this.lowest = newLower;
-      }
-    }
-    if (newLower.isNotExclusive && this.lowest.isNotExclusive) {
-      if (newLower.stored > this.lowest.stored) {
-        this.lowest = newLower;
-      }
-    }
-    if (newLower.isExclusive && this.lowest.isNotExclusive) {
-      if (newLower.stored >= this.lowest.stored) {
-        this.lowest = newLower;
-      }
-    }
-    if (newLower.isNotExclusive && this.lowest.isExclusive) {
-      if (newLower.stored > this.lowest.stored) {
-        this.lowest = newLower;
-      }
-    }
-  }
-
-  bool contains(var value) {
-    if (value is bool) {
-      return value;
+  bool contains(Value value) {
+    if (this.isEmpty) {
+      return false;
     }
 
-    //print("${this.lower.value.value}<${value}<${this.upper.value.value}");
-    // otherwise value is num
-    if (this.lowest.isNotExclusive && this.highest.isNotExclusive) {
-      if ((this.lowest.stored <= value) &&
-          (value <= this.highest.stored)) {
-        return true;
+    if (value.isLogic()) {
+      if (this.values.length == 1) {
+        return this.values[0].boundaryContains(value);
+      }
+
+      if (this.values.length == 2) {
+        return value.stored;
+      }
+    } else {
+      assert(this.values.length > 1, "range too small for num type");
+
+      for (int i = 1; i < values.length; i++) {
+        Value left = values[i - 1];
+        Value right = values[i];
+
+        if (left.boundaryContains(value) && right.boundaryContains(value)) {
+          return true;
+        }
       }
     }
-    if (this.lowest.isNotExclusive && this.highest.isExclusive) {
-      if ((this.lowest.stored <= value) &&
-          (value < this.highest.stored)) {
-        return true;
-      }
-    }
-    if (this.lowest.isExclusive && this.highest.isNotExclusive) {
-      if ((this.lowest.stored < value) &&
-          (value <= this.highest.stored)) {
-        return true;
-      }
-    }
-    if (this.lowest.isExclusive && this.highest.isExclusive) {
-      if ((this.lowest.stored < value) &&
-          (value < this.highest.stored)) {
-        return true;
-      }
-    }
+
     return false;
   }
 
-  printRange(){
-    String rangeString = "{";
-    for(Value value in values) {
-      rangeString += value.valueString();
+  String toString() {
+    String rangeString = "{ ";
+    for (Value value in values) {
+      rangeString += value.toString() + ", ";
     }
     rangeString += "}";
+    return rangeString;
   }
 }
