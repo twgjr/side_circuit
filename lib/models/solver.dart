@@ -14,12 +14,12 @@ class Solver {
     model.buildRoot();
     model.root!.printTree();
 
-    // simplify formulas with constants
-    for (Expression constant in model.constants) {
-      if (!propagateValue(constant)) {
-        return false;
-      }
-    }
+    // // simplify formulas with constants
+    // for (Expression constant in model.constants) {
+    //   if (!propagate(constant)) {
+    //     return false;
+    //   }
+    // }
 
     // generate the list of unvisited variables
     for (Expression variable in model.variables) {
@@ -33,13 +33,22 @@ class Solver {
 
     // begin attempt to set variables to satisfy formulas
     Expression firstVariable = unvisitedVars[0];
-    return checkVariable(firstVariable, 0);
+    // save the state of the range in case need to reset after trying all
+    // ranges.
+    Range saveRange = firstVariable.range;
+    if(check(firstVariable, 0)){
+      return true;
+    } else {
+      firstVariable.range = saveRange;
+      firstVariable.isVisited = false;
+      return false;
+    }
   }
 
   /// checkVariable sets a variable, then propagates that variable up the tree
   /// return false if any variable does not satisfy a formula
   /// return true if variable and following variables resulted in SAT
-  bool checkVariable(Expression variable, int varNum) {
+  bool check(Expression variable, int varNum) {
     print(
         "checking variable = ${variable.varName}, isLogic = ${variable.valueIsLogic()}");
 
@@ -48,19 +57,15 @@ class Solver {
       variable.value.stored = true;
       variable.isVisited = true;
       print("set logic variable to ${variable.value.stored}");
-      if (propagateValue(variable)) {
-        if (checkNextVariable(variable, varNum)) {
+      if (propagate(variable, varNum)) {
           return true;
-        }
       }
 
       variable.value.stored = false;
       variable.isVisited = true;
       print("set logic variable to ${variable.value.stored}");
-      if (propagateValue(variable)) {
-        if (checkNextVariable(variable, varNum)) {
+      if (propagate(variable, varNum)) {
           return true;
-        }
       }
     } else {
       // identify a range that satisfies all parents and siblings
@@ -82,23 +87,41 @@ class Solver {
         // set the value based on the sat range
         variable.setNearTarget();
         print("set variable nearest target ${variable.value.stored}");
-        if (propagateValue(variable)) {
-          if (checkNextVariable(variable, varNum)) {
-            return true;
-          }
+        if (propagate(variable, varNum)) {
+          return true;
+        }
+
+        variable.setMin();
+        print("set variable to min = ${variable.value.stored}");
+        if (propagate(variable, varNum)) {
+          return true;
+        }
+
+        variable.setMax();
+        print("set variable nearest target ${variable.value.stored}");
+        if (propagate(variable, varNum)) {
+          return true;
         }
       }
     }
+
     // all attempts failed, return unsat
     return false;
   }
 
-  bool checkNextVariable(Expression variable, int varNum) {
+  bool checkNext(int nextVarNum) {
     // variable was set, check next variable
-    if (varNum + 1 < unvisitedVars.length) {
+    if ( nextVarNum < unvisitedVars.length) {
       // another variable was available, check it
-      Expression nextVariable = unvisitedVars[varNum + 1];
-      return checkVariable(nextVariable, varNum + 1);
+      Expression nextVariable = unvisitedVars[nextVarNum];
+      Range saveRange = nextVariable.range;
+      if(check(nextVariable, nextVarNum)) {
+        return true;
+      } else {
+        nextVariable.range = saveRange;
+        nextVariable.isVisited = false;
+        return false;
+      }
     }
     return true;
   }
@@ -108,39 +131,72 @@ class Solver {
   ///         and populate propRange with a range that would satisfy all parents
   /// true = was able to set all expressions that were ready to be set
   ///        or reached an expression that was not ready to be set
-  bool propagateValue(Expression expr) {
+  bool propagate(Expression expr, int currentVarNum) {
+    // update sat ranges of siblings of expr after setting expr value
+    // save any ranges before updating for later resetting if unsat
+    List<Range> saveRanges = [];
+    List<Expression> siblingsVisited = [];
     for (Expression parent in expr.parents) {
-      if (parent.allChildrenAreVisited()) {
-        if (evaluateChildren(parent)) {
-          // branch up and attempt to propagate the parent
-          if (!propagateValue(parent)) {
-            return false;
+      for (Expression child in parent.children) {
+        if (child.isNotVisited) {
+          saveRanges.add(child.range);
+          siblingsVisited.add(child);
+
+          Range range = satRange(child);
+          if (range.isEmpty) {
+            assert(false,"invalid empty range");
           }
-        } else {
-          // could not set parent with given children
-          expr.isVisited = false; // reset visited label
-          return false;
-        }
-      } else {
-        // attempt to make any siblings satisfy the expression's new value
-        // identify a range that satisfies all parents and siblings
-        // if empty range returned, then cannot satisfy, return unsat
-        for (Expression child in parent.children) {
-          if (child.isNotVisited) {
-            Range range = satRange(child);
-            if (range.isEmpty) {
-              return false;
-            }
-            for (Value value in range.values) {
-              child.range.insert(value);
-            }
-            child.printRange();
+          for (Value value in range.values) {
+            child.range.insert(value);
           }
         }
       }
     }
-    //if it successfully attempted to propagate without an unsat, return true
-    return true;
+
+    // check if any parents can be evaluated after setting expr value
+    for (Expression parent in expr.parents) {
+      if (parent.allChildrenAreVisited()) {
+        if (evaluateChildren(parent)) {
+          if (parent.isVisited) {
+            // branch up and attempt to propagate the parent
+            if (!propagate(parent,currentVarNum)) {
+              parent.isVisited = false;
+              // reset visited children ranges
+              for (int i = 0; i < siblingsVisited.length; i++) {
+                siblingsVisited[i].range = saveRanges[i];
+                siblingsVisited[i].isVisited = false;
+              }
+              return false;
+            }
+          }
+        } else {
+          // could not set parent with given children, expr value is bad
+          expr.isVisited = false; // reset visited label
+          // reset visited children ranges
+          for (int i = 0; i < siblingsVisited.length; i++) {
+            siblingsVisited[i].range = saveRanges[i];
+            siblingsVisited[i].isVisited = false;
+          }
+          return false;
+        }
+      }
+    }
+
+    // reaching this point means all possible propagation was either sat or
+    // terminated well to the point of checking the next variable.
+    if (checkNext(currentVarNum+1)) {
+      return true;
+    } else {
+      // reset the expr that is being propagated in this scope, then continue
+      // backtracking for each past call to propagate, restoring ranges
+      expr.isVisited = false;
+      // reset visited sibling ranges
+      for (int i = 0; i < siblingsVisited.length; i++) {
+        siblingsVisited[i].range = saveRanges[i];
+        siblingsVisited[i].isVisited = false;
+      }
+      return false;
+    }
   }
 
   bool evaluateChildren(Expression expr) {
@@ -169,8 +225,7 @@ class Solver {
         break;
     }
 
-    if (tempVal.isLogic()) {
-    }
+    if (tempVal.isLogic()) {}
 
     if (expr.range.contains(tempVal)) {
       expr.isVisited = true;
@@ -203,7 +258,6 @@ class Solver {
   Range singleSatRange(Expression variable, Expression parent) {
     int sibIndex = variable.siblingIndex(parent);
     Expression sibling = parent.children[sibIndex];
-    sibling.printRange();
     if (sibling.isVisited) {
       return withSibVal(variable, parent, sibling);
     } else {
@@ -221,18 +275,18 @@ class Solver {
         return Range.shiftLeft(sibVal, parent.range);
       case "LessThan":
         {
-          if(variable.isLeftChildOf(parent)) {
-            return Range.upperBoundNum(sibVal,true);
+          if (variable.isLeftChildOf(parent)) {
+            return Range.upperBoundNum(sibVal, true);
           } else {
-            return Range.lowerBoundNum(sibVal,true);
+            return Range.lowerBoundNum(sibVal, true);
           }
         }
       case "GreaterThan":
         {
-          if(variable.isLeftChildOf(parent)) {
-            return Range.lowerBoundNum(sibVal,true);
+          if (variable.isLeftChildOf(parent)) {
+            return Range.lowerBoundNum(sibVal, true);
           } else {
-            return Range.upperBoundNum(sibVal,true);
+            return Range.upperBoundNum(sibVal, true);
           }
         }
     }
@@ -249,18 +303,18 @@ class Solver {
         return Range.satisfyAdd(variable.range, parent.range, sibling.range);
       case "LessThan":
         {
-          if(variable.isLeftChildOf(parent)) {
-            return Range.upperBoundNum(sibling.range.highest.stored,true);
+          if (variable.isLeftChildOf(parent)) {
+            return Range.upperBoundNum(sibling.range.highest.stored, true);
           } else {
-            return Range.lowerBoundNum(sibling.range.lowest.stored,true);
+            return Range.lowerBoundNum(sibling.range.lowest.stored, true);
           }
         }
       case "GreaterThan":
         {
-          if(variable.isLeftChildOf(parent)) {
-            return Range.lowerBoundNum(sibling.range.lowest.stored,true);
+          if (variable.isLeftChildOf(parent)) {
+            return Range.lowerBoundNum(sibling.range.lowest.stored, true);
           } else {
-            return Range.upperBoundNum(sibling.range.highest.stored,true);
+            return Range.upperBoundNum(sibling.range.highest.stored, true);
           }
         }
     }
