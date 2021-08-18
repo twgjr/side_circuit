@@ -136,6 +136,14 @@ class Range {
     return ranges;
   }
 
+  Range closestTo(Value value){
+    List<Range> validPairs = this.validRanges();
+    Range range = Range.empty();
+    for (Range pair in validPairs) {
+    }
+    return range;
+  }
+
   bool contains(Value value) {
     if (this.isEmpty) {
       return false;

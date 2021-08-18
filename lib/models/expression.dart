@@ -114,45 +114,60 @@ class Expression {
     return !this.isVisited;
   }
 
-  void setNearTarget() {
-    bool upperContains = this.range.highest.boundaryContains(this.target!);
-    bool lowerContains = this.range.lowest.boundaryContains(this.target!);
-    if( this.range.width() > 1) {
-      if (lowerContains && upperContains) {
-        this.value = this.target!;
-      } else if (!lowerContains && upperContains) {
-        if (this.range.lowest.isExclusive) {
-          this.value.stored = this.range.lowest.stored + 1;
-        } else {
-          this.value.stored = this.range.lowest.stored;
-        }
-      } else if (lowerContains && !upperContains) {
-        if (this.range.highest.isExclusive) {
-          this.value.stored = this.range.highest.stored - 1;
-        } else {
-          this.value.stored = this.range.highest.stored;
-        }
+  /// find value nearest target, return if value possible, false if not
+  bool setNearTarget() {
+    if(this.valueIsLogic()){
+      if(this.target){
       }
-    } else {
-      this.value.stored = this.range.midVal();
     }
-    this.isVisited = true;
+
+    // choose valid range pair closest to target
+    Range closestRange = this.range.closestTo(this.target!);
+    if (closestRange.contains(this.target!)) {
+      this.value = this.target!;
+      return true;
+    }
+
+    if (closestRange.isNotEmpty) {
+      bool upperContains = closestRange.highest.boundaryContains(this.target!);
+      bool lowerContains = closestRange.lowest.boundaryContains(this.target!);
+      if (closestRange.width() > 1) {
+        if (!lowerContains && upperContains) {
+          if (closestRange.lowest.isExclusive) {
+            this.value.stored = closestRange.lowest.stored + 1;
+          } else {
+            this.value.stored = closestRange.lowest.stored;
+          }
+        } else if (lowerContains && !upperContains) {
+          if (this.range.highest.isExclusive) {
+            this.value.stored = closestRange.highest.stored - 1;
+          } else {
+            this.value.stored = closestRange.highest.stored;
+          }
+        }
+      } else {
+        this.value.stored = closestRange.midVal();
+      }
+      return true;
+    } else {
+      return false;
+    }
   }
 
-  void setMid() {
-    this.value.stored = this.range.midVal();
-    this.isVisited = true;
-  }
-
-  void setMax() {
-    this.value.stored = this.range.highest.stored;
-    this.isVisited = true;
-  }
-
-  void setMin() {
-    this.value.stored = this.range.lowest.stored;
-    this.isVisited = true;
-  }
+  // void setMid() {
+  //   this.value.stored = this.range.midVal();
+  //   this.isVisited = true;
+  // }
+  //
+  // void setMax() {
+  //   this.value.stored = this.range.highest.stored;
+  //   this.isVisited = true;
+  // }
+  //
+  // void setMin() {
+  //   this.value.stored = this.range.lowest.stored;
+  //   this.isVisited = true;
+  // }
 
   bool valueIsLogic() {
     return this.type == "And" ||
@@ -181,6 +196,7 @@ class Expression {
   }
 
   bool isConstant() => this.type == "Constant";
+  bool isNotConstant() => this.type != "Constant";
 
   bool isVariable() => this.type == "Variable";
 

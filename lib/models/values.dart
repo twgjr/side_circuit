@@ -154,6 +154,11 @@ class Value {
     return this.stored == value.stored && this._state == value._state;
   }
 
+  bool isCloserToThan(Value value, Value other){
+    assert(value.isNumber() && other.isNumber());
+    
+  }
+
   bool boundaryContains(Value value) {
     assert(
         this.isBoundary && value.isValue, "must compare a boundary to a value");
