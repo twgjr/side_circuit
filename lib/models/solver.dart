@@ -7,6 +7,7 @@ class Solver {
   Order order = Order();
   Model model;
   List<Expression> unvisitedVars = [];
+  Set queue = Set();
 
   Solver(this.model);
 
@@ -26,10 +27,10 @@ class Solver {
 
     // start checking with the first variable
     Expression firstVariable = unvisitedVars[0];
-    if (check(firstVariable, Expression.empty(this.model))) {
+    if (check(firstVariable)) {
       return true; // SAT
     } else {
-      if (check(firstVariable, Expression.empty(this.model))) {
+      if (reviseAndCheck(firstVariable, firstVariable)) {
         return true; // SAT
       } else {
         firstVariable.isVisited = false;
@@ -41,180 +42,148 @@ class Solver {
   /// checkVariable sets a variable, then propagates that variable up the tree
   /// return false if any variable does not satisfy a formula
   /// return true if variable and following variables resulted in SAT
-  bool check(Expression expr, Expression source) {
-    expr.isVisited = true;
+  bool check(Expression expr) {
+    print("visiting ${expr.type}");
 
     // visit the first unvisited child
     for (Expression child in expr.children) {
+      if (child.isConstant()) {
+        print("not visiting constant ${child.toString()}");
+      }
       if (child.isNotVisited) {
-        return continueCheck(child, source);
+        this.queue.add(expr);
+        if (check(child)) {
+          return true;
+        } else {
+          return reviseAndCheck(expr, child);
+        }
       }
     }
 
-    // set value if not a constant
-    if (expr.isVariable()) {
-      expr.setNearTarget();
-    } else if(expr.isNotConstant()){
-      return evaluateChildren(expr);
+    // set value after reaching all children, ignoring constant
+    if (!setValue(expr)) {
+      return false;
     }
 
     // visit the first unvisited parent
+    List<Expression> unvisitedParents = [];
     for (Expression parent in expr.parents) {
       if (parent.isNotVisited) {
-        return continueCheck(parent, source);
+        unvisitedParents.add(parent);
+      }
+    }
+    if (unvisitedParents.isEmpty) {
+      expr.isVisited = true;
+    } else {
+      if (unvisitedParents.length == 1) {
+        expr.isVisited = true;
+      } else {
+        this.queue.add(expr);
+      }
+      if (check(unvisitedParents.first)) {
+        return true;
+      } else {
+        return reviseAndCheck(expr, unvisitedParents.first);
       }
     }
 
-    // no more unvisited parents or children, call back to source
-    return continueCheck(source, expr);
-  }
+    // remove this expr from the queue if it was added
+    if (this.queue.remove(expr)) {
+      print("removed ${expr.toString()} from queue");
+    }
 
-  bool continueCheck(Expression expr, Expression source){
-    if (check(expr, source)) {
+    if (this.queue.isEmpty) {
+      // no more in queue = solve complete sat
+      expr.printExpr();
+
       return true;
     } else {
-      if(expr.isNotConstant()) {
-        Range range = satRange(expr);
-        if (range.isEmpty) {
-          return false;
-        }
-        for (Value value in range.values) {
-          expr.range.insert(value);
-        }
-      }
-      if (expr.isVariable()) {
-        expr.setNearTarget();
-      }
-      if (check(expr, expr)) {
+      // call the next item on the queue with unvisited paths
+      Expression queueExpr = this.queue.last;
+      print("Checking queued ${queueExpr.toString()}");
+      if (check(queueExpr)) {
         return true;
       } else {
-        expr.isVisited = false;
+        return reviseAndCheck(expr, queueExpr);
+      }
+    }
+  }
+
+  bool reviseAndCheck(Expression expr, Expression next) {
+    print("revising ${expr.toString()}");
+    expr.range.clear();
+    Range insertSatRange = satRange(expr);
+    print("revised range is ${insertSatRange.toString()}");
+    if(insertSatRange.isNotEmpty) {
+      expr.insert(insertSatRange);
+      expr.printRange();
+    } else {
+      return false;
+    }
+    if (expr.isVariable()) {
+      // only set variables after revising sat range
+      if (!setValue(expr)) {
+        return false;
+      }
+    } else {
+      // continue backtracking otherwise
+      return false;
+    }
+    if (check(next)) {
+      return true;
+    } else {
+      print("failed to check child ${next.toString()}");
+      return false;
+    }
+  }
+
+  bool setValue(Expression expr) {
+    if (expr.isVariable()) {
+      if (!expr.setNearTarget()) {
+        return false;
+      }
+      expr.printExpr();
+      return true;
+    } else if (expr.isNotConstant()) {
+      if (evaluateChildren(expr)) {
+        print(
+            "evaluated ${expr.toString()} to ${expr.value.toString()} from ${expr.range.toString()}");
+        return true;
+      } else {
+        print(
+            "failed to evaluate ${expr.toString()} to ${expr.value.toString()} from ${expr.range.toString()}");
         return false;
       }
     }
+    return false;
   }
 
-  // bool checkNext(int nextVarNum) {
-  //   // variable was set, check next variable
-  //   if (nextVarNum < unvisitedVars.length) {
-  //     // another variable was available, check it
-  //     Expression nextVariable = unvisitedVars[nextVarNum];
-  //     Range saveRange = nextVariable.range;
-  //     if (check(nextVariable, nextVarNum)) {
-  //       return true;
-  //     } else {
-  //       nextVariable.range = saveRange;
-  //       nextVariable.isVisited = false;
-  //       return false;
-  //     }
-  //   }
-  //   return true;
-  // }
-
-  // /// assumes expr is already set
-  // /// false = failure to set a value that was ready to be set (not sat)
-  // ///         and populate propRange with a range that would satisfy all parents
-  // /// true = was able to set all expressions that were ready to be set
-  // ///        or reached an expression that was not ready to be set
-  // bool propagate(Expression expr, int currentVarNum) {
-  //   // update sat ranges of siblings of expr after setting expr value
-  //   // save any ranges before updating for later resetting if unsat
-  //   List<Range> saveRanges = [];
-  //   List<Expression> siblingsVisited = [];
-  //   for (Expression parent in expr.parents) {
-  //     for (Expression child in parent.children) {
-  //       if (child.isNotVisited) {
-  //         saveRanges.add(child.range);
-  //         siblingsVisited.add(child);
-  //
-  //         Range range = satRange(child);
-  //         if (range.isEmpty) {
-  //           assert(false, "invalid empty range");
-  //         }
-  //         for (Value value in range.values) {
-  //           child.range.insert(value);
-  //         }
-  //       }
-  //     }
-  //   }
-  //
-  //   // check if any parents can be evaluated after setting expr value
-  //   for (Expression parent in expr.parents) {
-  //     if (parent.allChildrenAreVisited()) {
-  //       if (evaluateChildren(parent)) {
-  //         if (parent.isVisited) {
-  //           // branch up and attempt to propagate the parent
-  //           if (!propagate(parent, currentVarNum)) {
-  //             parent.isVisited = false;
-  //             // reset visited children ranges
-  //             for (int i = 0; i < siblingsVisited.length; i++) {
-  //               siblingsVisited[i].range = saveRanges[i];
-  //               siblingsVisited[i].isVisited = false;
-  //             }
-  //             return false;
-  //           }
-  //         }
-  //       } else {
-  //         // could not set parent with given children, expr value is bad
-  //         expr.isVisited = false; // reset visited label
-  //         // reset visited children ranges
-  //         for (int i = 0; i < siblingsVisited.length; i++) {
-  //           siblingsVisited[i].range = saveRanges[i];
-  //           siblingsVisited[i].isVisited = false;
-  //         }
-  //         return false;
-  //       }
-  //     }
-  //   }
-  //
-  //   // reaching this point means all possible propagation was either sat or
-  //   // terminated well to the point of checking the next variable.
-  //   if (checkNext(currentVarNum + 1)) {
-  //     return true;
-  //   } else {
-  //     // reset the expr that is being propagated in this scope, then continue
-  //     // backtracking for each past call to propagate, restoring ranges
-  //     expr.isVisited = false;
-  //     // reset visited sibling ranges
-  //     for (int i = 0; i < siblingsVisited.length; i++) {
-  //       siblingsVisited[i].range = saveRanges[i];
-  //       siblingsVisited[i].isVisited = false;
-  //     }
-  //     return false;
-  //   }
-  // }
-
   bool evaluateChildren(Expression expr) {
-    Value tempVal;
     switch (expr.type) {
       case "Add":
-        tempVal = expr.children[0].value + expr.children[1].value;
+        expr.value = expr.children[0].value + expr.children[1].value;
         break;
       case "And":
-        tempVal = expr.children[0].value.and(expr.children[1].value);
+        expr.value = expr.children[0].value.and(expr.children[1].value);
         break;
       case "Or":
-        tempVal = expr.children[0].value.or(expr.children[1].value);
+        expr.value = expr.children[0].value.or(expr.children[1].value);
         break;
       case "Equals":
-        tempVal = expr.children[0].value.equals(expr.children[1].value);
+        expr.value = expr.children[0].value.equals(expr.children[1].value);
         break;
       case "LessThan":
-        tempVal = expr.children[0].value < expr.children[1].value;
+        expr.value = expr.children[0].value < expr.children[1].value;
         break;
       case "GreaterThan":
-        tempVal = expr.children[0].value > expr.children[1].value;
+        expr.value = expr.children[0].value > expr.children[1].value;
         break;
       default:
-        tempVal = Value.logic(false);
+        expr.value = Value.logic(false);
         break;
     }
 
-    if (tempVal.isLogic()) {}
-
-    if (expr.range.contains(tempVal)) {
-      expr.isVisited = true;
-      expr.value = tempVal;
+    if (expr.range.contains(expr.value)) {
       return true;
     } else {
       return false;
@@ -254,6 +223,8 @@ class Solver {
   Range withSibVal(Expression expr, Expression parent, Expression sibling) {
     var sibVal = sibling.value.stored;
     switch (parent.type) {
+      case "And":
+        return Range.singleLogic(true);
       case "Equals":
         return Range.singleNum(sibVal);
       case "Add":
@@ -281,10 +252,12 @@ class Solver {
   /// variable must have a range that satisfies the sibling RANGE and parent range
   Range withNoSibVal(Expression expr, Expression parent, Expression sibling) {
     switch (parent.type) {
+      case "And":
+        return Range.singleLogic(true);
       case "Equals":
         return Range.copy(sibling.range);
       case "Add":
-        return Range.satisfyAdd(expr.range, parent.range, sibling.range);
+        return Range.satisfyAdd(parent.range, sibling.range);
       case "LessThan":
         {
           if (expr.isLeftChildOf(parent)) {

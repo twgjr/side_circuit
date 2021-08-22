@@ -128,6 +128,58 @@ class Value {
     return !this.isBoundary;
   }
 
+  void flipBoundary() {
+    switch (this._state) {
+      case (ValueState.UpperExclusive):
+        {
+          this._state = ValueState.LowerExclusive;
+          break;
+        }
+      case (ValueState.Upper):
+        {
+          this._state = ValueState.Lower;
+          break;
+        }
+      case (ValueState.LowerExclusive):
+        {
+          this._state = ValueState.UpperExclusive;
+          break;
+        }
+      case (ValueState.Lower):
+        {
+          this._state = ValueState.Upper;
+          break;
+        }
+      case (ValueState.UpperExclusive):
+        {
+          assert(false);
+          break;
+        }
+    }
+  }
+
+  /// for comparing value to boundary
+  bool valueIsAboveUpper(Value boundary) {
+    assert(this.isValue && boundary.isBoundary,
+        "must compare a value to boundary");
+    if (boundary.isExclusive) {
+      return this.stored > boundary.stored;
+    } else {
+      return this.stored >= boundary.stored;
+    }
+  }
+
+  /// for comparing value to boundary
+  bool valueIsBelowLower(Value boundary) {
+    assert(this.isValue && boundary.isBoundary,
+    "must compare a value to boundary");
+    if (boundary.isExclusive) {
+      return this.stored > boundary.stored;
+    } else {
+      return this.stored >= boundary.stored;
+    }
+  }
+
   /// for comparing boundaries
   bool isAbove(Value boundary) {
     assert(
@@ -152,11 +204,6 @@ class Value {
 
   bool isSameAs(Value value) {
     return this.stored == value.stored && this._state == value._state;
-  }
-
-  bool isCloserToThan(Value value, Value other){
-    assert(value.isNumber() && other.isNumber());
-    
   }
 
   bool boundaryContains(Value value) {

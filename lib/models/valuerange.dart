@@ -27,24 +27,16 @@ class Range {
     }
   }
 
-  /// midpoint of the range becomes the upper bound, lower bound unchanged
-  Range.splitLeft(Range rangeToSplit) {
-    this.lowest = rangeToSplit.lowest; // lower bound
-    this.highest = Value.upperBound(rangeToSplit.midVal(), true);
-  }
-
-  /// midpoint of the range becomes the lower bound, upper bound unchanged
-  Range.splitRight(Range rangeToSplit) {
-    this.highest = rangeToSplit.highest; //upper bound
-    this.lowest = Value.lowerBound(rangeToSplit.midVal(), true);
-  }
-
   Range.shiftLeft(num shift, Range toCopy) {
-    values.add(Value.copyShiftLeft(shift, toCopy.highest));
-    values.add(Value.copyShiftLeft(shift, toCopy.lowest));
+    Value newLower = Value.copyShiftLeft(shift, toCopy.highest);
+    Value newUpper = Value.copyShiftLeft(shift, toCopy.lowest);
+    newLower.flipBoundary();
+    newUpper.flipBoundary();
+    values.add(newLower);
+    values.add(newUpper);
   }
 
-  Range.satisfyAdd(Range variable, Range parent, Range sibling) {
+  Range.satisfyAdd(Range parent, Range sibling) {
     values.add(Value.subtract(parent.lowest, sibling.highest, false));
     values.add(Value.subtract(parent.highest, sibling.lowest, true));
   }
@@ -55,11 +47,13 @@ class Range {
   }
 
   Range.upperBoundNum(num value, bool isExclusive) {
+    this.values.add(Value.negInf());
     this.values.add(Value.upperBound(value, isExclusive));
   }
 
   Range.lowerBoundNum(num value, bool isExclusive) {
     this.values.add(Value.lowerBound(value, isExclusive));
+    this.values.add(Value.posInf());
   }
 
   Range.singleLogic(bool value) {
@@ -92,9 +86,6 @@ class Range {
 
   void insert(Value value) {
     for (Value listVal in values) {
-      if (value.isSameAs(listVal)) {
-        return; // don't add duplicates
-      }
       if (value.isBelow(listVal)) {
         values.insert(values.indexOf(listVal), value);
         return;
@@ -138,10 +129,16 @@ class Range {
 
   Range closestTo(Value value){
     List<Range> validPairs = this.validRanges();
-    Range range = Range.empty();
     for (Range pair in validPairs) {
+      if(pair.contains(value)){
+        return pair;
+      }
     }
-    return range;
+    return Range.empty();
+  }
+
+  void clear(){
+    this.values = [];
   }
 
   bool contains(Value value) {
@@ -150,13 +147,12 @@ class Range {
     }
 
     if (value.isLogic()) {
-      if (this.values.length == 1) {
-        return this.values[0].boundaryContains(value);
+      for(Value val in this.values) {
+        if (val.stored == value.stored) {
+          return true;
+        }
       }
-
-      if (this.values.length == 2) {
-        return value.stored;
-      }
+      return false;
     } else {
       assert(this.values.length > 1, "range too small for num type");
 
