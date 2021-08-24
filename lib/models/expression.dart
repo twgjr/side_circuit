@@ -27,6 +27,7 @@ class Order {
 /// elements of the abstract syntax tree of a equation and it's sub-elements
 class Expression {
   bool isVisited = false;
+  List<Expression> parentQueue = [];
   String varName = "";
   Value value;
   String type = ""; // as defined in Order.list
@@ -72,6 +73,13 @@ class Expression {
       : this.value = Value.empty(),
         this.range = Range.singleLogic(true) {
     this.type = "And";
+  }
+
+  void setupQueue(){
+    for(Expression parent in parents){
+      parentQueue.add(parent);
+      parent.setupQueue();
+    }
   }
 
   /// find index of the sibling of this expression under the given parent
@@ -175,6 +183,10 @@ class Expression {
     }
   }
 
+  bool isEmpty(){
+    return this.range.isEmpty;
+  }
+
   bool valueIsLogic() {
     return this.type == "And" ||
         this.type == "Or" ||
@@ -206,6 +218,7 @@ class Expression {
   bool isNotConstant() => this.type != "Constant";
 
   bool isVariable() => this.type == "Variable";
+  bool isNotVariable() => !this.isVariable();
 
   /// looks at surrounding expression to determine whether a variable is a logic
   /// or a number kind.  Default to number kind if cannot determine.

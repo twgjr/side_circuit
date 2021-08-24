@@ -30,8 +30,8 @@ class Range {
   Range.shiftLeft(num shift, Range toCopy) {
     Value newLower = Value.copyShiftLeft(shift, toCopy.highest);
     Value newUpper = Value.copyShiftLeft(shift, toCopy.lowest);
-    newLower.flipBoundary();
-    newUpper.flipBoundary();
+    //newLower.flipBoundary();
+    //newUpper.flipBoundary();
     values.add(newLower);
     values.add(newUpper);
   }

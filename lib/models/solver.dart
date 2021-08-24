@@ -6,27 +6,29 @@ import 'valuerange.dart';
 class Solver {
   Order order = Order();
   Model model;
-  List<Expression> unvisitedVars = [];
-  Set queue = Set();
+  List<Expression> variables = [];
+  int index = 0;
+  List<Expression> queue = [];
 
   Solver(this.model);
 
   bool solve() {
     model.buildRoot();
-    model.root!.printTree();
+    //model.root!.printTree();
 
     // generate the list of unvisited variables
     for (Expression variable in model.variables) {
       if (!variable.isVisited) {
-        unvisitedVars.add(variable);
+        this.variables.add(variable);
+        variable.setupQueue();
       }
     }
-    if (unvisitedVars.isEmpty) {
+    if (this.variables.isEmpty) {
       return true;
     }
 
     // start checking with the first variable
-    Expression firstVariable = unvisitedVars[0];
+    Expression firstVariable = this.variables[index];
     if (check(firstVariable)) {
       return true; // SAT
     } else {
@@ -39,82 +41,88 @@ class Solver {
     }
   }
 
+  Expression getNext() {
+    // first go back to variables that were already started
+    if (this.queue.isNotEmpty) {
+      return this.queue.removeLast();
+    }
+    // if no more pending variables, grab a fresh one from the list
+    if ((this.index + 1) < this.variables.length) {
+      index += 1;
+      return variables[index];
+    } else {
+      return Expression.empty(this.model);
+    }
+  }
+
   /// checkVariable sets a variable, then propagates that variable up the tree
   /// return false if any variable does not satisfy a formula
   /// return true if variable and following variables resulted in SAT
   bool check(Expression expr) {
     print("visiting ${expr.type}");
 
-    // visit the first unvisited child
+    // check if an expression can be evaluated
+    // if not, go back to the last variable on the queue with unvisited parents
+    // if no variables on the unvisited parents queue, then grab the next
+    // variable on the unvisited variables queue
     for (Expression child in expr.children) {
-      if (child.isConstant()) {
-        print("not visiting constant ${child.toString()}");
-      }
       if (child.isNotVisited) {
-        this.queue.add(expr);
-        if (check(child)) {
+        Expression nextExpr = this.getNext();
+        if (nextExpr.isEmpty()) {
+          return true;
+        }
+        if (check(nextExpr)) {
           return true;
         } else {
-          return reviseAndCheck(expr, child);
+          return reviseAndCheck(expr, nextExpr);
         }
       }
     }
 
     // set value after reaching all children, ignoring constant
-    if (!setValue(expr)) {
-      return false;
+    // this evaluates an operator or chooses a variable value
+    // only do the first time visiting an expression
+    if(expr.parentQueue.length == expr.parents.length) {
+      if (!setValue(expr)) {
+        return false;
+      }
     }
 
-    // visit the first unvisited parent
-    List<Expression> unvisitedParents = [];
-    for (Expression parent in expr.parents) {
-      if (parent.isNotVisited) {
-        unvisitedParents.add(parent);
-      }
-    }
-    if (unvisitedParents.isEmpty) {
-      expr.isVisited = true;
+    // add expr to queue if it will have a parent left to visit
+    if (expr.parentQueue.length > 1) {
+      this.queue.add(expr);
     } else {
-      if (unvisitedParents.length == 1) {
-        expr.isVisited = true;
-      } else {
-        this.queue.add(expr);
-      }
-      if (check(unvisitedParents.first)) {
+      expr.isVisited = true;
+    }
+
+    if(expr.parentQueue.isNotEmpty) {
+      Expression nextParent = expr.parentQueue.removeLast();
+      if (check(nextParent)) {
         return true;
       } else {
-        return reviseAndCheck(expr, unvisitedParents.first);
+        return reviseAndCheck(expr, nextParent);
       }
     }
 
-    // remove this expr from the queue if it was added
-    if (this.queue.remove(expr)) {
-      print("removed ${expr.toString()} from queue");
+    Expression nextExpr = this.getNext();
+    if (nextExpr.isEmpty()) {
+      return true;
     }
-
-    if (this.queue.isEmpty) {
-      // no more in queue = solve complete sat
-      expr.printExpr();
-
+    if (check(nextExpr)) {
       return true;
     } else {
-      // call the next item on the queue with unvisited paths
-      Expression queueExpr = this.queue.last;
-      print("Checking queued ${queueExpr.toString()}");
-      if (check(queueExpr)) {
-        return true;
-      } else {
-        return reviseAndCheck(expr, queueExpr);
-      }
+      return reviseAndCheck(expr, nextExpr);
     }
   }
 
   bool reviseAndCheck(Expression expr, Expression next) {
     print("revising ${expr.toString()}");
-    expr.range.clear();
+    if(expr.isNotVariable()) {
+      expr.range.clear();
+    }
     Range insertSatRange = satRange(expr);
     print("revised range is ${insertSatRange.toString()}");
-    if(insertSatRange.isNotEmpty) {
+    if (insertSatRange.isNotEmpty) {
       expr.insert(insertSatRange);
       expr.printRange();
     } else {
@@ -132,7 +140,7 @@ class Solver {
     if (check(next)) {
       return true;
     } else {
-      print("failed to check child ${next.toString()}");
+      print("failed to check ${next.toString()}");
       return false;
     }
   }
@@ -155,6 +163,7 @@ class Solver {
         return false;
       }
     }
+    assert(false,"reach unknown state");
     return false;
   }
 
