@@ -75,10 +75,14 @@ class Expression {
     this.type = "And";
   }
 
-  void setupQueue(){
-    for(Expression parent in parents){
-      parentQueue.add(parent);
-      parent.setupQueue();
+  void setupQueue() {
+    if (this.parentQueue.isEmpty) {
+      for (Expression parent in this.parents) {
+        this.parentQueue.add(parent);
+        print(
+            "added ${parent.toString()} to parent queue of ${this.toString()}");
+        parent.setupQueue();
+      }
     }
   }
 
@@ -144,11 +148,11 @@ class Expression {
     // choose valid range pair closest to target
     if (validRange.contains(this.target!)) {
       this.value = this.target!;
-    } else if(this.target!.stored == validRange.lowest.stored){
+    } else if (this.target!.stored == validRange.lowest.stored) {
       this.setMin(validRange);
-    } else if(this.target!.stored == validRange.highest.stored){
+    } else if (this.target!.stored == validRange.highest.stored) {
       this.setMax(validRange);
-    } else if(this.target!.stored > validRange.highest.stored){
+    } else if (this.target!.stored > validRange.highest.stored) {
       this.setMax(validRange);
     } else {
       this.setMin(validRange);
@@ -183,8 +187,12 @@ class Expression {
     }
   }
 
-  bool isEmpty(){
+  bool isEmpty() {
     return this.range.isEmpty;
+  }
+
+  bool isNotEmpty() {
+    return !this.isEmpty();
   }
 
   bool valueIsLogic() {
@@ -218,6 +226,7 @@ class Expression {
   bool isNotConstant() => this.type != "Constant";
 
   bool isVariable() => this.type == "Variable";
+
   bool isNotVariable() => !this.isVariable();
 
   /// looks at surrounding expression to determine whether a variable is a logic
@@ -336,7 +345,8 @@ class Expression {
         "0,"
         "${this.type},"
         "${this.varName},"
-        "${this.model!.variables.indexOf(this)}");
+        "${this.model!.variables.indexOf(this)},"
+        "${this.range.toString()}");
     for (Expression child in this.children) {
       continuePrintTree(child);
     }
@@ -352,7 +362,8 @@ class Expression {
         "${expr.breadth(expr.parents[0])},"
         "${expr.type},"
         "${expr.varName},"
-        "${this.model!.variables.indexOf(expr)}");
+        "${this.model!.variables.indexOf(expr)},"
+        "${this.range.toString()}");
     for (Expression child in expr.children) {
       continuePrintTree(child);
     }

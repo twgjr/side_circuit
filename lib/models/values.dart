@@ -150,7 +150,7 @@ class Value {
           this._state = ValueState.Upper;
           break;
         }
-      case (ValueState.UpperExclusive):
+      case (ValueState.Value):
         {
           assert(false);
           break;

@@ -7,14 +7,15 @@ class Solver {
   Order order = Order();
   Model model;
   List<Expression> variables = [];
-  int index = 0;
+
+  // for returning to parents that had unvisited children
   List<Expression> queue = [];
 
   Solver(this.model);
 
   bool solve() {
     model.buildRoot();
-    //model.root!.printTree();
+    model.root!.printTree();
 
     // generate the list of unvisited variables
     for (Expression variable in model.variables) {
@@ -26,13 +27,18 @@ class Solver {
     if (this.variables.isEmpty) {
       return true;
     }
+    for (Expression variable in this.variables) {
+      for (Expression parent in variable.parents) {
+        print("${parent.toString()} is parent of ${variable.toString()}");
+      }
+    }
 
     // start checking with the first variable
-    Expression firstVariable = this.variables[index];
-    if (check(firstVariable)) {
+    Expression firstVariable = this.variables[0];
+    if (check(firstVariable, 0)) {
       return true; // SAT
     } else {
-      if (reviseAndCheck(firstVariable, firstVariable)) {
+      if (reviseAndCheck(firstVariable, firstVariable, 0)) {
         return true; // SAT
       } else {
         firstVariable.isVisited = false;
@@ -41,15 +47,14 @@ class Solver {
     }
   }
 
-  Expression getNext() {
-    // first go back to variables that were already started
-    if (this.queue.isNotEmpty) {
+  Expression getNext(int currentVarNum) {
+    // first grab the next variable from the list
+    if ((currentVarNum + 1) < this.variables.length) {
+      currentVarNum += 1;
+      return variables[currentVarNum];
+    } else if (this.queue.isNotEmpty) {
+      print("removing ${queue.last.toString()} from queue");
       return this.queue.removeLast();
-    }
-    // if no more pending variables, grab a fresh one from the list
-    if ((this.index + 1) < this.variables.length) {
-      index += 1;
-      return variables[index];
     } else {
       return Expression.empty(this.model);
     }
@@ -58,74 +63,80 @@ class Solver {
   /// checkVariable sets a variable, then propagates that variable up the tree
   /// return false if any variable does not satisfy a formula
   /// return true if variable and following variables resulted in SAT
-  bool check(Expression expr) {
+  bool check(Expression expr, int currentVarNum) {
     print("visiting ${expr.type}");
 
-    // check if an expression can be evaluated
-    // if not, go back to the last variable on the queue with unvisited parents
-    // if no variables on the unvisited parents queue, then grab the next
-    // variable on the unvisited variables queue
     for (Expression child in expr.children) {
       if (child.isNotVisited) {
-        Expression nextExpr = this.getNext();
-        if (nextExpr.isEmpty()) {
-          return true;
-        }
-        if (check(nextExpr)) {
-          return true;
-        } else {
-          return reviseAndCheck(expr, nextExpr);
-        }
+        this.queue.add(expr);
+        Expression nextExpr = this.getNext(currentVarNum);
+        if (nextExpr.isNotEmpty()) {
+          if (check(nextExpr, currentVarNum + 1)) {
+            return true;
+          } else {
+            nextExpr.isVisited = false;
+            return reviseAndCheck(expr, nextExpr, currentVarNum + 1);
+          }
+        }  // if empty,then keep on with this expr
       }
     }
 
-    // set value after reaching all children, ignoring constant
-    // this evaluates an operator or chooses a variable value
-    // only do the first time visiting an expression
-    if(expr.parentQueue.length == expr.parents.length) {
+    // set value after reaching all children
+    if (expr.parentQueue.length == expr.parents.length) {
       if (!setValue(expr)) {
         return false;
       }
     }
 
-    // add expr to queue if it will have a parent left to visit
+    // add expr to queue if it will have a parent left to visit after getting
+    // the next parent
     if (expr.parentQueue.length > 1) {
+      print("adding ${expr.toString()} to queue");
       this.queue.add(expr);
     } else {
+      // don't need to come back to this expr
+      print("marking ${expr.toString()} visited");
+      while(this.queue.remove(expr)){} //remove all expr from queue
       expr.isVisited = true;
     }
 
-    if(expr.parentQueue.isNotEmpty) {
+    if (expr.parentQueue.isNotEmpty) {
       Expression nextParent = expr.parentQueue.removeLast();
-      if (check(nextParent)) {
+      if (check(nextParent, currentVarNum)) {
         return true;
       } else {
-        return reviseAndCheck(expr, nextParent);
+        nextParent.isVisited = false;
+        expr.parentQueue.add(nextParent);
+        return reviseAndCheck(expr, nextParent, currentVarNum);
       }
     }
 
-    Expression nextExpr = this.getNext();
-    if (nextExpr.isEmpty()) {
-      return true;
+    Expression nextExpr = this.getNext(currentVarNum);
+    if (nextExpr.isNotEmpty()) {
+      if (check(nextExpr, currentVarNum + 1)) {
+        return true;
+      } else {
+        nextExpr.isVisited = false;
+        return reviseAndCheck(expr, nextExpr, currentVarNum + 1);
+      }
     }
-    if (check(nextExpr)) {
-      return true;
-    } else {
-      return reviseAndCheck(expr, nextExpr);
-    }
+    return true;
   }
 
-  bool reviseAndCheck(Expression expr, Expression next) {
+  bool reviseAndCheck(Expression expr, Expression next, int varNum) {
     print("revising ${expr.toString()}");
-    if(expr.isNotVariable()) {
+    if (expr.isNotVariable() & expr.parents.isNotEmpty) {
+      print("clearing range of ${expr.type}");
       expr.range.clear();
     }
     Range insertSatRange = satRange(expr);
     print("revised range is ${insertSatRange.toString()}");
+    print("revised range is empty: ${insertSatRange.isEmpty}");
     if (insertSatRange.isNotEmpty) {
       expr.insert(insertSatRange);
       expr.printRange();
     } else {
+      print("range not revised: range is ${expr.range.toString()}");
       return false;
     }
     if (expr.isVariable()) {
@@ -137,7 +148,7 @@ class Solver {
       // continue backtracking otherwise
       return false;
     }
-    if (check(next)) {
+    if (check(next, varNum)) {
       return true;
     } else {
       print("failed to check ${next.toString()}");
@@ -163,7 +174,7 @@ class Solver {
         return false;
       }
     }
-    assert(false,"reach unknown state");
+    assert(false, "reach unknown state");
     return false;
   }
 

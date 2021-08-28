@@ -28,10 +28,15 @@ class Range {
   }
 
   Range.shiftLeft(num shift, Range toCopy) {
-    Value newLower = Value.copyShiftLeft(shift, toCopy.highest);
-    Value newUpper = Value.copyShiftLeft(shift, toCopy.lowest);
-    //newLower.flipBoundary();
-    //newUpper.flipBoundary();
+    Value newLower;
+    Value newUpper;
+    if(toCopy.highest.equals(toCopy.lowest).stored) {
+      newLower = Value.copy(toCopy.lowest);
+      newUpper = Value.copy(toCopy.highest);
+    } else {
+      newLower = Value.copyShiftLeft(shift, toCopy.highest);
+      newUpper = Value.copyShiftLeft(shift, toCopy.lowest);
+    }
     values.add(newLower);
     values.add(newUpper);
   }
