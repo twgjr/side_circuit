@@ -26,8 +26,7 @@ class Order {
 
 /// elements of the abstract syntax tree of a equation and it's sub-elements
 class Expression {
-  bool isVisited = false;
-  List<Expression> parentQueue = [];
+  List<Expression> parentEdges = [];
   String varName = "";
   Value value;
   String type = ""; // as defined in Order.list
@@ -47,7 +46,6 @@ class Expression {
         this.range = Range.empty() {
     this.type = "Constant";
     this._target = val;
-    this.isVisited = true;
     if (this.value.isLogic()) {
       this.range = Range.singleLogic(val.stored);
     } else {
@@ -75,10 +73,40 @@ class Expression {
     this.type = "And";
   }
 
-  void setupQueue() {
-    if (this.parentQueue.isEmpty) {
+  bool isRoot(){
+    return this.parents.length == 0;
+  }
+  bool isNotRoot(){
+    return !this.isRoot();
+  }
+
+  bool isReady() {
+    for(Expression child in this.children) {
+      for(Expression parent in child.parentEdges) {
+        if (parent == this) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  bool isNotReady(){
+    return !this.isReady();
+  }
+
+  void resetEdges() {
+    if (this.parentEdges.isEmpty) {
       for (Expression parent in this.parents) {
-        this.parentQueue.add(parent);
+        this.parentEdges.add(parent);
+      }
+    }
+  }
+
+  void setupQueue() {
+    if (this.parentEdges.isEmpty) {
+      for (Expression parent in this.parents) {
+        this.parentEdges.add(parent);
         print(
             "added ${parent.toString()} to parent queue of ${this.toString()}");
         parent.setupQueue();
@@ -120,10 +148,6 @@ class Expression {
       }
     }
     return this._target;
-  }
-
-  bool get isNotVisited {
-    return !this.isVisited;
   }
 
   void insert(Range insertRange) {
@@ -286,15 +310,6 @@ class Expression {
       siblings.add(sibling);
     }
     return siblings;
-  }
-
-  bool allChildrenAreVisited() {
-    for (Expression child in this.children) {
-      if (!child.isVisited || (child.value.stored == null)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   /// Find which sibling number an expression has in a proxy parent expression

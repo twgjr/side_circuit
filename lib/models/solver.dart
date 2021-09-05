@@ -7,9 +7,10 @@ class Solver {
   Order order = Order();
   Model model;
   List<Expression> variables = [];
-
-  // for returning to parents that had unvisited children
-  List<Expression> queue = [];
+  List<Expression> visited = [];
+  List<Expression> backtracks = [];
+  Expression head = Expression.empty(null);
+  bool isBackTracking = false;
 
   Solver(this.model);
 
@@ -18,159 +19,120 @@ class Solver {
     model.root!.printTree();
 
     // generate the list of unvisited variables
-    for (Expression variable in model.variables) {
-      if (!variable.isVisited) {
-        this.variables.add(variable);
-        variable.setupQueue();
-      }
+    for (Expression item in model.variables) {
+      this.variables.add(item);
+      item.setupQueue();
     }
+
     if (this.variables.isEmpty) {
       return true;
     }
-    for (Expression variable in this.variables) {
-      for (Expression parent in variable.parents) {
-        print("${parent.toString()} is parent of ${variable.toString()}");
-      }
-    }
 
-    // start checking with the first variable
-    Expression firstVariable = this.variables[0];
-    if (check(firstVariable, 0)) {
-      return true; // SAT
-    } else {
-      if (reviseAndCheck(firstVariable, firstVariable, 0)) {
-        return true; // SAT
-      } else {
-        firstVariable.isVisited = false;
-        return false; // UNSAT
-      }
-    }
+    return check();
   }
 
-  Expression getNext(int currentVarNum) {
-    // first grab the next variable from the list
-    if ((currentVarNum + 1) < this.variables.length) {
-      currentVarNum += 1;
-      return variables[currentVarNum];
-    } else if (this.queue.isNotEmpty) {
-      print("removing ${queue.last.toString()} from queue");
-      return this.queue.removeLast();
-    } else {
-      return Expression.empty(this.model);
-    }
-  }
+  bool check() {
+    this.head = this.variables.last;
 
-  /// checkVariable sets a variable, then propagates that variable up the tree
-  /// return false if any variable does not satisfy a formula
-  /// return true if variable and following variables resulted in SAT
-  bool check(Expression expr, int currentVarNum) {
-    print("visiting ${expr.type}");
+    while (true) {
+      if (this.head.isVariable()) {
+        if (this.head.parentEdges.length <= 1 && this.variables.isNotEmpty) {
+          // no more parents to come back and evaluate later, remove it
+          this.variables.removeLast();
+        }
+      }
 
-    for (Expression child in expr.children) {
-      if (child.isNotVisited) {
-        this.queue.add(expr);
-        Expression nextExpr = this.getNext(currentVarNum);
-        if (nextExpr.isNotEmpty()) {
-          if (check(nextExpr, currentVarNum + 1)) {
-            return true;
-          } else {
-            nextExpr.isVisited = false;
-            return reviseAndCheck(expr, nextExpr, currentVarNum + 1);
+      if (this.isBackTracking) {
+        if (this.backtracks.contains(this.head)) {
+          if (this.head.isVariable()) {
+            this.backtracks.clear(); // reset variable backtrack log
+            this.variables.add(head); // reset this variable
+            print("BT var, visited list = ${this.visited.length}");
           }
-        }  // if empty,then keep on with this expr
+          if (this.head.isNotRoot()) {}
+        } else {
+          this.backtracks.add(this.head);
+          if (this.head.isVariable()) {
+            this.variables.add(head); // reset this variable
+            this.isBackTracking = false;
+          }
+          if (this.head.isNotRoot()) {
+            this.revise();
+            this.head.resetEdges();
+          }
+        }
+        if(this.visited.isNotEmpty) {
+          this.head = this.visited.removeLast();
+          print("removed from visited: ${this.head.toString()}");
+          print("BT visited list = ${this.visited.length}");
+        }
+        continue;
+      }
+
+      print("visiting ${this.head.toString()}");
+      this.visited.add(this.head);
+      print("visited list = ${this.visited.length}");
+
+      // only evaluate expressions with children that have been set
+      if (this.head.isNotReady()) {
+        //grab next variable to visit
+        if(this.variables.isNotEmpty) {
+          this.head = this.variables.last;
+        }
+        continue;
+      }
+
+      // all children visited at this point, set variable or evaluate expr
+      if (!setValue()) {
+        //start backtracking
+        this.isBackTracking = true;
+        continue;
+      }
+
+      // go to the head's parent
+      if (this.head.parentEdges.isNotEmpty) {
+        this.head = this.head.parentEdges.removeLast();
+        continue;
+      } else {
+        // reached the root with sat result
+        return true;
       }
     }
+  }
 
-    // set value after reaching all children
-    if (expr.parentQueue.length == expr.parents.length) {
-      if (!setValue(expr)) {
-        return false;
-      }
+  bool revise() {
+    print("revising ${this.head.toString()}");
+    if (this.head.isNotVariable() & this.head.parents.isNotEmpty) {
+      print("clearing range of ${this.head.type}");
+      this.head.range.clear();
     }
-
-    // add expr to queue if it will have a parent left to visit after getting
-    // the next parent
-    if (expr.parentQueue.length > 1) {
-      print("adding ${expr.toString()} to queue");
-      this.queue.add(expr);
+    Range insertSatRange = satRange();
+    print("revised range is ${insertSatRange.toString()}");
+    if (insertSatRange.isNotEmpty) {
+      this.head.insert(insertSatRange);
+      this.head.printRange();
     } else {
-      // don't need to come back to this expr
-      print("marking ${expr.toString()} visited");
-      while(this.queue.remove(expr)){} //remove all expr from queue
-      expr.isVisited = true;
-    }
-
-    if (expr.parentQueue.isNotEmpty) {
-      Expression nextParent = expr.parentQueue.removeLast();
-      if (check(nextParent, currentVarNum)) {
-        return true;
-      } else {
-        nextParent.isVisited = false;
-        expr.parentQueue.add(nextParent);
-        return reviseAndCheck(expr, nextParent, currentVarNum);
-      }
-    }
-
-    Expression nextExpr = this.getNext(currentVarNum);
-    if (nextExpr.isNotEmpty()) {
-      if (check(nextExpr, currentVarNum + 1)) {
-        return true;
-      } else {
-        nextExpr.isVisited = false;
-        return reviseAndCheck(expr, nextExpr, currentVarNum + 1);
-      }
+      print("range not revised: range is ${this.head.range.toString()}");
+      return false;
     }
     return true;
   }
 
-  bool reviseAndCheck(Expression expr, Expression next, int varNum) {
-    print("revising ${expr.toString()}");
-    if (expr.isNotVariable() & expr.parents.isNotEmpty) {
-      print("clearing range of ${expr.type}");
-      expr.range.clear();
-    }
-    Range insertSatRange = satRange(expr);
-    print("revised range is ${insertSatRange.toString()}");
-    print("revised range is empty: ${insertSatRange.isEmpty}");
-    if (insertSatRange.isNotEmpty) {
-      expr.insert(insertSatRange);
-      expr.printRange();
-    } else {
-      print("range not revised: range is ${expr.range.toString()}");
-      return false;
-    }
-    if (expr.isVariable()) {
-      // only set variables after revising sat range
-      if (!setValue(expr)) {
+  bool setValue() {
+    if (this.head.isVariable()) {
+      if (!this.head.setNearTarget()) {
         return false;
       }
-    } else {
-      // continue backtracking otherwise
-      return false;
-    }
-    if (check(next, varNum)) {
+      this.head.printExpr();
       return true;
-    } else {
-      print("failed to check ${next.toString()}");
-      return false;
-    }
-  }
-
-  bool setValue(Expression expr) {
-    if (expr.isVariable()) {
-      if (!expr.setNearTarget()) {
-        return false;
-      }
-      expr.printExpr();
-      return true;
-    } else if (expr.isNotConstant()) {
-      if (evaluateChildren(expr)) {
+    } else if (this.head.isNotConstant()) {
+      if (evaluateChildren()) {
         print(
-            "evaluated ${expr.toString()} to ${expr.value.toString()} from ${expr.range.toString()}");
+            "evaluated ${this.head.toString()} to ${this.head.value.toString()} from ${this.head.range.toString()}");
         return true;
       } else {
         print(
-            "failed to evaluate ${expr.toString()} to ${expr.value.toString()} from ${expr.range.toString()}");
+            "failed to evaluate ${this.head.toString()} to ${this.head.value.toString()} from ${this.head.range.toString()}");
         return false;
       }
     }
@@ -178,32 +140,38 @@ class Solver {
     return false;
   }
 
-  bool evaluateChildren(Expression expr) {
-    switch (expr.type) {
+  bool evaluateChildren() {
+    switch (this.head.type) {
       case "Add":
-        expr.value = expr.children[0].value + expr.children[1].value;
+        this.head.value =
+            this.head.children[0].value + this.head.children[1].value;
         break;
       case "And":
-        expr.value = expr.children[0].value.and(expr.children[1].value);
+        this.head.value =
+            this.head.children[0].value.and(this.head.children[1].value);
         break;
       case "Or":
-        expr.value = expr.children[0].value.or(expr.children[1].value);
+        this.head.value =
+            this.head.children[0].value.or(this.head.children[1].value);
         break;
       case "Equals":
-        expr.value = expr.children[0].value.equals(expr.children[1].value);
+        this.head.value =
+            this.head.children[0].value.equals(this.head.children[1].value);
         break;
       case "LessThan":
-        expr.value = expr.children[0].value < expr.children[1].value;
+        this.head.value =
+            this.head.children[0].value < this.head.children[1].value;
         break;
       case "GreaterThan":
-        expr.value = expr.children[0].value > expr.children[1].value;
+        this.head.value =
+            this.head.children[0].value > this.head.children[1].value;
         break;
       default:
-        expr.value = Value.logic(false);
+        this.head.value = Value.logic(false);
         break;
     }
 
-    if (expr.range.contains(expr.value)) {
+    if (this.head.range.contains(this.head.value)) {
       return true;
     } else {
       return false;
@@ -213,10 +181,10 @@ class Solver {
   /// return the range of the given expression that satisfies its immediate
   /// parent(s) and sibling(s).  If cannot satisfy any single expression,
   /// return the empty range
-  Range satRange(Expression expr) {
+  Range satRange() {
     Range satRange = Range.empty();
-    for (Expression parent in expr.parents) {
-      Range newRange = singleSatRange(expr, parent);
+    for (Expression parent in this.head.parents) {
+      Range newRange = singleSatRange(this.head, parent);
       if (newRange.isEmpty) {
         return newRange;
       }
@@ -232,7 +200,7 @@ class Solver {
   Range singleSatRange(Expression expr, Expression parent) {
     int sibIndex = expr.siblingIndex(parent);
     Expression sibling = parent.children[sibIndex];
-    if (sibling.isVisited) {
+    if (sibling.isReady()) {
       return withSibVal(expr, parent, sibling);
     } else {
       return withNoSibVal(expr, parent, sibling);
