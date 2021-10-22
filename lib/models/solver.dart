@@ -35,68 +35,85 @@ class Solver {
     this.head = this.variables.last;
 
     while (true) {
-      if (this.head.isVariable()) {
-        if (this.head.parentEdges.length <= 1 && this.variables.isNotEmpty) {
-          // no more parents to come back and evaluate later, remove it
-          this.variables.removeLast();
-        }
-      }
-
       if (this.isBackTracking) {
-        if (this.backtracks.contains(this.head)) {
-          if (this.head.isVariable()) {
-            this.backtracks.clear(); // reset variable backtrack log
-            this.variables.add(head); // reset this variable
-            print("BT var, visited list = ${this.visited.length}");
-          }
-          if (this.head.isNotRoot()) {}
-        } else {
-          this.backtracks.add(this.head);
-          if (this.head.isVariable()) {
-            this.variables.add(head); // reset this variable
-            this.isBackTracking = false;
-          }
-          if (this.head.isNotRoot()) {
-            this.revise();
-            this.head.resetEdges();
-          }
-        }
-        if(this.visited.isNotEmpty) {
-          this.head = this.visited.removeLast();
-          print("removed from visited: ${this.head.toString()}");
-          print("BT visited list = ${this.visited.length}");
-        }
+        this.backtrack();
         continue;
       }
 
       print("visiting ${this.head.toString()}");
       this.visited.add(this.head);
-      print("visited list = ${this.visited.length}");
+
+      if (this.head.isVariable()) {
+        if (this.head.edges.length <= 1 && this.variables.isNotEmpty) {
+          // no more parents to come back and evaluate later, remove it
+          this.variables.removeLast();
+        }
+      }
 
       // only evaluate expressions with children that have been set
       if (this.head.isNotReady()) {
+        print('not ready. ${this.head.children[0].toString()}-edges=${this.head.children[0].edges.length},'
+            ' ${this.head.children[1].toString()}-edges=${this.head.children[1].edges.length}');
         //grab next variable to visit
-        if(this.variables.isNotEmpty) {
+        if (this.variables.isNotEmpty) {
           this.head = this.variables.last;
         }
         continue;
       }
 
       // all children visited at this point, set variable or evaluate expr
-      if (!setValue()) {
-        //start backtracking
-        this.isBackTracking = true;
-        continue;
+      if (this.head.isAtFirstPass()) {
+        // only set the first time
+        if (!setValue()) {
+          // failed to set value, start backtracking
+          this.isBackTracking = true;
+          continue;
+        }
       }
 
       // go to the head's parent
-      if (this.head.parentEdges.isNotEmpty) {
-        this.head = this.head.parentEdges.removeLast();
+      if (this.head.edges.isNotEmpty) {
+        print(
+            "removing edge ${this.head.edges.last.toString()} of ${this.head.toString()}");
+        this.head = this.head.edges.removeLast();
         continue;
       } else {
         // reached the root with sat result
         return true;
       }
+    }
+  }
+
+  void backtrack() {
+    if (this.head.isVariable()) {
+      this.backtracks.add(this.head);
+      if (this.backtracks.length > this.head.parents.length) {
+        // already attempted to revise this variable, backtrack next variable
+        this.backtracks.clear();
+        this.variables.add(head); // reset this variable
+        print("added ${this.head.toString()} to variables");
+      } else if (this.backtracks.length == this.head.parents.length) {
+        // ready to attempt revise the variable
+        this.revise();
+        this.variables.add(head); // reset this variable
+        this.isBackTracking = false;
+        return;
+      }
+    } else {
+      if (this.head.isNotRoot()) {
+        this.revise();
+      }
+    }
+    // continue backtracking
+    if (this.visited.isNotEmpty) {
+      // add current head to edges of next head from visited list
+      if (this.visited.last.parents.contains(this.head)) {
+        this.visited.last.edges.add(this.head);
+        print(
+            "adding edge ${this.head.toString()} to ${this.visited.last.toString()}");
+      }
+      this.head = this.visited.removeLast();
+      print("removed from visited: ${this.head.toString()}");
     }
   }
 
@@ -126,7 +143,7 @@ class Solver {
       this.head.printExpr();
       return true;
     } else if (this.head.isNotConstant()) {
-      if (evaluateChildren()) {
+      if (evaluate()) {
         print(
             "evaluated ${this.head.toString()} to ${this.head.value.toString()} from ${this.head.range.toString()}");
         return true;
@@ -140,7 +157,7 @@ class Solver {
     return false;
   }
 
-  bool evaluateChildren() {
+  bool evaluate() {
     switch (this.head.type) {
       case "Add":
         this.head.value =

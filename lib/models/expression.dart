@@ -26,7 +26,7 @@ class Order {
 
 /// elements of the abstract syntax tree of a equation and it's sub-elements
 class Expression {
-  List<Expression> parentEdges = [];
+  List<Expression> edges = [];
   String varName = "";
   Value value;
   String type = ""; // as defined in Order.list
@@ -80,9 +80,13 @@ class Expression {
     return !this.isRoot();
   }
 
+  bool isAtFirstPass() {
+    return this.edges.length == this.parents.length;
+  }
+
   bool isReady() {
     for(Expression child in this.children) {
-      for(Expression parent in child.parentEdges) {
+      for(Expression parent in child.edges) {
         if (parent == this) {
           return false;
         }
@@ -95,18 +99,18 @@ class Expression {
     return !this.isReady();
   }
 
-  void resetEdges() {
-    if (this.parentEdges.isEmpty) {
-      for (Expression parent in this.parents) {
-        this.parentEdges.add(parent);
-      }
-    }
-  }
+  // void resetEdges() {
+  //   if (this.edges.isEmpty) {
+  //     for (Expression parent in this.parents) {
+  //       this.edges.add(parent);
+  //     }
+  //   }
+  // }
 
   void setupQueue() {
-    if (this.parentEdges.isEmpty) {
+    if (this.edges.isEmpty) {
       for (Expression parent in this.parents) {
-        this.parentEdges.add(parent);
+        this.edges.add(parent);
         print(
             "added ${parent.toString()} to parent queue of ${this.toString()}");
         parent.setupQueue();
