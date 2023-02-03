@@ -309,19 +309,24 @@ class Input():
     def y(self):
         pass
 
-    def prop_tensors(self):
+    def init_tensors(self):
         num_elem = self.circuit.num_elements()
         num_nodes = self.circuit.num_nodes()
         pot_tensor,_ = self.circuit.extract_nodes()
         pot_tensor = pot_tensor.reshape(num_nodes,1)
-        _,element_attr,_ = self.circuit.extract_elements()
-        i_tensor = element_attr[:,Props.I.value].reshape(num_elem,1)
-        v_tensor = element_attr[:,Props.V.value].reshape(num_elem,1)
-        attr_tensor = element_attr[:,Props.Attr.value].reshape(num_elem,1)
+        _,element_props,_ = self.circuit.extract_elements()
+        # shape inputs
+        i_tensor = element_props[:,Props.I.value].reshape(num_elem,1)
+        v_tensor = element_props[:,Props.V.value].reshape(num_elem,1)
+        attr_tensor = element_props[:,Props.Attr.value].reshape(num_elem,1)
+        # init unknown attr
+        _,_,_,attr_mask = self.known_masks()
+        attr_mask = attr_mask.to(torch.bool)
+        attr_tensor[~attr_mask] = 1
         return i_tensor, v_tensor, pot_tensor, attr_tensor
 
-    def element_row(self):
-        _,_,_,element_attrs = self.prop_tensors()
+    def element_row(self, element_attrs):
+        # _,_,_,element_attrs = self.init_tensors()
         mask_rz,mask_ry,mask_sy = self.rs_mask(self.kind_map())
         z_r = mask_rz * -element_attrs
         y_r = mask_ry
@@ -330,7 +335,7 @@ class Input():
         return row
 
     def s(self):
-        _,_,_,element_attrs = self.prop_tensors()
+        _,_,_,element_attrs = self.init_tensors()
         kind_map = self.kind_map()
         # i_src = None
         s = torch.zeros_like(element_attrs)
