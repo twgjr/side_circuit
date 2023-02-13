@@ -1,7 +1,9 @@
 import networkx as nx
 from enum import Enum
 import torch
+import torch.nn as nn
 import random
+import statistics as stats
 
 class Kinds(Enum):
     IVS = 0
@@ -270,14 +272,25 @@ class Input():
 
         return is_r_mask_z, is_r_mask_y, is_s_mask_y
 
-    def init_tensors(self):
+    def init_params(self):
         num_elem = self.circuit.num_elements()
         num_nodes = self.circuit.num_nodes()
         pot_tensor = torch.rand(size=(num_nodes,1))
         i_tensor = torch.tensor(self.inputs_map[Props.I]).reshape(num_elem,1)
         v_tensor = torch.tensor(self.inputs_map[Props.V]).reshape(num_elem,1)
         attr_tensor = torch.tensor(self.inputs_map[Props.Attr]).reshape(num_elem,1)
-        return i_tensor, v_tensor, pot_tensor, attr_tensor
+        v_param = nn.Parameter(v_tensor)
+        i_param = nn.Parameter(i_tensor)
+        pot_param = nn.Parameter(pot_tensor)
+        attr_param = nn.Parameter(attr_tensor)
+        return (i_param, v_param, pot_param, attr_param)
+
+    def get_stats(self):
+        inputs_list = []
+        for key in self.inputs_map:
+            for item in self.inputs_map[key]:
+                inputs_list.append(item)
+        return max(inputs_list)
 
     def element_row(self, element_attrs):
         mask_rz,mask_ry,mask_sy = self.rs_mask(self.kind_map())
@@ -288,7 +301,7 @@ class Input():
         return row
 
     def s(self):
-        _,_,_,element_attrs = self.init_tensors()
+        _,_,_,element_attrs = self.init_params()
         kind_map = self.kind_map()
         s = torch.zeros_like(element_attrs)
         v_bool = kind_map[Kinds.IVS.value].to(torch.bool)
