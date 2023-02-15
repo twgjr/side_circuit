@@ -13,7 +13,8 @@ class Kinds(Enum):
 class Props(Enum):
     I = 0
     V = 1
-    Attr = 2
+    Pot = 2
+    Attr = 3
 
 class Circuit():
     def __init__(self) -> None:
@@ -87,9 +88,9 @@ class Circuit():
         inputs map is {prop type: list(float)} boolean list in same order as circuit
         kinds map is {prop type: list(bool)} boolean list in same order as circuit
         '''
-        inputs_map = {}
-        knowns_map = {}
-        kinds_map = {}
+        inputs_map: dict[Props,list[float]] = {}
+        knowns_map: dict[Props,list[float]] = {}
+        kinds_map: dict[Props,list[float]] = {}
 
         for kind in Kinds:
             kinds_map[kind] = []
@@ -109,19 +110,21 @@ class Circuit():
 
             for prop in Props:
                 value = None
-                if(prop == Props.Attr):
-                    value = element.attr
-                elif(prop == Props.I):
+                if(prop == Props.I):
                     if(element.kind == Kinds.ICS):
                         value = element.attr
                     else:
                         value = element.i
                 elif(prop == Props.V):
-                    print(element.kind)
                     if(element.kind == Kinds.IVS):
                         value = element.attr
                     else:
                         value = element.v
+                elif(prop == Props.Pot):
+                    pass
+                elif(prop == Props.Attr):
+                    value = element.attr
+                
                 else:
                     assert()
 
@@ -238,6 +241,7 @@ class Input():
     def __init__(self, circuit:Circuit) -> None:
         self.circuit = circuit
         self.M = self.circuit.M()
+        self.M_red = self.M[:-1,:]
         self.kinds_map, self.inputs_map, self.knowns_map = self.circuit.extract_elements()
 
     def get_col(self,tensor:torch.Tensor,column:torch.Tensor):
@@ -245,29 +249,32 @@ class Input():
          boolean mask'''
         return tensor[:,column].reshape(self.circuit.num_elements(),1)
 
-    def rs_mask(self, kind_map):
+    def rs_mask(self):
         num_elem = self.circuit.num_elements()
+        num_nodes = self.circuit.num_nodes()
         
-        s_mask = kind_map[Kinds.IVS]
+        s_mask = torch.tensor(self.kinds_map[Kinds.IVS]).to(torch.float)
+        s_mask = s_mask.reshape(s_mask.size(dim=0),1)
         is_s_mask_m = s_mask @ s_mask.T
         is_s_mask_y = torch.cat(tensors= (
                             torch.zeros(size=(num_elem,num_elem)),
                             is_s_mask_m,
-                            torch.zeros(size=(num_elem,num_elem))
+                            torch.zeros(size=(num_elem,num_nodes-1))
                         ),dim=1)
 
-        r_mask = kind_map[Kinds.R]
+        r_mask = torch.tensor(self.kinds_map[Kinds.R]).to(torch.float)
+        r_mask = r_mask.reshape(r_mask.size(dim=0),1)
         is_r_mask_m = r_mask @ r_mask.T
         is_r_mask_z = torch.cat(tensors= (
                             is_r_mask_m,
                             torch.zeros(size=(num_elem,num_elem)),
-                            torch.zeros(size=(num_elem,num_elem)),
+                            torch.zeros(size=(num_elem,num_nodes-1)),
                         ),dim=1)
 
         is_r_mask_y = torch.cat(tensors= (
                             torch.zeros(size=(num_elem,num_elem)),
                             is_r_mask_m,
-                            torch.zeros(size=(num_elem,num_elem))
+                            torch.zeros(size=(num_elem,num_nodes-1))
                         ),dim=1)
 
         return is_r_mask_z, is_r_mask_y, is_s_mask_y
@@ -293,20 +300,21 @@ class Input():
         return max(inputs_list)
 
     def element_row(self, element_attrs):
-        mask_rz,mask_ry,mask_sy = self.rs_mask(self.kind_map())
+        mask_rz,mask_ry,mask_sy = self.rs_mask()
         z_r = mask_rz * -element_attrs
         y_r = mask_ry
         y_s = mask_sy
         row = z_r + y_r + y_s
         return row
 
-    def s(self):
-        _,_,_,element_attrs = self.init_params()
-        kind_map = self.kind_map()
-        s = torch.zeros_like(element_attrs)
-        v_bool = kind_map[Kinds.IVS.value].to(torch.bool)
-        v_src = element_attrs[v_bool].unsqueeze(dim=1)
-        s[v_bool] = v_src
+    def s(self,element_attrs:nn.Parameter):
+        s = torch.zeros(element_attrs.size(dim=0))
+        s_v = element_attrs[self.kinds_map[Kinds.IVS]]
+        s_i = element_attrs[self.kinds_map[Kinds.ICS]]
+        if(s_v.nelement() > 0):
+            s[self.kinds_map[Kinds.IVS]] = element_attrs[self.kinds_map[Kinds.IVS]]
+        if(s_i.nelement() > 0):
+            s[self.kinds_map[Kinds.ICS]] = element_attrs[self.kinds_map[Kinds.ICS]]
         return s
 
     def num_elements(self):
