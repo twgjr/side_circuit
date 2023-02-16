@@ -243,41 +243,35 @@ class Input():
         self.M = self.circuit.M()
         self.M_red = self.M[:-1,:]
         self.kinds_map, self.inputs_map, self.knowns_map = self.circuit.extract_elements()
-
-    def get_col(self,tensor:torch.Tensor,column:torch.Tensor):
-        '''returns any 1D column of elements from a 2D tensor given a 1 D column
-         boolean mask'''
-        return tensor[:,column].reshape(self.circuit.num_elements(),1)
-
-    def rs_mask(self):
+    
+    def is_kind_t(self, kind_list:list[float]):
+        num_elements = self.circuit.num_elements()
+        eye = torch.eye(num_elements)
+        kind_matrix = torch.tensor(kind_list).reshape(num_elements,1).to(torch.float)
+        kind_mask =  kind_matrix @ kind_matrix.T * eye
+        return kind_mask
+    
+    def X_r(self, element_attrs):
         num_elem = self.circuit.num_elements()
         num_nodes = self.circuit.num_nodes()
-        
-        s_mask = torch.tensor(self.kinds_map[Kinds.IVS]).to(torch.float)
-        s_mask = s_mask.reshape(s_mask.size(dim=0),1)
-        is_s_mask_m = s_mask @ s_mask.T
-        is_s_mask_y = torch.cat(tensors= (
+        is_r_mask_m = self.is_kind_t(self.kinds_map[Kinds.R])
+        X_mask = torch.cat(tensors= (
+                            - is_r_mask_m * element_attrs,
+                            is_r_mask_m,
+                            torch.zeros(size=(num_elem,num_nodes-1)),
+                        ),dim=1)
+        return X_mask
+    
+    def X_ivs(self):
+        num_elem = self.circuit.num_elements()
+        num_nodes = self.circuit.num_nodes()
+        is_s_mask_m = self.is_kind_t(self.kinds_map[Kinds.IVS])
+        X_mask = torch.cat(tensors= (
                             torch.zeros(size=(num_elem,num_elem)),
                             is_s_mask_m,
                             torch.zeros(size=(num_elem,num_nodes-1))
                         ),dim=1)
-
-        r_mask = torch.tensor(self.kinds_map[Kinds.R]).to(torch.float)
-        r_mask = r_mask.reshape(r_mask.size(dim=0),1)
-        is_r_mask_m = r_mask @ r_mask.T
-        is_r_mask_z = torch.cat(tensors= (
-                            is_r_mask_m,
-                            torch.zeros(size=(num_elem,num_elem)),
-                            torch.zeros(size=(num_elem,num_nodes-1)),
-                        ),dim=1)
-
-        is_r_mask_y = torch.cat(tensors= (
-                            torch.zeros(size=(num_elem,num_elem)),
-                            is_r_mask_m,
-                            torch.zeros(size=(num_elem,num_nodes-1))
-                        ),dim=1)
-
-        return is_r_mask_z, is_r_mask_y, is_s_mask_y
+        return X_mask
 
     def init_params(self):
         num_elem = self.circuit.num_elements()
@@ -292,20 +286,9 @@ class Input():
         attr_param = nn.Parameter(attr_tensor)
         return (i_param, v_param, pot_param, attr_param)
 
-    def get_stats(self):
-        inputs_list = []
-        for key in self.inputs_map:
-            for item in self.inputs_map[key]:
-                inputs_list.append(item)
-        return max(inputs_list)
-
-    def element_row(self, element_attrs):
-        mask_rz,mask_ry,mask_sy = self.rs_mask()
-        z_r = mask_rz * -element_attrs
-        y_r = mask_ry
-        y_s = mask_sy
-        row = z_r + y_r + y_s
-        return row
+    def X_row(self, element_attrs):
+        X = self.X_r(element_attrs) + self.X_ivs()
+        return X
 
     def s(self,element_attrs:nn.Parameter):
         s = torch.zeros(element_attrs.size(dim=0))
@@ -316,9 +299,6 @@ class Input():
         if(s_i.nelement() > 0):
             s[self.kinds_map[Kinds.ICS]] = element_attrs[self.kinds_map[Kinds.ICS]]
         return s
-
-    def num_elements(self):
-        return self.circuit.num_elements()
 
 class Learn():
     def __init__(self) -> None:
