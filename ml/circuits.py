@@ -243,18 +243,46 @@ class Input():
         self.M = self.circuit.M()
         self.M_red = self.M[:-1,:]
         self.kinds_map, self.inputs_map, self.knowns_map = self.circuit.extract_elements()
+        self.inputs_map[Props.Pot] = [0]*self.circuit.num_nodes()
+        self.knowns_map[Props.Pot] = [False]*self.circuit.num_nodes()
     
-    def is_kind_t(self, kind_list:list[float]):
-        num_elements = self.circuit.num_elements()
-        eye = torch.eye(num_elements)
-        kind_matrix = torch.tensor(kind_list).reshape(num_elements,1).to(torch.float)
-        kind_mask =  kind_matrix @ kind_matrix.T * eye
-        return kind_mask
+    def list_to_vec_mask(self, input_list:list):
+        size = len(input_list)
+        vector = torch.tensor(input_list).reshape(size,1).to(torch.float)
+        return vector
+    
+    def list_to_diag_mask(self, input_list:list):
+        size = len(input_list)
+        eye = torch.eye(size)
+        vector_mask = self.list_to_vec_mask(input_list)
+        matrix_mask =  vector_mask @ vector_mask.T * eye
+        return matrix_mask
+    
+    # def loss_mask(self):
+    #     i_t = torch.tensor(self.knowns_map[Props.I]).to(torch.float)
+    #     v_t = torch.tensor(self.knowns_map[Props.V]).to(torch.float)
+    #     pot_t = torch.tensor(self.knowns_map[Props.Pot][:-1]).to(torch.float)
+    #     return torch.cat(tensors=(i_t,v_t,pot_t),dim=0).unsqueeze(dim=1)
+    
+    # def input_vector(self):
+    #     i_t = torch.tensor(self.inputs_map[Props.I]).to(torch.float)
+    #     v_t = torch.tensor(self.inputs_map[Props.V]).to(torch.float)
+    #     pot_t = torch.tensor(self.inputs_map[Props.Pot][:-1]).to(torch.float)
+    #     return torch.cat(tensors=(i_t,v_t,pot_t),dim=0).unsqueeze(dim=1)
+    
+    def output_vector(self, prop_map:dict, is_bool: bool):
+        to_type = torch.float
+        if(is_bool):
+            to_type = torch.bool
+        i_t = torch.tensor(prop_map[Props.I]).to(to_type)
+        v_t = torch.tensor(prop_map[Props.V]).to(to_type)
+        pot_t = torch.tensor(prop_map[Props.Pot][:-1]).to(to_type)
+        return torch.cat(tensors=(i_t,v_t,pot_t),dim=0).unsqueeze(dim=1)
     
     def X_r(self, element_attrs):
         num_elem = self.circuit.num_elements()
         num_nodes = self.circuit.num_nodes()
-        is_r_mask_m = self.is_kind_t(self.kinds_map[Kinds.R])
+        is_r_mask_m = self.list_to_diag_mask(self.kinds_map[Kinds.R])
         X_mask = torch.cat(tensors= (
                             - is_r_mask_m * element_attrs,
                             is_r_mask_m,
@@ -265,7 +293,7 @@ class Input():
     def X_ivs(self):
         num_elem = self.circuit.num_elements()
         num_nodes = self.circuit.num_nodes()
-        is_s_mask_m = self.is_kind_t(self.kinds_map[Kinds.IVS])
+        is_s_mask_m = self.list_to_diag_mask(self.kinds_map[Kinds.IVS])
         X_mask = torch.cat(tensors= (
                             torch.zeros(size=(num_elem,num_elem)),
                             is_s_mask_m,
@@ -292,6 +320,7 @@ class Input():
 
     def s(self,element_attrs:nn.Parameter):
         s = torch.zeros(element_attrs.size(dim=0))
+        s = s.reshape(s.size(dim=0),1)
         s_v = element_attrs[self.kinds_map[Kinds.IVS]]
         s_i = element_attrs[self.kinds_map[Kinds.ICS]]
         if(s_v.nelement() > 0):
@@ -299,7 +328,3 @@ class Input():
         if(s_i.nelement() > 0):
             s[self.kinds_map[Kinds.ICS]] = element_attrs[self.kinds_map[Kinds.ICS]]
         return s
-
-class Learn():
-    def __init__(self) -> None:
-        pass

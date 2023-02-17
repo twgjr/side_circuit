@@ -3,10 +3,11 @@ import torch.nn as nn
 import circuits as ckt
 import models as mdl
 
-def train(model:mdl.Solver,optimizer:torch.optim.Adam,loss_fn:nn.MSELoss):
+def train(model:mdl.Solver,optimizer:torch.optim.Adam,loss_fn:nn.MSELoss,
+          truths,selection):
     model.train()
-    error = model()
-    loss = loss_fn(error, torch.zeros_like(error))
+    preds = model()
+    loss = loss_fn(preds[selection], truths[selection])
     model.zero_grad()
     loss.backward()
     model.zero_known_grads()
@@ -46,12 +47,16 @@ def process_state(params:tuple[nn.Parameter], input:ckt.Input, solver:mdl.Solver
         model:mdl.Solver = solver(input, params).to(device)
         opt = torch.optim.Adam(params=model.parameters(),lr=0.9)
         count = 0
+        num_elements = solver.input.circuit.num_elements()
+        num_nodes = solver.input.circuit.num_nodes()
+        len_pred = num_elements + num_nodes - 1
+
         while(True):
             #save previous state of params before next learning step
             for param_item in params:
                 prev_params = param_item.clone().detach()
-            loss,_ = train(model,opt,nn.MSELoss())
-            if(is_stable(prev_params, params, threshold) 
+            loss,_ = train(model,opt,nn.MSELoss(),torch.zeros(size=(len_pred)))
+            if(is_stable(prev_params, params, threshold)
                 or 
                 count > state_limit):
                 return loss, next_state(state,max_state)
