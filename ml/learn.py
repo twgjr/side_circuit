@@ -6,8 +6,11 @@ import models as mdl
 def train(model:mdl.Solver,optimizer:torch.optim.Adam,loss_fn:nn.MSELoss,
           truths,selection):
     model.train()
-    preds = model()
-    loss = loss_fn(preds[selection], truths[selection])
+    A,preds,b = model()
+    if(truths == None and selection == None):
+        loss = loss_fn(A @ preds, b)
+    else:
+        loss = loss_fn(preds[selection], truths[selection])
     model.zero_grad()
     loss.backward()
     model.zero_known_grads()
