@@ -324,7 +324,7 @@ class Input():
         s_v = element_attrs[self.kinds_map[Kinds.IVS]]
         s_i = element_attrs[self.kinds_map[Kinds.ICS]]
         if(s_v.nelement() > 0):
-            s[self.kinds_map[Kinds.IVS]] = element_attrs[self.kinds_map[Kinds.IVS]]
+            s[self.kinds_map[Kinds.IVS]] = s_v
         if(s_i.nelement() > 0):
-            s[self.kinds_map[Kinds.ICS]] = element_attrs[self.kinds_map[Kinds.ICS]]
+            s[self.kinds_map[Kinds.ICS]] = s_i
         return s
