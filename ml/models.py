@@ -4,73 +4,61 @@ import circuits as ckt
 
 
 class Solver(nn.Module):
-    def __init__(self, input:ckt.Input):
+    ''' 
+    Sparse Tableau Formulation of circuit analysis, modeled as a machine learning
+    problem to learn element attributes using backprop and optimization.
+    '''
+    def __init__(self, input: ckt.Input, attr:nn.Parameter):
         super().__init__()
         self.input = input
-        self.i:nn.Parameter = None
-        self.v:nn.Parameter = None
-        self.pot:nn.Parameter = None
-        self.attr:nn.Parameter = None
-
-    def get_params(self):
-        return (self.get_one_param(self.i),
-                self.get_one_param(self.v),
-                self.get_one_param(self.pot),
-                self.get_one_param(self.attr))
-
-    def get_one_param(self,param:nn.Parameter):
-        if(param != None):
-            return param
-        else:
-            return None
+        self.attr = attr
     
-    def kcl(self):
-        return self.input.M @ self.i
-
-    def kvl(self):
-        return self.v - self.input.M.T @ self.pot
-
-    def resistor(self):
-        res_mask = self.input.kinds_map[ckt.Kinds.R]
-        return self.i[res_mask] * self.attr[res_mask] - self.v[res_mask]
-
+    def get_params(self):
+        return self.attr
+    
     def zero_known_grads(self):
-        if(self.i != None and self.i.grad != None):
-            self.i.grad[self.input.knowns_map[ckt.Props.I]] = 0
-        if(self.v != None and self.v.grad != None):
-            self.v.grad[self.input.knowns_map[ckt.Props.V]] = 0
         if(self.attr != None and self.attr.grad != None):
             self.attr.grad[self.input.knowns_map[ckt.Props.Attr]] = 0
 
-class KCL(Solver):
-    def __init__(self, input:ckt.Input, params:tuple[nn.Parameter]):
-        super().__init__(input)
-        self.i = nn.Parameter(params[0])
-        self.v = params[1].clone().detach().requires_grad_(False)
-        self.pot = params[2].clone().detach().requires_grad_(False)
-        self.attr = params[3].clone().detach().requires_grad_(False)
-
     def forward(self):
-        return self.input.M @ self.i
+        '''
+            Returns prediction given the IVS, ICS, and element attributes.  Uses 
+            the linear algebra solution to the Sparse Tableau Formulation of the
+            circuit.
+            Prediction contains element currents, element voltages, and node 
+            potentials. Node potentials are missing the reference node since it 
+            is removed from the STF to avoid singular matrix A.
+            Output is 2D tensor of shape ( 2 * elements + nodes - 1, 1)
+        '''
+        A,b = self.build()
+        return A,torch.linalg.lstsq(A,b).solution,b
 
-class KVL(Solver):
-    def __init__(self, input:ckt.Input, params:tuple[nn.Parameter]):
-        super().__init__(input)
-        self.i = params[0].clone().detach().requires_grad_(False)
-        self.v = nn.Parameter(params[1])
-        self.pot = nn.Parameter(params[2])
-        self.attr = params[3].clone().detach().requires_grad_(False)
+    def build(self):
+        # inputs
+        s = self.input.s(self.attr)
+        M = self.input.M
+        M_red = self.input.M_red
+        num_elements = self.input.circuit.num_elements()
+        num_nodes = self.input.circuit.num_nodes()
+                
+        # A matrix
+        kcl_row = torch.cat(tensors=(M_red,
+                                    torch.zeros_like(M_red),
+                                    torch.zeros_like(M_red[:,:-1])),dim=1)
+        kvl_row = torch.cat(tensors=(torch.zeros_like(M),
+                                    torch.eye(num_elements),
+                                    -M_red.T),dim=1)
+        e_row = self.input.X_row(self.attr)
 
-    def forward(self):
-        return self.v - self.input.M.T @ self.pot
-
-class Full(Solver):
-    def __init__(self, input:ckt.Input, params:tuple[nn.Parameter]):
-        super().__init__(input)
-        self.i = nn.Parameter(params[0])
-        self.v = nn.Parameter(params[1])
-        self.pot = nn.Parameter(params[2])
-        self.attr = nn.Parameter(params[3])
-
-    def forward(self):
-        return torch.cat(tensors = (self.kcl(), self.kvl(), self.resistor()))
+        A = torch.cat(tensors=(kcl_row,kvl_row,e_row,
+                        torch.tensor([[1,0,0,0,0]]).to(torch.float)
+                               ), dim=0)
+                
+        # b matrix
+        kcl_zeros = torch.zeros(size=(num_nodes - 1,1))
+        kvl_zeros = torch.zeros(size=(num_elements,1))
+        b = torch.cat(tensors=(kvl_zeros,kcl_zeros,s,
+                               torch.tensor([-10]).to(torch.float).unsqueeze(dim=1).T
+                               ), dim=0)
+        
+        return A,b
