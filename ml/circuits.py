@@ -258,27 +258,6 @@ class Input():
         matrix_mask =  vector_mask @ vector_mask.T * eye
         return matrix_mask
     
-    # def loss_mask(self):
-    #     i_t = torch.tensor(self.knowns_map[Props.I]).to(torch.float)
-    #     v_t = torch.tensor(self.knowns_map[Props.V]).to(torch.float)
-    #     pot_t = torch.tensor(self.knowns_map[Props.Pot][:-1]).to(torch.float)
-    #     return torch.cat(tensors=(i_t,v_t,pot_t),dim=0).unsqueeze(dim=1)
-    
-    # def input_vector(self):
-    #     i_t = torch.tensor(self.inputs_map[Props.I]).to(torch.float)
-    #     v_t = torch.tensor(self.inputs_map[Props.V]).to(torch.float)
-    #     pot_t = torch.tensor(self.inputs_map[Props.Pot][:-1]).to(torch.float)
-    #     return torch.cat(tensors=(i_t,v_t,pot_t),dim=0).unsqueeze(dim=1)
-    
-    def output_vector(self, prop_map:dict, is_bool: bool):
-        to_type = torch.float
-        if(is_bool):
-            to_type = torch.bool
-        i_t = torch.tensor(prop_map[Props.I]).to(to_type)
-        v_t = torch.tensor(prop_map[Props.V]).to(to_type)
-        pot_t = torch.tensor(prop_map[Props.Pot][:-1]).to(to_type)
-        return torch.cat(tensors=(i_t,v_t,pot_t),dim=0).unsqueeze(dim=1)
-    
     def X_r(self, element_attrs):
         num_elem = self.circuit.num_elements()
         num_nodes = self.circuit.num_nodes()
@@ -303,16 +282,9 @@ class Input():
 
     def init_params(self):
         num_elem = self.circuit.num_elements()
-        num_nodes = self.circuit.num_nodes()
-        pot_tensor = torch.rand(size=(num_nodes,1))
-        i_tensor = torch.tensor(self.inputs_map[Props.I]).reshape(num_elem,1)
-        v_tensor = torch.tensor(self.inputs_map[Props.V]).reshape(num_elem,1)
         attr_tensor = torch.tensor(self.inputs_map[Props.Attr]).reshape(num_elem,1)
-        v_param = nn.Parameter(v_tensor)
-        i_param = nn.Parameter(i_tensor)
-        pot_param = nn.Parameter(pot_tensor)
         attr_param = nn.Parameter(attr_tensor)
-        return (i_param, v_param, pot_param, attr_param)
+        return attr_param
 
     def X_row(self, element_attrs):
         X = self.X_r(element_attrs) + self.X_ivs()
