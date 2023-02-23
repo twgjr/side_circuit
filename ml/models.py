@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-import circuits as ckt
+from circuits import Props
+from inputs import Input
 
 
 class Solver(nn.Module):
@@ -8,7 +9,7 @@ class Solver(nn.Module):
     Sparse Tableau Formulation of circuit analysis, modeled as a machine learning
     problem to learn element attributes using backprop and optimization.
     '''
-    def __init__(self, input: ckt.Input, attr:nn.Parameter):
+    def __init__(self, input: Input, attr:nn.Parameter):
         super().__init__()
         self.input = input
         self.attr = attr
@@ -18,7 +19,7 @@ class Solver(nn.Module):
     
     def zero_known_grads(self):
         if(self.attr != None and self.attr.grad != None):
-            self.attr.grad[self.input.knowns_map[ckt.Props.Attr]] = 0
+            self.attr.grad[self.input.knowns_map[Props.Attr]] = 0
 
     def forward(self):
         '''
@@ -35,7 +36,7 @@ class Solver(nn.Module):
 
     def build(self):
         # inputs
-        s = self.input.s(self.attr)
+        s = self.input.sources(self.attr)
         M = self.input.M
         M_red = self.input.M_red
         num_elements = self.input.circuit.num_elements()

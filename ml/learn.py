@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
-import circuits as ckt
-import models as mdl
+from inputs import Input
+from models import Solver
 
-def train(model:mdl.Solver,optimizer:torch.optim.Adam,loss_fn:nn.MSELoss,
+def train(model:Solver,optimizer:torch.optim.Adam,loss_fn:nn.MSELoss,
           truths,selection):
     model.train()
     A,preds,b = model()
@@ -44,10 +44,10 @@ def next_state(in_state, max_state):
         out_state = 0
     return out_state
 
-def process_state(params:tuple[nn.Parameter], input:ckt.Input, solver:mdl.Solver,
+def process_state(params:tuple[nn.Parameter], input:Input, solver:Solver,
                   state, max_state, threshold = 0.1, state_limit = 1000, 
                   device='cpu'):
-        model:mdl.Solver = solver(input, params).to(device)
+        model:Solver = solver(input, params).to(device)
         opt = torch.optim.Adam(params=model.parameters(),lr=0.9)
         count = 0
         num_elements = solver.input.circuit.num_elements()
