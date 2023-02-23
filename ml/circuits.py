@@ -1,9 +1,7 @@
 import networkx as nx
 from enum import Enum
 import torch
-import torch.nn as nn
 import random
-import statistics as stats
 
 class Kinds(Enum):
     IVS = 0
@@ -112,54 +110,29 @@ class Circuit():
                 value = None
                 if(prop == Props.I):
                     if(element.kind == Kinds.ICS):
-                        value = element.attr
+                        value = None
                     else:
                         value = element.i
                 elif(prop == Props.V):
                     if(element.kind == Kinds.IVS):
-                        value = element.attr
+                        value = None
                     else:
                         value = element.v
                 elif(prop == Props.Pot):
                     pass
                 elif(prop == Props.Attr):
                     value = element.attr
-                
                 else:
                     assert()
 
                 if(value == None):# unknown
                     inputs_map[prop].append(random.random()) # initialize unknowns
                     knowns_map[prop].append(False)
-
                 else: # known
                     inputs_map[prop].append(float(value))
                     knowns_map[prop].append(True)
 
         return kinds_map, inputs_map, knowns_map
-        
-    def extract_nodes(self):
-        pot_tensor = []
-        knowns_tensor = []
-
-        for n in range(len(self.nodes)):
-            node = self.nodes[n]
-            values = 0
-            knowns_oh = 0
-            if(node.p == None):
-                values = 0.0
-                knowns_oh = 0
-            else:
-                values = float(node.p)
-                knowns_oh = 1
-            pot_tensor.append(values)
-            knowns_tensor.append(knowns_oh)
-        pot_tensor = torch.tensor(pot_tensor)
-        knowns_tensor = torch.tensor(knowns_tensor)
-        pot_tensor = pot_tensor.reshape(shape=(self.num_nodes(),1))
-        knowns_tensor = knowns_tensor.reshape(shape=(self.num_nodes(),1))
-            
-        return (pot_tensor, knowns_tensor)
 
 class Node():
     def __init__(self, circuit: Circuit, elements: list['Element'], p = None) -> None:
