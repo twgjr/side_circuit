@@ -32,11 +32,14 @@ class Solver(nn.Module):
             Output is 2D tensor of shape ( 2 * elements + nodes - 1, 1)
         '''
         A,b = self.build()
-        return A,torch.linalg.lstsq(A,b).solution,b
+        if(A.shape[0]==A.shape[1]):
+            # A is square so normal solve allowed
+            return A,torch.linalg.solve(A,b),b
+        else:
+            return A,torch.linalg.lstsq(A,b).solution,b
 
     def build(self):
         # inputs
-        s = self.input.sources(self.attr)
         M = self.input.M
         M_red = self.input.M_red
         num_elements = self.input.circuit.num_elements()
@@ -49,17 +52,24 @@ class Solver(nn.Module):
         kvl_row = torch.cat(tensors=(torch.zeros_like(M),
                                     torch.eye(num_elements),
                                     -M_red.T),dim=1)
-        e_row = self.input.X_row(self.attr)
-
-        A = torch.cat(tensors=(kcl_row,kvl_row,e_row,
-                        torch.tensor([[1,0,0,0,0]]).to(torch.float)
-                               ), dim=0)
+        e_row = self.input.E()
+        i_row = self.input.I_knowns()
+        v_row = self.input.V_knowns()
+        A = torch.cat(tensors=(
+            kcl_row,
+            kvl_row,
+            e_row,
+            i_row,
+            v_row), dim=0)
                 
         # b matrix
         kcl_zeros = torch.zeros(size=(num_nodes - 1,1))
         kvl_zeros = torch.zeros(size=(num_elements,1))
-        b = torch.cat(tensors=(kvl_zeros,kcl_zeros,s,
-                               torch.tensor([-10]).to(torch.float).unsqueeze(dim=1).T
-                               ), dim=0)
+        b = torch.cat(tensors=(
+                kvl_zeros,
+                kcl_zeros,
+                self.input.src_const(),
+                self.input.known_const()
+            ), dim=0)
         
         return A,b

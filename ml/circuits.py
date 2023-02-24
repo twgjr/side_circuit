@@ -87,8 +87,8 @@ class Circuit():
         kinds map is {prop type: list(bool)} boolean list in same order as circuit
         '''
         inputs_map: dict[Props,list[float]] = {}
-        knowns_map: dict[Props,list[float]] = {}
-        kinds_map: dict[Props,list[float]] = {}
+        knowns_map: dict[Props,list[bool]] = {}
+        kinds_map: dict[Props,list[bool]] = {}
 
         for kind in Kinds:
             kinds_map[kind] = []
