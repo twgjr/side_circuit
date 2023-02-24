@@ -2,7 +2,12 @@ import torch
 import torch.nn as nn
 from circuits import Props
 from inputs import Input
+from enum import Enum
 
+class State(Enum):
+    Init = 0
+    Solve = 1
+    Lstsq = 2
 
 class Solver(nn.Module):
     ''' 
@@ -13,6 +18,7 @@ class Solver(nn.Module):
         super().__init__()
         self.input = input
         self.attr = attr
+        self.state = State.Solve
     
     def get_params(self):
         return self.attr
@@ -31,14 +37,16 @@ class Solver(nn.Module):
             is removed from the STF to avoid singular matrix A.
             Output is 2D tensor of shape ( 2 * elements + nodes - 1, 1)
         '''
-        A,b = self.build()
-        if(A.shape[0]==A.shape[1]):
-            # A is square so normal solve allowed
+        if(self.state == State.Init):
+            pass
+        elif(self.state == State.Solve):
+            A,b = self.build(with_constants=False)
             return A,torch.linalg.solve(A,b),b
-        else:
+        elif(self.state == State.Lstsq):
+            A,b = self.build(with_constants=True)
             return A,torch.linalg.lstsq(A,b).solution,b
 
-    def build(self):
+    def build(self,with_constants):
         # inputs
         M = self.input.M
         M_red = self.input.M_red
@@ -53,23 +61,38 @@ class Solver(nn.Module):
                                     torch.eye(num_elements),
                                     -M_red.T),dim=1)
         e_row = self.input.E()
-        i_row = self.input.I_knowns()
-        v_row = self.input.V_knowns()
-        A = torch.cat(tensors=(
-            kcl_row,
-            kvl_row,
-            e_row,
-            i_row,
-            v_row), dim=0)
+        A = None
+        if(with_constants):
+            A = torch.cat(tensors=(
+                    kcl_row,
+                    kvl_row,
+                    e_row,
+                    self.input.I_knowns(),
+                    self.input.V_knowns()
+                ), dim=0)
+        else:
+            A = torch.cat(tensors=(
+                    kcl_row,
+                    kvl_row,
+                    e_row,
+                ), dim=0)
                 
         # b matrix
         kcl_zeros = torch.zeros(size=(num_nodes - 1,1))
         kvl_zeros = torch.zeros(size=(num_elements,1))
-        b = torch.cat(tensors=(
-                kvl_zeros,
-                kcl_zeros,
-                self.input.src_const(),
-                self.input.known_const()
-            ), dim=0)
+        b = None
+        if(with_constants):
+            b = torch.cat(tensors=(
+                    kvl_zeros,
+                    kcl_zeros,
+                    self.input.src_const(),
+                    self.input.known_const()
+                ), dim=0)
+        else:
+            b = torch.cat(tensors=(
+                    kvl_zeros,
+                    kcl_zeros,
+                    self.input.src_const()
+                ), dim=0)
         
         return A,b
