@@ -10,43 +10,58 @@ class Input():
         self.kinds_map, self.inputs_map, self.knowns_map = self.circuit.extract_elements()
         self.inputs_map[Props.Pot] = [0]*self.circuit.num_nodes()
         self.knowns_map[Props.Pot] = [False]*self.circuit.num_nodes()
-        self.attr_param = self.init_params()
+        self.attr_param = nn.Parameter(self.init_tensor(Props.Attr))
     
-    def list_to_vec_mask(self, input_list:list):
+    def list_to_vec_mask(self, input_list:list, allow_bool:bool):
+        if(len(input_list) == 0):
+            assert()
+        list_type = type(input_list[0])
+        torch_type = torch.float
+        if(list_type == bool and allow_bool):
+            torch_type = torch.bool
         size = len(input_list)
-        vector = torch.tensor(input_list).reshape(size,1).to(torch.float)
+        vector = torch.tensor(input_list).reshape(size,1).to(torch_type)
         return vector
     
     def list_to_diag_mask(self, input_list:list):
         size = len(input_list)
         eye = torch.eye(size)
-        vector_mask = self.list_to_vec_mask(input_list)
+        vector_mask = self.list_to_vec_mask(input_list, allow_bool=False)
         matrix_mask =  vector_mask @ vector_mask.T * eye
         return matrix_mask
-
-    def init_params(self):
+    
+    def init_tensor(self, prop:Props):
         num_elem = self.circuit.num_elements()
-        attr_tensor = torch.tensor(self.inputs_map[Props.Attr])\
+        out_tensor = torch.tensor(self.inputs_map[prop])\
                                 .reshape(num_elem,1)
-        attr_param = nn.Parameter(attr_tensor)
-        return attr_param
+        return out_tensor
+    
+    def ivp_inputs(self):
+        currents = self.init_tensor(Props.I)
+        voltages = self.init_tensor(Props.V)
+        potentials = self.init_tensor(Props.Pot)
+        return torch.cat(tensors=(currents,voltages,potentials),dim=0)
+    
+    def ivp_knowns_mask(self):
+        currents = self.list_to_vec_mask(self.knowns_map[Props.I],True)
+        voltages = self.list_to_vec_mask(self.knowns_map[Props.V],True)
+        potentials = self.list_to_vec_mask(self.knowns_map[Props.Pot],True)
+        return torch.cat(tensors=(currents,voltages,potentials),dim=0)
 
     def E(self):
-        return torch.cat(tensors=(
-            self.Z(),self.Y(),self.constants(False,0))
-                         ,dim=1)
+        Z = self.Z()
+        Y = self.Y()
+        return torch.cat(tensors=(Z,Y,torch.zeros_like(Z)),dim=1)
     
     def I_knowns(self):
         Z_k = self.Z_known()
         return torch.cat(tensors=(
-            Z_k,torch.zeros_like(Z_k),torch.zeros_like(Z_k)[:,:-1])
-                        ,dim=1)
+            Z_k,torch.zeros_like(Z_k),torch.zeros_like(Z_k)),dim=1)
     
     def V_knowns(self):
         Y_k = self.Y_known()
         return torch.cat(tensors=(
-            torch.zeros_like(Y_k),Y_k,torch.zeros_like(Y_k)[:,:-1])
-                        ,dim=1)
+            torch.zeros_like(Y_k),Y_k,torch.zeros_like(Y_k)),dim=1)
 
     def src_const(self):
         attrs = self.attr_param
@@ -73,28 +88,6 @@ class Input():
             kc[v_knowns_mask] = kc_v
         i_v_knowns_mask = i_knowns_mask + v_knowns_mask
         return kc[i_v_knowns_mask]
-
-    def constants(self,e_prop,c_type):
-        '''e_prop = True means the zeros will be sized for element properties
-        current and voltag; False means it will be sized for the pots.
-        c_type = 0: zeros, 1: ones, 2:identity'''
-        if(e_prop):
-            num_elem = self.circuit.num_elements()
-            return self.constant_type(c_type, num_elem, num_elem)
-        else:
-            num_elem = self.circuit.num_elements()
-            num_nodes = self.circuit.num_nodes()
-            return self.constant_type(c_type, num_elem, num_nodes-1)
-        
-    def constant_type(self, c_type, rows, cols):
-        if(c_type == 0):
-            return torch.zeros(size=(rows,cols))
-        elif(c_type == 1):
-            return torch.ones(size=(rows,cols))
-        elif(c_type == 2):
-            return torch.eye(n=rows)
-        else:
-            assert()
 
     def Z(self):
         R_mask = self.list_to_diag_mask(self.kinds_map[Kinds.R])

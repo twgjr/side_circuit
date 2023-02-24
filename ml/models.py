@@ -14,11 +14,11 @@ class Solver(nn.Module):
     Sparse Tableau Formulation of circuit analysis, modeled as a machine learning
     problem to learn element attributes using backprop and optimization.
     '''
-    def __init__(self, input: Input, attr:nn.Parameter):
+    def __init__(self, input: Input, attr:nn.Parameter, state: State):
         super().__init__()
         self.input = input
         self.attr = attr
-        self.state = State.Solve
+        self.state = state
     
     def get_params(self):
         return self.attr
@@ -41,25 +41,24 @@ class Solver(nn.Module):
             pass
         elif(self.state == State.Solve):
             A,b = self.build(with_constants=False)
-            return A,torch.linalg.solve(A,b),b
+            return torch.linalg.solve(A[1:,:-1],b[1:,:])
         elif(self.state == State.Lstsq):
             A,b = self.build(with_constants=True)
-            return A,torch.linalg.lstsq(A,b).solution,b
+            return A,torch.linalg.lstsq(A[1:,:-1],b[1:,:]).solution,b
 
     def build(self,with_constants):
         # inputs
         M = self.input.M
-        M_red = self.input.M_red
         num_elements = self.input.circuit.num_elements()
         num_nodes = self.input.circuit.num_nodes()
                 
         # A matrix
-        kcl_row = torch.cat(tensors=(M_red,
-                                    torch.zeros_like(M_red),
-                                    torch.zeros_like(M_red[:,:-1])),dim=1)
+        kcl_row = torch.cat(tensors=(M,
+                                    torch.zeros_like(M),
+                                    torch.zeros_like(M)),dim=1)
         kvl_row = torch.cat(tensors=(torch.zeros_like(M),
                                     torch.eye(num_elements),
-                                    -M_red.T),dim=1)
+                                    -M.T),dim=1)
         e_row = self.input.E()
         A = None
         if(with_constants):
@@ -78,7 +77,7 @@ class Solver(nn.Module):
                 ), dim=0)
                 
         # b matrix
-        kcl_zeros = torch.zeros(size=(num_nodes - 1,1))
+        kcl_zeros = torch.zeros(size=(num_nodes,1))
         kvl_zeros = torch.zeros(size=(num_elements,1))
         b = None
         if(with_constants):
