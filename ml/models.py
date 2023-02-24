@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from circuits import Props
-from inputs import Input
+from data import Input
 from enum import Enum
 
 class State(Enum):
@@ -44,7 +44,7 @@ class Solver(nn.Module):
             return torch.linalg.solve(A[1:,:-1],b[1:,:])
         elif(self.state == State.Lstsq):
             A,b = self.build(with_constants=True)
-            return A,torch.linalg.lstsq(A[1:,:-1],b[1:,:]).solution,b
+            return A,torch.linalg.lstsq(A,b).solution,b
 
     def build(self,with_constants):
         # inputs

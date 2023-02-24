@@ -79,7 +79,7 @@ class Circuit():
                 parallels.append(element)
         return parallels
 
-    def extract_elements(self):
+    def extract_elements(self, rand_init = True):
         '''
         return dictinaries of circuit inputs
         knowns map is {prop type: list(bool)} boolean list in same order as circuit
@@ -126,7 +126,10 @@ class Circuit():
                     assert()
 
                 if(value == None):# unknown
-                    inputs_map[prop].append(random.random()) # initialize unknowns
+                    init_val = 0
+                    if(rand_init):
+                        init_val = random.random()
+                    inputs_map[prop].append(init_val) # initialize unknowns
                     knowns_map[prop].append(False)
                 else: # known
                     inputs_map[prop].append(float(value))

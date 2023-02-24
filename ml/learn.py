@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from inputs import Input
 from models import Solver
 from models import State
 
@@ -9,12 +8,12 @@ def train(model:Solver,optimizer:torch.optim.Adam,loss_fn:nn.MSELoss):
     loss = None
     if(model.state == State.Solve):
         preds = model()
-        inputs = model.input.ivp_inputs()
-        knowns = model.input.ivp_knowns_mask()
+        inputs = model.input.ivp_inputs() #TODO input class attrib to speed up training
+        knowns = model.input.ivp_knowns_mask() #TODO input class attrib to speed up training
         loss = loss_fn(preds[knowns[:-1]], inputs[knowns])
     elif(model.state == State.Lstsq):
         A,preds,b = model()
-        loss = loss_fn(A[1:,:-1] @ preds, b[1:,:])
+        loss = loss_fn(A @ preds, b)
     else:
         assert()
     model.zero_grad()
@@ -42,3 +41,4 @@ def is_stable(prev_tpl:tuple[nn.Parameter], updated_tpl:tuple[nn.Parameter],
     pu_change_max = torch.max(pu_change)
     ret_bool = pu_change_max < pu_threshold
     return ret_bool
+

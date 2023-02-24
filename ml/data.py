@@ -31,21 +31,42 @@ class Input():
         return matrix_mask
     
     def init_tensor(self, prop:Props):
-        num_elem = self.circuit.num_elements()
+        rows = None
+        if(prop == Props.Pot):
+            rows = self.circuit.num_nodes()
+        else:
+            rows = self.circuit.num_elements()
         out_tensor = torch.tensor(self.inputs_map[prop])\
-                                .reshape(num_elem,1)
+                                .reshape(rows,1)
         return out_tensor
     
     def ivp_inputs(self):
+        '''inputs values including source attributes in respective i and v props'''
+        attrs = self.init_tensor(Props.Attr)
         currents = self.init_tensor(Props.I)
         voltages = self.init_tensor(Props.V)
         potentials = self.init_tensor(Props.Pot)
+        i_known_mask = self.list_to_vec_mask(self.knowns_map[Props.I],True)
+        v_known_mask = self.list_to_vec_mask(self.knowns_map[Props.V],True)
+        ics_mask = self.list_to_vec_mask(self.kinds_map[Kinds.ICS],True)
+        ivs_mask = self.list_to_vec_mask(self.kinds_map[Kinds.IVS],True)
+        currents[~i_known_mask] = 0
+        currents[ics_mask] = attrs[ics_mask]
+        voltages[~v_known_mask] = 0
+        voltages[ivs_mask] = attrs[ivs_mask]
         return torch.cat(tensors=(currents,voltages,potentials),dim=0)
     
     def ivp_knowns_mask(self):
+        '''mask of known inputs values including source attributes in respective
+          i and v props'''
+        ics_mask = self.list_to_vec_mask(self.kinds_map[Kinds.ICS],True)
+        ivs_mask = self.list_to_vec_mask(self.kinds_map[Kinds.IVS],True)
+        attrs = self.list_to_vec_mask(self.knowns_map[Props.Attr],True)
         currents = self.list_to_vec_mask(self.knowns_map[Props.I],True)
         voltages = self.list_to_vec_mask(self.knowns_map[Props.V],True)
         potentials = self.list_to_vec_mask(self.knowns_map[Props.Pot],True)
+        currents[ics_mask] = attrs[ics_mask]
+        voltages[ivs_mask] = attrs[ivs_mask]
         return torch.cat(tensors=(currents,voltages,potentials),dim=0)
 
     def E(self):
@@ -109,3 +130,12 @@ class Input():
         v_knowns_mask_list = self.knowns_map[Props.V]
         kc_eye = torch.eye(n = self.circuit.num_elements())
         return kc_eye[v_knowns_mask_list]
+    
+class Process():
+    def __init__(self, input:Input) -> None:
+        self.input = input
+
+    def errors(self, fwd_vals:torch.Tensor):
+        inputs = self.input.ivp_inputs()
+        # knowns_mask = self.input.ivp_knowns_mask()
+        return inputs[:-1] - fwd_vals
