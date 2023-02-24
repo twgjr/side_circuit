@@ -3,14 +3,10 @@ import torch.nn as nn
 from inputs import Input
 from models import Solver
 
-def train(model:Solver,optimizer:torch.optim.Adam,loss_fn:nn.MSELoss,
-          truths,selection):
+def train(model:Solver,optimizer:torch.optim.Adam,loss_fn:nn.MSELoss):
     model.train()
     A,preds,b = model()
-    if(truths == None and selection == None):
-        loss = loss_fn(A @ preds, b)
-    else:
-        loss = loss_fn(preds[selection], truths[selection])
+    loss = loss_fn(A @ preds, b)
     model.zero_grad()
     loss.backward()
     model.zero_known_grads()
