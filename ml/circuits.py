@@ -30,8 +30,16 @@ class Circuit():
         if(node in self.nodes):
             self.nodes.remove(node)
 
-    def add_element(self, kind:Kinds) -> 'Element':
+    def add_element_of(self, kind:Kinds) -> 'Element':
         element = Element(self,kind=kind)
+        high_node = self.add_node(element)
+        low_node = self.add_node(element)
+        element.high = high_node
+        element.low = low_node
+        self.elements.append(element)
+        return element
+    
+    def add_element(self, element:'Element') -> None:
         high_node = self.add_node(element)
         low_node = self.add_node(element)
         element.high = high_node
@@ -66,6 +74,37 @@ class Circuit():
         M_numpy = M_scipy.toarray()
         M_tensor = torch.tensor(M_numpy,dtype=dtype)
         return M_tensor
+    
+    def ring(self,source:'Element',load:'Element',num_loads:int):
+        '''one source and all loads in parallel'''
+        assert(num_loads > 0)
+        self.add_element(source)
+        self.add_element(load)
+        source.connect(source.high, load.high)
+        prev_element = load
+        for l in range(num_loads-1):
+            copy_load = prev_element.copy()
+            self.add_element(copy_load)
+            prev_element.connect(prev_element.low, copy_load.high)
+            prev_element = copy_load
+        source.connect(source.low, prev_element.low)
+    
+    def A_edge(self, self_loops = False):
+        matrix = []
+        for row_element in self.elements:
+            cols = []
+            for col_element in self.elements:
+                if(row_element == col_element and not self_loops):
+                    continue
+                if(row_element.low == col_element.low or 
+                   row_element.low == col_element.high or 
+                   row_element.high == col_element.low or 
+                   row_element.high == col_element.high):
+                    cols.append(1)
+                else:
+                    cols.append(0)
+            matrix.append(cols)
+        return torch.tensor(matrix)
 
     def __repr__(self) -> str:
         return "Circuit with " + str(len(self.nodes)) + \
@@ -179,7 +218,8 @@ class Element():
         self.attr = attr
 
     def __repr__(self) -> str:
-        return "("+str(self.low.idx)+ " , "+str(self.high.idx)+")"
+        return "("+str(self.kind.name)+", "+str(self.low.idx)+ ", "\
+                    +str(self.high.idx)+")"
 
     def to_nx(self):
         kind = ('kind',self.kind)
@@ -212,3 +252,14 @@ class Element():
             self.low.add_element(self)
         else:
             assert()
+
+    def copy(self):
+        return Element(
+            circuit = self.circuit,
+            low = self.low,
+            high = self.high,
+            kind = self.kind,
+            i = self.i,
+            v = self.v,
+            attr = self.attr
+        )

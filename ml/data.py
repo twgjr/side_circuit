@@ -135,7 +135,29 @@ class Process():
     def __init__(self, input:Input) -> None:
         self.input = input
 
-    def errors(self, fwd_vals:torch.Tensor):
+    def errors(self, prediction:torch.Tensor):
         inputs = self.input.ivp_inputs()
-        # knowns_mask = self.input.ivp_knowns_mask()
-        return inputs[:-1] - fwd_vals
+        knowns_mask = self.input.ivp_knowns_mask()
+        errors = inputs[:-1] - prediction
+        errors[~knowns_mask[:-1]] = 0
+        return errors
+    
+    def split(self, ivp:torch.Tensor):
+        '''split a tensor that is (currents, voltages, potentials)
+        Could be errors or predictions in that format'''
+        num_elem = self.input.circuit.num_elements()
+        i = ivp[:num_elem,:]
+        v = ivp[num_elem:num_elem*2,:]
+        p = ivp[2*num_elem:,:]
+        return i,v,p
+
+    def diffuse(self, prediction:torch.Tensor):
+        M = self.input.circuit.M()
+        i,v,_ = self.split(self.errors(prediction))
+        return (M @ i).T @ M
+
+    def propagate(self, errors: torch.Tensor):
+        num_elem = self.input.circuit.num_elements()
+        i_errors = errors[:num_elem,:]
+        v_errors = errors[num_elem:num_elem*2,:]
+        return v_errors / i_errors
