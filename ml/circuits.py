@@ -75,18 +75,21 @@ class Circuit():
         M_tensor = torch.tensor(M_numpy,dtype=dtype)
         return M_tensor
     
-    def A_edge(self, self_loops = False):
+    def A_edge(self, allow_self_loops = False):
         matrix = []
         for row_element in self.elements:
             cols = []
             for col_element in self.elements:
-                if(row_element == col_element and not self_loops):
-                    continue
-                if(row_element.low == col_element.low or 
-                   row_element.low == col_element.high or 
-                   row_element.high == col_element.low or 
-                   row_element.high == col_element.high):
-                    cols.append(1)
+                if(row_element == col_element):
+                    if(allow_self_loops):
+                        cols.append(1)
+                    else:
+                        cols.append(0)
+                elif(row_element.low == col_element.low or 
+                    row_element.low == col_element.high or 
+                    row_element.high == col_element.low or 
+                    row_element.high == col_element.high):
+                        cols.append(1)
                 else:
                     cols.append(0)
             matrix.append(cols)
