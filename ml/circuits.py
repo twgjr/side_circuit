@@ -75,20 +75,6 @@ class Circuit():
         M_tensor = torch.tensor(M_numpy,dtype=dtype)
         return M_tensor
     
-    def ring(self,source:'Element',load:'Element',num_loads:int):
-        '''one source and all loads in parallel'''
-        assert(num_loads > 0)
-        self.add_element(source)
-        self.add_element(load)
-        source.connect(source.high, load.high)
-        prev_element = load
-        for l in range(num_loads-1):
-            copy_load = prev_element.copy()
-            self.add_element(copy_load)
-            prev_element.connect(prev_element.low, copy_load.high)
-            prev_element = copy_load
-        source.connect(source.low, prev_element.low)
-    
     def A_edge(self, self_loops = False):
         matrix = []
         for row_element in self.elements:
@@ -175,6 +161,25 @@ class Circuit():
                     knowns_map[prop].append(True)
 
         return kinds_map, inputs_map, knowns_map
+    
+def ring(source_kind:Kinds, load_kind:Kinds, num_loads:int) -> 'Circuit':
+        '''one source and all loads in parallel'''
+        assert(num_loads > 0)
+        circuit = Circuit()
+        source = Element(circuit=circuit,kind=source_kind)
+        circuit.add_element(source)
+        first_load = Element(circuit=circuit, kind=load_kind)
+        circuit.add_element(first_load)
+        source.connect(source.high, first_load.high)
+        prev_element = first_load
+        for l in range(num_loads-1):
+            new_load = Element(circuit=circuit, kind=load_kind)
+            circuit.add_element(new_load)
+            prev_element.connect(prev_element.low, new_load.high)
+            prev_element = new_load
+        source.connect(source.low, prev_element.low)
+
+        return circuit
 
 class Node():
     def __init__(self, circuit: Circuit, elements: list['Element'], p = None) -> None:
