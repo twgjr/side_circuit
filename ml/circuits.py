@@ -1,6 +1,7 @@
 import networkx as nx
 from enum import Enum
 import torch
+from torch.nn.functional import normalize
 import random
 
 class Kinds(Enum):
@@ -12,7 +13,6 @@ class Props(Enum):
     I = 0
     V = 1
     Pot = 2
-    Attr = 3
 
 class Circuit():
     def __init__(self) -> None:
@@ -75,13 +75,13 @@ class Circuit():
         M_tensor = torch.tensor(M_numpy,dtype=dtype)
         return M_tensor
     
-    def A_edge(self, allow_self_loops = False):
+    def A_edge(self, torch_type, self_loops:bool):
         matrix = []
         for row_element in self.elements:
             cols = []
             for col_element in self.elements:
                 if(row_element == col_element):
-                    if(allow_self_loops):
+                    if(self_loops):
                         cols.append(1)
                     else:
                         cols.append(0)
@@ -93,7 +93,12 @@ class Circuit():
                 else:
                     cols.append(0)
             matrix.append(cols)
-        return torch.tensor(matrix)
+        return torch.tensor(matrix).to(torch_type)
+    
+    def A_edge_row_norm(self, torch_type, self_loops:bool):
+        A_edge = self.A_edge(torch_type,self_loops)
+        row_means = torch.sum(A_edge,dim=0)
+        return A_edge/row_means
 
     def __repr__(self) -> str:
         return "Circuit with " + str(len(self.nodes)) + \
@@ -107,33 +112,29 @@ class Circuit():
                 parallels.append(element)
         return parallels
 
-    def extract_elements(self, rand_init = True):
+    def extract_elements(self):
         '''
-        return dictinaries of circuit inputs
-        knowns map is {prop type: list(bool)} boolean list in same order as circuit
-        inputs map is {prop type: list(float)} boolean list in same order as circuit
-        kinds map is {prop type: list(bool)} boolean list in same order as circuit
+        return dictinaries of circuit data and other useful precomputed lists
         '''
-        inputs_map: dict[Props,list[float]] = {}
-        knowns_map: dict[Props,list[bool]] = {}
-        kinds_map: dict[Props,list[bool]] = {}
+        kinds_map: dict[Kinds,list[bool]] = {}
+        props_map: dict[Props,list[float]] = {}
+        attributes_map: dict[Kinds,list[float]] = {}
 
         for kind in Kinds:
             kinds_map[kind] = []
-
+            attributes_map[kind] = []
         for prop in Props:
-            inputs_map[prop] = []
-            knowns_map[prop] = []
+            props_map[prop] = []
 
         for e in range(len(self.elements)):
             element = self.elements[e]
-
             for kind in Kinds:
                 if(element.kind == kind):
                     kinds_map[kind].append(True)
+                    attributes_map[kind].append(element.attr)
                 else:
                     kinds_map[kind].append(False)
-
+                    attributes_map[kind].append(None)
             for prop in Props:
                 value = None
                 if(prop == Props.I):
@@ -148,22 +149,20 @@ class Circuit():
                         value = element.v
                 elif(prop == Props.Pot):
                     pass
-                elif(prop == Props.Attr):
-                    value = element.attr
                 else:
                     assert()
+                if(value == None):
+                    props_map[prop].append(None)
+                else:
+                    props_map[prop].append(float(value))
 
-                if(value == None):# unknown
-                    init_val = 0
-                    if(rand_init):
-                        init_val = random.random()
-                    inputs_map[prop].append(init_val) # initialize unknowns
-                    knowns_map[prop].append(False)
-                else: # known
-                    inputs_map[prop].append(float(value))
-                    knowns_map[prop].append(True)
+        elements = {
+            'kinds': kinds_map,
+            'properties': props_map,
+            'attributes': attributes_map,
+        }
 
-        return kinds_map, inputs_map, knowns_map
+        return elements
     
 def ring(source_kind:Kinds, load_kind:Kinds, num_loads:int) -> 'Circuit':
         '''one source and all loads in parallel'''

@@ -8,9 +8,12 @@ def train(model:Solver,optimizer:torch.optim.Adam,loss_fn:nn.MSELoss):
     loss = None
     if(model.state == State.Solve):
         preds = model()
-        inputs = model.input.ivp_inputs() #TODO input class attrib to speed up training
-        knowns = model.input.ivp_knowns_mask() #TODO input class attrib to speed up training
-        loss = loss_fn(preds[knowns[:-1]], inputs[knowns])
+        target = torch.tensor(model.input.truth).to(torch.float).unsqueeze(dim=1)
+        mask = torch.tensor(model.input.truth_mask).to(torch.bool).unsqueeze(dim=1)
+        # print(f'preds{preds}')
+        # print(f'target{target}')
+        # print(f'mask{mask}')
+        loss = loss_fn(preds[mask[:-1]], target[mask])
     elif(model.state == State.Lstsq):
         A,preds,b = model()
         loss = loss_fn(A @ preds, b)
@@ -20,8 +23,7 @@ def train(model:Solver,optimizer:torch.optim.Adam,loss_fn:nn.MSELoss):
     loss.backward()
     model.zero_known_grads()
     optimizer.step()
-    params = model.get_params()
-    return loss,params
+    return loss,model.attr
 
 def list_params_filter_none(param_tpl:tuple[nn.Parameter]):
     param_lst = []

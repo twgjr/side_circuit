@@ -1,163 +1,131 @@
 from circuits import Circuit,Props,Kinds
-import torch
-import torch.nn as nn
+import random
 
 class Input():
     def __init__(self, circuit:Circuit) -> None:
         self.circuit = circuit
         self.M = self.circuit.M()
-        self.M_red = self.M[:-1,:]
-        self.kinds_map, self.inputs_map, self.knowns_map = self.circuit.extract_elements()
-        self.inputs_map[Props.Pot] = [0]*self.circuit.num_nodes()
-        self.knowns_map[Props.Pot] = [False]*self.circuit.num_nodes()
-        self.attr_param = nn.Parameter(self.init_tensor(Props.Attr))
+        self.elements = self.circuit.extract_elements()
+        self.truth = self.truth_list()
+        self.truth_mask = self.truth_mask_list()
     
-    def list_to_vec_mask(self, input_list:list, allow_bool:bool):
-        if(len(input_list) == 0):
-            assert()
-        list_type = type(input_list[0])
-        torch_type = torch.float
-        if(list_type == bool and allow_bool):
-            torch_type = torch.bool
-        size = len(input_list)
-        vector = torch.tensor(input_list).reshape(size,1).to(torch_type)
-        return vector
-    
-    def list_to_diag_mask(self, input_list:list):
-        size = len(input_list)
-        eye = torch.eye(size)
-        vector_mask = self.list_to_vec_mask(input_list, allow_bool=False)
-        matrix_mask =  vector_mask @ vector_mask.T * eye
-        return matrix_mask
-    
-    def init_tensor(self, prop:Props):
-        rows = None
-        if(prop == Props.Pot):
-            rows = self.circuit.num_nodes()
-        else:
-            rows = self.circuit.num_elements()
-        out_tensor = torch.tensor(self.inputs_map[prop])\
-                                .reshape(rows,1)
-        return out_tensor
-    
-    def ivp_inputs(self):
+    def truth_list(self) -> list[float]:
         '''inputs values including source attributes in respective i and v props'''
-        attrs = self.init_tensor(Props.Attr)
-        currents = self.init_tensor(Props.I)
-        voltages = self.init_tensor(Props.V)
-        potentials = self.init_tensor(Props.Pot)
-        i_known_mask = self.list_to_vec_mask(self.knowns_map[Props.I],True)
-        v_known_mask = self.list_to_vec_mask(self.knowns_map[Props.V],True)
-        ics_mask = self.list_to_vec_mask(self.kinds_map[Kinds.ICS],True)
-        ivs_mask = self.list_to_vec_mask(self.kinds_map[Kinds.IVS],True)
-        currents[~i_known_mask] = 0
-        currents[ics_mask] = attrs[ics_mask]
-        voltages[~v_known_mask] = 0
-        voltages[ivs_mask] = attrs[ivs_mask]
-        return torch.cat(tensors=(currents,voltages,potentials),dim=0)
+        currents = self.prop_list(Props.I,include_attr=True,replace_nones=True)
+        voltages = self.prop_list(Props.V,include_attr=True,replace_nones=True)
+        potentials = self.prop_list(Props.Pot,include_attr=False,replace_nones=True)
+        return currents + voltages + potentials
     
-    def ivp_knowns_mask(self):
+    def truth_mask_list(self):
         '''mask of known inputs values including source attributes in respective
           i and v props'''
-        ics_mask = self.list_to_vec_mask(self.kinds_map[Kinds.ICS],True)
-        ivs_mask = self.list_to_vec_mask(self.kinds_map[Kinds.IVS],True)
-        attrs = self.list_to_vec_mask(self.knowns_map[Props.Attr],True)
-        currents = self.list_to_vec_mask(self.knowns_map[Props.I],True)
-        voltages = self.list_to_vec_mask(self.knowns_map[Props.V],True)
-        potentials = self.list_to_vec_mask(self.knowns_map[Props.Pot],True)
-        currents[ics_mask] = attrs[ics_mask]
-        voltages[ivs_mask] = attrs[ivs_mask]
-        return torch.cat(tensors=(currents,voltages,potentials),dim=0)
-
-    def E(self):
-        Z = self.Z()
-        Y = self.Y()
-        return torch.cat(tensors=(Z,Y,torch.zeros_like(Z)),dim=1)
+        currents = self.mask_of_prop(Props.I,include_attr=True)
+        voltages = self.mask_of_prop(Props.V,include_attr=True)
+        potentials = self.mask_of_prop(Props.Pot,include_attr=False)
+        return currents + voltages + potentials
     
-    def I_knowns(self):
-        Z_k = self.Z_known()
-        return torch.cat(tensors=(
-            Z_k,torch.zeros_like(Z_k),torch.zeros_like(Z_k)),dim=1)
+    def mask_of_kind(self, kind:Kinds):
+        '''returns boolean mask of element kinds ordered by element'''
+        return self.kind_list(kind)
     
-    def V_knowns(self):
-        Y_k = self.Y_known()
-        return torch.cat(tensors=(
-            torch.zeros_like(Y_k),Y_k,torch.zeros_like(Y_k)),dim=1)
-
-    def src_const(self):
-        attrs = self.attr_param
-        s_v = attrs[self.kinds_map[Kinds.IVS]]
-        s_i = attrs[self.kinds_map[Kinds.ICS]]
-        s = torch.zeros(size = (attrs.size(dim=0), 1))
-        if(s_v.nelement() > 0):
-            s[self.kinds_map[Kinds.IVS]] = s_v
-        if(s_i.nelement() > 0):
-            s[self.kinds_map[Kinds.ICS]] = s_i
-        return s
+    def mask_of_prop(self, prop:Props, include_attr:bool):
+        '''returns boolean mask of known element properties ordered by element'''
+        return self.to_bool_mask(
+            self.prop_list(prop,include_attr,replace_nones=False))
     
-    def known_const(self):
-        i_knowns_mask = torch.tensor(self.knowns_map[Props.I])
-        v_knowns_mask = torch.tensor(self.knowns_map[Props.V])
-        i_tensor = torch.tensor(self.inputs_map[Props.I])
-        v_tensor = torch.tensor(self.inputs_map[Props.V])
-        kc_i = i_tensor[i_knowns_mask]
-        kc_v = v_tensor[v_knowns_mask]
-        kc = torch.zeros(size = (self.circuit.num_elements(), 1))
-        if(kc_i.nelement() > 0):
-            kc[i_knowns_mask] = kc_i
-        if(kc_v.nelement() > 0):
-            kc[v_knowns_mask] = kc_v
-        i_v_knowns_mask = i_knowns_mask + v_knowns_mask
-        return kc[i_v_knowns_mask]
+    def mask_of_attr(self, kind:Kinds):
+        '''returns boolean mask of known element attributes ordered by element'''
+        return self.to_bool_mask(self.attr_list(kind,replace_nones=False))
 
-    def Z(self):
-        R_mask = self.list_to_diag_mask(self.kinds_map[Kinds.R])
-        Z_r = - R_mask * self.attr_param
-        Z_ics = self.list_to_diag_mask(self.kinds_map[Kinds.ICS])
-        return Z_r + Z_ics
-
-    def Y(self):
-        Y_r = self.list_to_diag_mask(self.kinds_map[Kinds.R])
-        Y_ivs = self.list_to_diag_mask(self.kinds_map[Kinds.IVS])
-        return Y_r + Y_ivs
-
-    def Z_known(self):
-        i_knowns_mask_list = self.knowns_map[Props.I]
-        kc_eye = torch.eye(n = self.circuit.num_elements())
-        return kc_eye[i_knowns_mask_list]
-
-    def Y_known(self):
-        v_knowns_mask_list = self.knowns_map[Props.V]
-        kc_eye = torch.eye(n = self.circuit.num_elements())
-        return kc_eye[v_knowns_mask_list]
+    def kind_list(self, kind:Kinds) -> list:
+        kind_list = self.elements['kinds'][kind]
+        return kind_list
     
-class Process():
-    def __init__(self, input:Input) -> None:
-        self.input = input
-
-    def errors(self, prediction:torch.Tensor):
-        inputs = self.input.ivp_inputs()
-        knowns_mask = self.input.ivp_knowns_mask()
-        errors = inputs[:-1] - prediction
-        errors[~knowns_mask[:-1]] = 0
-        return errors
+    def prop_list(self, prop:Props, include_attr:bool, 
+                  replace_nones:bool=True) -> list:
+        prop_list = None
+        if(replace_nones):
+            prop_list = self.replace_nones(self.elements['properties'][prop])
+        else:
+            prop_list = self.elements['properties'][prop]
+        if(include_attr):
+            ret_list = []
+            if(prop == Props.I):
+                ics_attr_list = self.attr_list(Kinds.ICS, replace_nones)
+                for p in range(len(prop_list)):
+                    if(self.kind_list(Kinds.ICS)[p]):
+                        ret_list.append(ics_attr_list[p])
+                    else:
+                        ret_list.append(prop_list[p])
+            elif(prop == Props.V):
+                ivs_attr_list = self.attr_list(Kinds.IVS, replace_nones)
+                for p in range(len(prop_list)):
+                    if(self.kind_list(Kinds.IVS)[p]):
+                        ret_list.append(ivs_attr_list[p])
+                    else:
+                        ret_list.append(prop_list[p])
+            else:
+                assert()
+            return ret_list
+        else:
+            return prop_list
     
-    def split(self, ivp:torch.Tensor):
-        '''split a tensor that is (currents, voltages, potentials)
-        Could be errors or predictions in that format'''
-        num_elem = self.input.circuit.num_elements()
-        i = ivp[:num_elem,:]
-        v = ivp[num_elem:num_elem*2,:]
-        p = ivp[2*num_elem:,:]
-        return i,v,p
+    def attr_list(self,kind:Kinds, replace_nones:bool=True, rand_unknowns:bool = True) -> list:
+        if(replace_nones):
+            return self.replace_nones(self.elements['attributes'][kind],rand_unknowns)
+        else:
+            return self.elements['attributes'][kind]
+    
+    def replace_nones(self, input_list, rand_unknowns:bool=True):
+        '''replaces None type items in list with False (bool) or 0 (float)'''
+        ret_list = []
+        for i in range(len(input_list)):
+            if(input_list[i] == None):
+                if(rand_unknowns):
+                    ret_list.append(random.random())
+                else:
+                    ret_list.append(0)
+            else:
+                ret_list.append(input_list[i])
+        return ret_list
+    
+    def to_bool_mask(self, input:list):
+        ret_list = []
+        for item in input:
+            if(item == None):
+                ret_list.append(False)
+            else:
+                ret_list.append(True)
+        return ret_list
+    
+# class Process():
+#     def __init__(self, input:Input) -> None:
+#         self.input = input
 
-    def diffuse(self, prediction:torch.Tensor):
-        M = self.input.circuit.M()
-        i,v,_ = self.split(self.errors(prediction))
-        return (M @ i).T @ M
+#     def errors(self, prediction:Tensor, known_input: Tensor, known_mask:Tensor):
+#         errors = known_input[:-1] - prediction
+#         errors[~known_mask[:-1]] = 0
+#         return errors
+    
+#     def split(self, ivp:Tensor):
+#         '''split a tensor that is (currents, voltages, potentials)
+#         Could be errors or predictions in that format'''
+#         num_elem = self.input.circuit.num_elements()
+#         i = ivp[:num_elem,:]
+#         v = ivp[num_elem:num_elem*2,:]
+#         p = ivp[2*num_elem:,:]
+#         return i,v,p
 
-    def propagate(self, errors: torch.Tensor):
-        num_elem = self.input.circuit.num_elements()
-        i_errors = errors[:num_elem,:]
-        v_errors = errors[num_elem:num_elem*2,:]
-        return v_errors / i_errors
+#     def diffuse(self, prediction:Tensor, self_loops:bool):
+#         A = self.input.circuit.A_edge_row_norm(self_loops = self_loops, torch_type=torch.float)
+#         return A.T @ A @ prediction
+    
+#     def reset_known_error(self, error, diffusion, mask):
+#         diffusion[mask] = error[mask]
+#         return diffusion
+
+#     def propagate(self, errors: Tensor):
+#         num_elem = self.input.circuit.num_elements()
+#         i_errors = errors[:num_elem,:]
+#         v_errors = errors[num_elem:num_elem*2,:]
+#         return v_errors / i_errors
