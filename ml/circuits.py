@@ -1,8 +1,8 @@
 import networkx as nx
 from enum import Enum
 import torch
+from torch import Tensor
 from torch.nn.functional import normalize
-import random
 
 class Kinds(Enum):
     IVS = 0
@@ -19,33 +19,67 @@ class Circuit():
         self.nodes: list[Node] = []
         self.elements: list[Element] = []
 
-    def add_node(self, element:'Element') -> 'Node':
-        '''create a node for a new elemenet and add to circuit.
-            nodes are never created without an element. No floating nodes'''
-        ckt_node = Node(self,[element])
-        self.nodes.append(ckt_node)
-        return ckt_node
-
-    def remove_node(self, node: 'Node'):
-        if(node in self.nodes):
-            self.nodes.remove(node)
-
-    def add_element_of(self, kind:Kinds) -> 'Element':
-        element = Element(self,kind=kind)
-        high_node = self.add_node(element)
-        low_node = self.add_node(element)
+    def clear(self):
+        for node in self.nodes:
+            node.clear()
+        for element in self.elements:
+            element.clear()
+        self.nodes.clear()
+        self.elements.clear()
+    
+    def add_element(self, element:'Element') -> None:
+        assert(isinstance(element,Element))
+        high_node = self.add_node([element])
+        low_node = self.add_node([element])
         element.high = high_node
         element.low = low_node
         self.elements.append(element)
         return element
     
-    def add_element(self, element:'Element') -> None:
-        high_node = self.add_node(element)
-        low_node = self.add_node(element)
+    def add_element_of(self, kind:Kinds) -> 'Element':
+        assert(isinstance(kind,Kinds))
+        element = Element(self,kind=kind)
+        high_node = self.add_node([element])
+        low_node = self.add_node([element])
         element.high = high_node
         element.low = low_node
         self.elements.append(element)
         return element
+    
+    def remove_element(self, element: 'Element'):
+        if(element in self.elements):
+            element.clear()
+            self.elements.remove(element)
+    
+    def add_node(self, elements:list['Element']) -> 'Node':
+        '''create a node for a new element and add to circuit.
+            nodes are never created without an element. No floating nodes'''
+        
+        assert(isinstance(elements,list))
+        for element in elements:
+            assert(isinstance(element,Element))
+        ckt_node = Node(self,elements)
+        self.nodes.append(ckt_node)
+        return ckt_node
+
+    def remove_node(self, node: 'Node'):
+        if(node in self.nodes):
+            node.clear()
+            self.nodes.remove(node)
+
+    def connect(self, from_node: 'Node', to_node: 'Node'):
+        assert(len(from_node.elements) == 1)
+        element = from_node.elements[0]
+        if(from_node == element.high):
+            self.remove_node(element.high)
+            element.high = to_node
+            element.high.add_element(element)
+        elif(from_node == element.low):
+            self.remove_node(element.low)
+            element.low = to_node
+            element.low.add_element(element)
+        else:
+            assert()
 
     def num_nodes(self):
         return len(self.nodes)
@@ -55,9 +89,6 @@ class Circuit():
     
     def node_idx(self, node: 'Node'):
         return self.nodes.index(node)
-
-    def element_idx(self, element: 'Element'):
-        return self.elements.index(element)
 
     def draw(self):
         nx.draw(self.nx_graph(), with_labels = True)
@@ -69,7 +100,7 @@ class Circuit():
             graph.add_edges_from([element])
         return graph
 
-    def M(self,dtype=torch.float) -> torch.Tensor:
+    def M(self,dtype=torch.float) -> Tensor:
         M_scipy = nx.incidence_matrix(G=self.nx_graph(),oriented=True)
         M_numpy = M_scipy.toarray()
         M_tensor = torch.tensor(M_numpy,dtype=dtype)
@@ -104,12 +135,12 @@ class Circuit():
         return "Circuit with " + str(len(self.nodes)) + \
                 " nodes and "+ str(len(self.elements)) + " elements"
 
-    def elements_parallel_with(self, base_element:'Element'):
+    def parallel_elements(self, reference_element:'Element'):
         parallels = []
-        for element in self.elements:
-            if (element.high == base_element.high and
-                element.low == base_element.low):
-                parallels.append(element)
+        for high_element in reference_element.high.elements:
+            for low_element in reference_element.low.elements:
+                if(high_element == low_element):
+                    parallels.append(low_element)
         return parallels
 
     def extract_elements(self):
@@ -164,65 +195,33 @@ class Circuit():
 
         return elements
     
-def ring(source_kind:Kinds, load_kind:Kinds, num_loads:int) -> 'Circuit':
+    def ring(self, source_kind:Kinds, load_kind:Kinds, num_loads:int) -> 'Circuit':
         '''one source and all loads in parallel'''
         assert(num_loads > 0)
-        circuit = Circuit()
-        source = Element(circuit=circuit,kind=source_kind)
-        circuit.add_element(source)
-        first_load = Element(circuit=circuit, kind=load_kind)
-        circuit.add_element(first_load)
-        source.connect(source.high, first_load.high)
+        self.clear()
+        source = Element(self,source_kind)
+        self.add_element(source)
+        first_load = Element(self,load_kind)
+        self.add_element(first_load)
+        self.connect(source.high, first_load.high)
         prev_element = first_load
         for l in range(num_loads-1):
-            new_load = Element(circuit=circuit, kind=load_kind)
-            circuit.add_element(new_load)
-            prev_element.connect(prev_element.low, new_load.high)
+            new_load = Element(circuit=self, kind=load_kind)
+            self.add_element(new_load)
+            self.connect(prev_element.low, new_load.high)
             prev_element = new_load
-        source.connect(source.low, prev_element.low)
-
-        return circuit
-
-class Node():
-    def __init__(self, circuit: Circuit, elements: list['Element'], p = None) -> None:
-        self.circuit = circuit
-        self.elements = elements
-        self.p = p
-        assert(self.circuit != None)
-        assert(self.elements != None)
-
-    def __repr__(self) -> str:
-        return str(self.idx)
-
-    def to_nx(self):
-        v = {'v':self.p}
-        return (self.idx, v)
-
-    @property
-    def idx(self):
-        return self.circuit.node_idx(self)
-
-    def clear(self):
-        self.circuit.remove_node(self)
-        self.circuit = None
-        self.elements.clear()
-        self.p = None
-
-    def add_element(self, element: 'Element'):
-        if(element not in self.elements):
-            self.elements.append(element)
+        self.connect(source.low, prev_element.low)
 
 class Element():
-    def __init__(self, circuit: Circuit, kind:Kinds, low:Node = None, high:Node = None,
-                 v = None, i = None, attr = None) -> None:
+    def __init__(self, circuit: Circuit, kind:Kinds) -> None:
         assert(isinstance(kind,Kinds))
         self.circuit = circuit
-        self.low = low
-        self.high = high
+        self.low:Node = None
+        self.high:Node = None
         self.kind = kind
-        self.i = i
-        self.v = v
-        self.attr = attr
+        self.i:float = None
+        self.v:float = None
+        self.attr:float = None
 
     def __repr__(self) -> str:
         return "("+str(self.kind.name)+", "+str(self.low.idx)+ ", "\
@@ -237,36 +236,43 @@ class Element():
 
     @property
     def key(self):
-        parallels = self.circuit.elements_parallel_with(self)
+        parallels = self.circuit.parallel_elements(self)
         return parallels.index(self)
 
+    def clear(self):
+        self.circuit = None
+        self.low = None
+        self.high = None
+        self.kind = None
+        self.i = None
+        self.v = None
+        self.attr = None
+    
+class Node():
+    def __init__(self, circuit: Circuit, elements: list[Element]) -> None:
+        self.circuit = circuit
+        self.elements = elements
+        self.potential:float = None
+        assert(self.circuit != None)
+        assert(self.elements != None)
+        assert(len(self.elements) != 0)
+
+    def __repr__(self) -> str:
+        return str(self.idx)
+
+    def to_nx(self):
+        v = {'v':self.potential}
+        return (self.idx, v)
+
     @property
-    def edge_key(self):
+    def idx(self):
         return self.circuit.node_idx(self)
 
-    def has_node(self, node:Node):
-        return self.low == node or self.high == node
+    def clear(self):
+        self.circuit = None
+        self.elements = None
+        self.potential = None
 
-    def connect(self, from_node: Node, to_node: Node):
-        assert(len(from_node.elements) == 1)
-        if(from_node == self.high):
-            self.high.clear()
-            self.high = to_node
-            self.high.add_element(self)
-        elif(from_node == self.low):
-            self.low.clear()
-            self.low = to_node
-            self.low.add_element(self)
-        else:
-            assert()
-
-    def copy(self):
-        return Element(
-            circuit = self.circuit,
-            low = self.low,
-            high = self.high,
-            kind = self.kind,
-            i = self.i,
-            v = self.v,
-            attr = self.attr
-        )
+    def add_element(self, element: Element):
+        if(element not in self.elements):
+            self.elements.append(element)

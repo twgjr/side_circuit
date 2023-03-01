@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from circuits import Props,Kinds
-from data import Input
+from data import Preprocess
 from enum import Enum
 
 class State(Enum):
@@ -15,7 +15,7 @@ class Solver(nn.Module):
     Sparse Tableau Formulation of circuit analysis, modeled as a machine learning
     problem to learn element attributes using backprop and optimization.
     '''
-    def __init__(self, input: Input, state: State):
+    def __init__(self, input: Preprocess, state: State):
         super().__init__()
         self.input = input
         self.ics_mask = self.init_mask(Kinds.ICS)

@@ -1,7 +1,7 @@
 from circuits import Circuit,Props,Kinds
 import random
 
-class Input():
+class Preprocess():
     def __init__(self, circuit:Circuit) -> None:
         self.circuit = circuit
         self.M = self.circuit.M()
@@ -64,15 +64,17 @@ class Input():
                         ret_list.append(ivs_attr_list[p])
                     else:
                         ret_list.append(prop_list[p])
-            else:
-                assert()
+            elif(prop == Props.Pot):
+                ret_list = prop_list
             return ret_list
         else:
             return prop_list
     
-    def attr_list(self,kind:Kinds, replace_nones:bool=True, rand_unknowns:bool = True) -> list:
+    def attr_list(self,kind:Kinds, replace_nones:bool=True, 
+                  rand_unknowns:bool = True) -> list:
         if(replace_nones):
-            return self.replace_nones(self.elements['attributes'][kind],rand_unknowns)
+            return self.replace_nones(
+                self.elements['attributes'][kind],rand_unknowns)
         else:
             return self.elements['attributes'][kind]
     
@@ -97,35 +99,3 @@ class Input():
             else:
                 ret_list.append(True)
         return ret_list
-    
-# class Process():
-#     def __init__(self, input:Input) -> None:
-#         self.input = input
-
-#     def errors(self, prediction:Tensor, known_input: Tensor, known_mask:Tensor):
-#         errors = known_input[:-1] - prediction
-#         errors[~known_mask[:-1]] = 0
-#         return errors
-    
-#     def split(self, ivp:Tensor):
-#         '''split a tensor that is (currents, voltages, potentials)
-#         Could be errors or predictions in that format'''
-#         num_elem = self.input.circuit.num_elements()
-#         i = ivp[:num_elem,:]
-#         v = ivp[num_elem:num_elem*2,:]
-#         p = ivp[2*num_elem:,:]
-#         return i,v,p
-
-#     def diffuse(self, prediction:Tensor, self_loops:bool):
-#         A = self.input.circuit.A_edge_row_norm(self_loops = self_loops, torch_type=torch.float)
-#         return A.T @ A @ prediction
-    
-#     def reset_known_error(self, error, diffusion, mask):
-#         diffusion[mask] = error[mask]
-#         return diffusion
-
-#     def propagate(self, errors: Tensor):
-#         num_elem = self.input.circuit.num_elements()
-#         i_errors = errors[:num_elem,:]
-#         v_errors = errors[num_elem:num_elem*2,:]
-#         return v_errors / i_errors
