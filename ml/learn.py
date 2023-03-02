@@ -17,8 +17,8 @@ class Trainer():
         loss = None
         if(self.model.state == State.Solve):
             preds = self.model()
-            target = torch.tensor(self.model.input.truth).to(torch.float).unsqueeze(dim=1)
-            mask = torch.tensor(self.model.input.truth_mask).to(torch.bool).unsqueeze(dim=1)
+            target = torch.tensor(self.model.input.target).to(torch.float).unsqueeze(dim=1)
+            mask = torch.tensor(self.model.input.target_mask).to(torch.bool).unsqueeze(dim=1)
             loss = self.loss_fn(preds[mask[:-1]], target[mask])
         elif(self.model.state == State.Lstsq):
             A,preds,b = self.model()

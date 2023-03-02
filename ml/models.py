@@ -22,20 +22,49 @@ class Solver(nn.Module):
         self.ivs_mask = self.init_mask(Kinds.IVS)
         self.r_mask = self.init_mask(Kinds.R)
         self.all_knowns_mask = self.init_known_attr_mask()
+        self.i_base = self.input.base(self.input.prop_list(Props.I,True,True))
+        print(self.i_base)
+        self.v_base = self.input.base(self.input.prop_list(Props.V,True,True))
+        print(self.v_base)
+        self.r_base = self.init_r_base()
+        print(self.r_base)
         self.attr = nn.Parameter(self.init_attr())
         self.state = state
 
+    def init_r_base(self):
+        r_max_base = self.input.base(self.input.prop_list(Props.V,True,True))
+        ohms_base = self.r_base_from_i_v()
+        return max([r_max_base,ohms_base,1])
+    
+    def r_base_from_i_v(self):
+        return self.v_base/self.i_base
+    
+    def split_solution(self, solution:Tensor):
+        split = self.input.circuit.num_elements()
+        i = solution[:split,:]
+        v = solution[split:2*split,:]
+        return i,v
+
+    def denorm(self, input, base):
+        return input*base
+    
+    def denorm_solution(self,solution):
+        i_norm,v_norm = self.split_solution(solution)
+        i = self.denorm(i_norm,self.i_base)
+        v = self.denorm(v_norm,self.v_base)
+        return i,v
+
     def init_attr(self):
+        ics_list = self.input.attr_list(Kinds.ICS,True,False)
         ret_tensor = torch.tensor(
-            self.input.attr_list(
-            Kinds.ICS,replace_nones=True, rand_unknowns=True)).to(torch.float)
+            self.input.normalize(self.i_base,ics_list)).to(torch.float)
+        ivs_list = self.input.attr_list(Kinds.IVS,True,False)
         ivs = torch.tensor(
-            self.input.attr_list(
-            Kinds.IVS,replace_nones=True,rand_unknowns=True)).to(torch.float)
+            self.input.normalize(self.v_base,ivs_list)).to(torch.float)
         ret_tensor[self.ivs_mask] = ivs[self.ivs_mask]
+        r_list = self.input.attr_list(Kinds.R,True,False)
         r = torch.tensor(
-            self.input.attr_list(
-            Kinds.R,replace_nones=True,rand_unknowns=True)).to(torch.float)
+            self.input.normalize(self.r_base,r_list)).to(torch.float)
         ret_tensor[self.r_mask] = r[self.r_mask]
         return ret_tensor
     
