@@ -29,6 +29,7 @@ class Trainer():
         loss.backward()
         self.model.zero_known_grads()
         self.optimizer.step()
+        self.model.clamp_attr()
         return loss,self.model.attr
 
     def list_params_filter_none(self,param_tpl:tuple[nn.Parameter]):

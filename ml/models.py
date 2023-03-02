@@ -52,6 +52,12 @@ class Solver(nn.Module):
         if(self.attr != None and self.attr.grad != None):
             self.attr.grad[self.all_knowns_mask] = 0
 
+    def clamp_attr(self):
+        min = 1e-12
+        max = 1e9
+        for p in self.parameters():
+            p.data.clamp_(min, max)
+
     def forward(self):
         if(self.state == State.Init):
             pass
