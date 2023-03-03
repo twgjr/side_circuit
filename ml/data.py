@@ -1,5 +1,4 @@
 from circuits import Circuit,Props,Kinds
-import random
 
 class Preprocess():
     def __init__(self, circuit:Circuit) -> None:
@@ -28,9 +27,9 @@ class Preprocess():
     
     def target_list(self) -> list[float]:
         '''inputs values including source attributes in respective i and v props'''
-        i_vals = self.prop_list(Props.I,True,True)
-        v_vals = self.prop_list(Props.V,True,True)
-        p_vals = self.prop_list(Props.Pot,False,True)
+        i_vals = self.prop_list(Props.I,True)
+        v_vals = self.prop_list(Props.V,True)
+        p_vals = self.prop_list(Props.Pot,True)
         i_base = self.base(i_vals)
         v_base = self.base(v_vals)
         p_base = self.base(p_vals)
@@ -42,9 +41,9 @@ class Preprocess():
     def target_mask_list(self):
         '''mask of known inputs values including source attributes in respective
           i and v props'''
-        currents = self.mask_of_prop(Props.I,include_attr=True)
-        voltages = self.mask_of_prop(Props.V,include_attr=True)
-        potentials = self.mask_of_prop(Props.Pot,include_attr=False)
+        currents = self.mask_of_prop(Props.I,True)
+        voltages = self.mask_of_prop(Props.V,True)
+        potentials = self.mask_of_prop(Props.Pot,True)
         return currents + voltages + potentials
     
     def mask_of_kind(self, kind:Kinds):
@@ -53,68 +52,64 @@ class Preprocess():
     
     def mask_of_prop(self, prop:Props, include_attr:bool):
         '''returns boolean mask of known element properties ordered by element'''
-        return self.to_bool_mask(
-            self.prop_list(prop,include_attr,replace_nones=False))
+        if(include_attr):
+            return self.nones_to_bool_mask(self.prop_with_attrs(prop))
+        else:
+            return self.nones_to_bool_mask(self.elements['properties'][prop])
     
     def mask_of_attr(self, kind:Kinds):
         '''returns boolean mask of known element attributes ordered by element'''
-        return self.to_bool_mask(self.attr_list(kind,replace_nones=False))
+        return self.nones_to_bool_mask(self.elements['attributes'][kind])
 
     def kind_list(self, kind:Kinds) -> list:
         kind_list = self.elements['kinds'][kind]
         return kind_list
     
-    def prop_list(self, prop:Props, include_attr:bool, 
-                  replace_nones:bool=True) -> list:
-        prop_list = None
-        if(replace_nones):
-            prop_list = self.replace_nones(self.elements['properties'][prop],False)
-        else:
-            prop_list = self.elements['properties'][prop]
+    def prop_with_attrs_of_kind(self,kind:Kinds,to_prop:Props):
+        to_prop_list = self.elements['properties'][to_prop]
+        list_with_attr = []
+        attr_list = self.replace_nones(self.attr_list(kind))
+        for p in range(len(to_prop_list)):
+            if(self.kind_list(kind)[p]):
+                list_with_attr.append(attr_list[p])
+            else:
+                list_with_attr.append(to_prop_list[p])
+        return list_with_attr
+    
+    def prop_with_attrs(self,prop:Props):
+        if(prop == Props.I):
+            return self.prop_with_attrs_of_kind(Kinds.ICS,prop)
+        elif(prop == Props.V):
+            return self.prop_with_attrs_of_kind(Kinds.IVS,prop)
+        elif(prop == Props.Pot):
+            return self.elements['properties'][prop]
+
+    def prop_list(self, prop:Props, include_attr:bool) -> list:
+        '''return list of element properties (i,v,pot) with unknowns initialized
+          to 1'''
         if(include_attr):
-            ret_list = []
-            if(prop == Props.I):
-                ics_attr_list = self.attr_list(Kinds.ICS, replace_nones,False)
-                for p in range(len(prop_list)):
-                    if(self.kind_list(Kinds.ICS)[p]):
-                        ret_list.append(ics_attr_list[p])
-                    else:
-                        ret_list.append(prop_list[p])
-            elif(prop == Props.V):
-                ivs_attr_list = self.attr_list(Kinds.IVS, replace_nones,False)
-                for p in range(len(prop_list)):
-                    if(self.kind_list(Kinds.IVS)[p]):
-                        ret_list.append(ivs_attr_list[p])
-                    else:
-                        ret_list.append(prop_list[p])
-            elif(prop == Props.Pot):
-                ret_list = prop_list
-            return ret_list
+            return self.replace_nones(self.prop_with_attrs(prop))
         else:
-            return prop_list
+            return self.replace_nones(self.elements['properties'][prop])
     
-    def attr_list(self,kind:Kinds, replace_nones:bool=True, 
-                  rand_unknowns:bool = True) -> list:
-        if(replace_nones):
-            return self.replace_nones(
-                self.elements['attributes'][kind],rand_unknowns)
-        else:
-            return self.elements['attributes'][kind]
+    def attr_list(self,kind:Kinds) -> list:
+        '''return list of element attributes with unknowns initialized to 1'''
+        return self.replace_nones(self.elements['attributes'][kind])
     
-    def replace_nones(self, input_list, rand_unknowns:bool=True):
+    def replace_nones(self, input_list):
         '''replaces None type items in list with False (bool) or 0 (float)'''
         ret_list = []
         for i in range(len(input_list)):
             if(input_list[i] == None):
-                if(rand_unknowns):
-                    ret_list.append(random.random())
-                else:
-                    ret_list.append(1)
+                ret_list.append(1)
             else:
                 ret_list.append(input_list[i])
         return ret_list
     
-    def to_bool_mask(self, input:list):
+    def nones_to_bool_mask(self, input:list):
+        '''converts the list into a boolean list where True has a value and 
+        Falseis None type.  Used to indicate a "unknown" circuit values of None 
+        type."'''
         ret_list = []
         for item in input:
             if(item == None):
