@@ -1,18 +1,53 @@
 import torch
 import torch.nn as nn
+from torch.optim.lr_scheduler import MultiStepLR
+from torch.optim import Adam
 from torch import Tensor
 from models import Solver
 from models import State
 from data import Preprocess
 
 class Trainer():
-    def __init__(self,model:Solver, optimizer:torch.optim.Adam,
-                 loss_fn:nn.MSELoss) -> None:
-        self.model = model
-        self.optimizer = optimizer
-        self.loss_fn = loss_fn
+    def __init__(self,input:Preprocess) -> None:
+        self.input = input
+        self.model:Solver = Solver(input=input, state=State.Solve)
+        self.optimizer:Adam = Adam(params=self.model.parameters(),lr=self.init_LR())
+        self.scheduler:MultiStepLR = None
+        # self.scheduler:MultiStepLR = MultiStepLR(self.optimizer, milestones=[250], gamma=0.01)
+        self.loss_fn:nn.MSELoss = nn.MSELoss()
 
-    def train(self):
+    def init_LR(self):
+        max_base = max(self.model.v_base,self.model.i_base,self.model.r_base)
+        rate = 1/(10*max_base)
+        if(0.01 < rate):
+            rate = 0.01
+        if(rate < 0.00001):
+            rate = 0.00001
+        print(rate)
+        return rate
+
+    def run(self, epochs):
+        loss, _ = self.step()
+        print(f'init target: {self.model.input.target}')
+        print(f'init params: {self.model.attr}')
+        print(f'init loss: {loss.item()}')
+        prev_loss = 0.1
+        epoch = 0
+        while(epoch < epochs):
+            loss, _ = self.step()
+            if(loss < 1e-20):
+                    break
+            epoch += 1
+            loss_change = abs(loss - prev_loss) / prev_loss
+            prev_loss = loss
+
+        print(f'Done! at {epoch} passes, {loss.item()} loss')
+        i_sol, v_sol = self.model.denorm_solution(self.model())
+        a_sol = self.model.attr*self.model.r_base_from_i_v()
+        print('i, v, attr')
+        print(torch.cat(tensors=(i_sol,v_sol,a_sol.unsqueeze(dim=1)),dim=1))
+
+    def step(self):
         self.model.train()
         loss = None
         if(self.model.state == State.Solve):
@@ -30,7 +65,13 @@ class Trainer():
         self.model.zero_known_grads()
         self.optimizer.step()
         self.model.clamp_attr()
+        if(self.scheduler!=None):
+            self.scheduler.step()
         return loss,self.model.attr
+    
+    def get_lr(self,optimizer):
+        for param_group in optimizer.param_groups:
+            return param_group['lr']
 
     def list_params_filter_none(self,param_tpl:tuple[nn.Parameter]):
         param_lst = []

@@ -23,11 +23,8 @@ class Solver(nn.Module):
         self.r_mask = self.init_mask(Kinds.R)
         self.all_knowns_mask = self.init_known_attr_mask()
         self.i_base = self.input.base(self.input.prop_list(Props.I,True))
-        print(self.i_base)
         self.v_base = self.input.base(self.input.prop_list(Props.V,True))
-        print(self.v_base)
         self.r_base = self.init_r_base()
-        print(self.r_base)
         self.attr = nn.Parameter(self.init_attr())
         self.state = state
 
