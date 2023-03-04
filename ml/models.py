@@ -3,19 +3,13 @@ import torch.nn as nn
 from torch import Tensor
 from circuits import Props,Kinds
 from data import Data
-from enum import Enum
-
-class State(Enum):
-    Init = 0
-    Solve = 1
-    Lstsq = 2
 
 class Solver(nn.Module):
     ''' 
     Sparse Tableau Formulation of circuit analysis, modeled as a machine learning
     problem to learn element attributes using backprop and optimization.
     '''
-    def __init__(self, data: Data, state: State):
+    def __init__(self, data: Data):
         super().__init__()
         self.data = data
         self.ics_mask = self.init_mask(Kinds.ICS)
@@ -26,7 +20,6 @@ class Solver(nn.Module):
         self.v_base = self.data.base(self.data.prop_list(Props.V,True))
         self.r_base = self.init_r_base()
         self.attr = nn.Parameter(self.init_attr())
-        self.state = state
 
     def init_r_base(self):
         r_max_base = self.data.base(self.data.prop_list(Props.V,True))
@@ -85,14 +78,8 @@ class Solver(nn.Module):
             p.data.clamp_(min, max)
 
     def forward(self):
-        if(self.state == State.Init):
-            pass
-        elif(self.state == State.Solve):
-            A,b = self.build()
-            return torch.linalg.solve(A[1:,:-1],b[1:,:])
-        elif(self.state == State.Lstsq):
-            A,b = self.build()
-            return A,torch.linalg.lstsq(A,b).solution,b
+        A,b = self.build()
+        return torch.linalg.solve(A[1:,:-1],b[1:,:])
 
     def build(self):
         # inputs
