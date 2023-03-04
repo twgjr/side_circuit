@@ -1,6 +1,6 @@
 from circuits import Circuit,Props,Kinds
 
-class Preprocess():
+class Data():
     def __init__(self, circuit:Circuit) -> None:
         self.circuit = circuit
         self.M = self.circuit.M()

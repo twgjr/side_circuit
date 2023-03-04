@@ -105,31 +105,6 @@ class Circuit():
         M_numpy = M_scipy.toarray()
         M_tensor = torch.tensor(M_numpy,dtype=dtype)
         return M_tensor
-    
-    def A_edge(self, torch_type, self_loops:bool):
-        matrix = []
-        for row_element in self.elements:
-            cols = []
-            for col_element in self.elements:
-                if(row_element == col_element):
-                    if(self_loops):
-                        cols.append(1)
-                    else:
-                        cols.append(0)
-                elif(row_element.low == col_element.low or 
-                    row_element.low == col_element.high or 
-                    row_element.high == col_element.low or 
-                    row_element.high == col_element.high):
-                        cols.append(1)
-                else:
-                    cols.append(0)
-            matrix.append(cols)
-        return torch.tensor(matrix).to(torch_type)
-    
-    def A_edge_row_norm(self, torch_type, self_loops:bool):
-        A_edge = self.A_edge(torch_type,self_loops)
-        row_means = torch.sum(A_edge,dim=0)
-        return A_edge/row_means
 
     def __repr__(self) -> str:
         return "Circuit with " + str(len(self.nodes)) + \
@@ -150,13 +125,11 @@ class Circuit():
         kinds_map: dict[Kinds,list[bool]] = {}
         props_map: dict[Props,list[float]] = {}
         attributes_map: dict[Kinds,list[float]] = {}
-
         for kind in Kinds:
             kinds_map[kind] = []
             attributes_map[kind] = []
         for prop in Props:
             props_map[prop] = []
-
         for e in range(len(self.elements)):
             element = self.elements[e]
             for kind in Kinds:
@@ -186,13 +159,11 @@ class Circuit():
                     props_map[prop].append(None)
                 else:
                     props_map[prop].append(float(value))
-
         elements = {
             'kinds': kinds_map,
             'properties': props_map,
             'attributes': attributes_map,
         }
-
         return elements
     
     def ring(self, source_kind:Kinds, load_kind:Kinds, num_loads:int) -> 'Circuit':

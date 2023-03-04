@@ -1,5 +1,5 @@
 import unittest
-from data import Preprocess
+from data import Data
 from circuits import Circuit,Kinds,Props
 from torch import Tensor
 
@@ -7,7 +7,7 @@ class Test_Preprocess(unittest.TestCase):
     def test_Preprocess(self):
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,1)
-        input = Preprocess(circuit)
+        input = Data(circuit)
         self.assertTrue(type(input.circuit)==Circuit)
         self.assertTrue(type(input.M)==Tensor)
         self.assertTrue(type(input.elements) == dict)
@@ -15,14 +15,14 @@ class Test_Preprocess(unittest.TestCase):
         self.assertTrue(type(input.target_mask) == list)
 
     def test_base(self):
-        input = Preprocess(Circuit())
+        input = Data(Circuit())
         self.assertTrue(input.base([0,1,2]) == 2)
         self.assertTrue(input.base([-1,1,2]) == 2)
         self.assertTrue(input.base([0,0,0]) == 1)
         self.assertTrue(input.base([-1,-1]) == 1)
 
     def test_normalize(self):
-        input = Preprocess(Circuit())
+        input = Data(Circuit())
         test_list = [0,1,2]
         base = input.base(test_list)
         self.assertTrue(input.normalize(base,test_list) == [0,0.5,1])
@@ -32,7 +32,7 @@ class Test_Preprocess(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].attr = 2
         circuit.elements[-1].i = 0.5
-        input = Preprocess(circuit)
+        input = Data(circuit)
         target = [1,0.5,1,0.5,1,1]
         self.assertTrue(input.target_list() == target)
     
@@ -41,7 +41,7 @@ class Test_Preprocess(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].attr = 1
         circuit.elements[1].i = 0.5
-        input = Preprocess(circuit)
+        input = Data(circuit)
         test_mask = [False, True, True, False, False, False]
         target_mask_list = input.target_mask_list()
         self.assertTrue(target_mask_list == test_mask)
@@ -52,7 +52,7 @@ class Test_Preprocess(unittest.TestCase):
         circuit.elements[0].attr = 2
         circuit.elements[1].i = 3
         circuit.elements[1].v = 4
-        input = Preprocess(circuit)
+        input = Data(circuit)
         v_attr_F = input.prop_list(Props.V,False)
         self.assertTrue(v_attr_F == [1,4])
         v_attr_T = input.prop_list(Props.V,True)
@@ -71,7 +71,7 @@ class Test_Preprocess(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].attr = 2
         circuit.elements[1].i = 3
-        input = Preprocess(circuit)
+        input = Data(circuit)
         i_mask = input.mask_of_prop(Props.I,False)
         self.assertTrue(i_mask == [False,True])
         i_mask_with_attr = input.mask_of_prop(Props.I,True)
@@ -86,13 +86,13 @@ class Test_Preprocess(unittest.TestCase):
         self.assertTrue(p_mask_with_attr == [False,False])
 
     def test_to_bool_mask(self):
-        preprocess = Preprocess(Circuit())
+        preprocess = Data(Circuit())
         input = [None,0,1.1]
         mask = preprocess.nones_to_bool_mask(input)
         self.assertTrue(mask == [False,True,True])
 
     def test_replace_nones(self):
-        preprocess = Preprocess(Circuit())
+        preprocess = Data(Circuit())
         unknowns = [None,2,None,1.1]
         change = preprocess.replace_nones(unknowns)
         self.assertTrue(change == [1,2,1,1.1])
@@ -105,7 +105,7 @@ class Test_Preprocess(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].attr = 2
         circuit.elements[1].attr = 3
-        preprocess = Preprocess(circuit)
+        preprocess = Data(circuit)
 
         ivs = preprocess.attr_list(Kinds.IVS)
         ics = preprocess.attr_list(Kinds.ICS)
@@ -118,7 +118,7 @@ class Test_Preprocess(unittest.TestCase):
         circuit.elements[0].attr = 2
         circuit.elements[1].attr = 4
 
-        preprocess = Preprocess(circuit)
+        preprocess = Data(circuit)
 
         ivs = preprocess.mask_of_attr(Kinds.IVS)
         ics = preprocess.mask_of_attr(Kinds.ICS)
@@ -129,7 +129,7 @@ class Test_Preprocess(unittest.TestCase):
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].attr = 1
-        preprocess = Preprocess(circuit)
+        preprocess = Data(circuit)
 
         mask = preprocess.mask_of_kind(Kinds.IVS)
         self.assertTrue(mask == [True,False])
