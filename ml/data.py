@@ -4,7 +4,7 @@ class Data():
     def __init__(self, circuit:Circuit) -> None:
         self.circuit = circuit
         self.M = self.circuit.M()
-        self.elements = self.circuit.extract_elements()
+        self.elements = self.circuit.export()
         self.target = self.target_list()
         self.target_mask = self.target_mask_list()
 
@@ -30,12 +30,10 @@ class Data():
         i_vals = self.prop_list(Props.I,True)
         v_vals = self.prop_list(Props.V,True)
         p_vals = self.prop_list(Props.Pot,True)
-        i_base = self.base(i_vals)
-        v_base = self.base(v_vals)
-        p_base = self.base(p_vals)
-        i_norm = self.normalize(i_base,i_vals)
-        v_norm = self.normalize(v_base,v_vals)
-        p_norm = self.normalize(p_base,p_vals)
+        base_val = self.base(i_vals + v_vals + p_vals)
+        i_norm = self.normalize(base_val,i_vals)
+        v_norm = self.normalize(base_val,v_vals)
+        p_norm = self.normalize(base_val,p_vals)
         return i_norm + v_norm + p_norm
     
     def target_mask_list(self):

@@ -146,7 +146,7 @@ class Test_Circuit(unittest.TestCase):
         circuit.connect(ivs.low, r.low)
         ivs.attr = 1
         r.i = 0.5
-        extract = circuit.extract_elements() 
+        extract = circuit.export() 
         extract_test = {
             'kinds': {
                 Kinds.IVS: [True, False],

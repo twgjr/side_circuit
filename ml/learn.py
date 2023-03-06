@@ -23,45 +23,41 @@ class Stability():
         return ret_bool
 
 class Trainer():
-    def __init__(self, data:Data) -> None:
+    def __init__(self, data:Data, init_learn_rate:float) -> None:
         self.data = data
         self.model = Solver(data=data)
-        self.optimizer = Adam(params=self.model.parameters(),lr=self.init_LR())
+        self.base_learn_rate = init_learn_rate
+        self.optimizer = Adam(params=self.model.parameters(),lr=init_learn_rate)
         self.loss_fn = nn.MSELoss()
 
-    def init_LR(self):
-        max_base = max(self.model.v_base,self.model.i_base,self.model.r_base)
-        rate = 1/(10*max_base)
-        if(0.01 < rate):
-            rate = 0.01
-        if(rate < 0.00001):
-            rate = 0.00001
-        print(rate)
-        return rate
-
     def run(self, epochs, stable_threshold:float, loss_threshold:float):
-        loss, attr, preds = self.step()
+        target = torch.tensor(self.model.data.target).to(torch.float).unsqueeze(dim=1)
+        target_mask = torch.tensor(self.model.data.target_mask).to(torch.bool).unsqueeze(dim=1)
+        loss, attr, preds = self.step(target,target_mask)
         attr_stability = Stability(attr, stable_threshold)
         preds_stability = Stability(preds, stable_threshold)
         epoch = 0
+        reset_count = 0
         while(epoch < epochs):
-            loss, attr, preds = self.step()
-            if(loss < loss_threshold):
-                    break
-            if(attr_stability.is_stable(attr) and 
-                preds_stability.is_stable(preds)):
-                 break
+            if(loss < loss_threshold and attr_stability.is_stable(attr) and 
+            preds_stability.is_stable(preds)):
+                print('threshold met, updating')
+                break
+            if(epoch % 2 == 0):
+                self.model.set_r_from_knowns(preds,target,target_mask)
+                reset_count += 1
+            loss, attr, preds = self.step(target,target_mask)
             epoch += 1
-        i_sol, v_sol = self.model.denorm_solution(self.model())
-        a_sol = self.model.attr*self.model.r_base_from_i_v()
+        print(f'reset_count = {reset_count}')
+        self.model.set_r_from_knowns(preds,target,target_mask)
+        i_sol, v_sol = self.model.denorm_solution(preds)
+        a_sol = self.model.denorm_attr()
         return i_sol, v_sol, a_sol, loss, epoch
 
-    def step(self):
+    def step(self,target:Tensor,target_mask:Tensor):
         self.model.train()
         preds = self.model()
-        target = torch.tensor(self.model.data.target).to(torch.float).unsqueeze(dim=1)
-        mask = torch.tensor(self.model.data.target_mask).to(torch.bool).unsqueeze(dim=1)
-        loss = self.loss_fn(preds[mask[:-1]], target[mask])
+        loss = self.loss_fn(preds[target_mask[:-1]], target[target_mask])
         self.model.zero_grad()
         loss.backward()
         self.model.zero_known_grads()
@@ -72,3 +68,7 @@ class Trainer():
     def get_lr(self,optimizer):
         for param_group in optimizer.param_groups:
             return param_group['lr']
+        
+    def set_lr(self,optimizer,lr):
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr

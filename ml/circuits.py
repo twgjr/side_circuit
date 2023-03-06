@@ -118,7 +118,19 @@ class Circuit():
                     parallels.append(low_element)
         return parallels
 
-    def extract_elements(self):
+    def load(self, i_tensor:Tensor, v_tensor:Tensor, attr_tensor:Tensor):
+        '''Takes inputs i_sol, v_sol, a_sol from solver and loads them into the circuit'''
+        attr_list = attr_tensor.tolist()
+        i_list = i_tensor.squeeze(1).tolist()
+        v_list = v_tensor.squeeze(1).tolist()
+        assert(len(attr_list) == len(i_list) == len(v_list))
+        for e in range(len(self.elements)):
+            element = self.elements[e]
+            element.attr = attr_list[e]
+            element.i = i_list[e]
+            element.v = v_list[e]
+
+    def export(self):
         '''
         return dictinaries of circuit data and other useful precomputed lists
         '''
