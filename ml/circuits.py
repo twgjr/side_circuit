@@ -110,6 +110,34 @@ class Circuit():
         M_numpy = M_scipy.toarray()
         M_tensor = torch.tensor(M_numpy,dtype=dtype)
         return M_tensor
+    
+    def minimum_spanning_tree(self):
+        '''Simple minimum spanning tree algorithm that returns list of elements
+        in the minimum spanning tree.'''
+        unvisited_nodes = self.nodes.copy()
+        mst_elements = []
+        active_node = unvisited_nodes[-1]
+        while(len(unvisited_nodes) > 0):
+            for element in active_node.elements:
+                if(element not in mst_elements):
+                    if(active_node == element.high):
+                        matches = self.intersection(element.low.elements,
+                                                    mst_elements)
+                        if(len(matches) == 0):
+                            mst_elements.append(element)
+                    elif(active_node == element.low):
+                        matches = self.intersection(element.high.elements,
+                                                    mst_elements)
+                        if(len(matches) == 0):
+                            mst_elements.append(element)
+            unvisited_nodes.pop()
+            if(len(unvisited_nodes) > 0):
+                active_node = unvisited_nodes[-1]
+        return mst_elements
+
+    def intersection(self, list1, list2):
+        return list(set(list1) & set(list2))
+                    
 
     def __repr__(self) -> str:
         return "Circuit with " + str(len(self.nodes)) + \
