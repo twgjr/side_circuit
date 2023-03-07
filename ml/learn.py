@@ -41,7 +41,7 @@ class Trainer():
         while(epoch < epochs):
             if(loss < loss_threshold and attr_stability.is_stable(attr) and 
             preds_stability.is_stable(preds)):
-                print('threshold met, updating')
+                print('threshold met')
                 break
             if(epoch % 2 == 0):
                 self.model.set_r_from_knowns(preds,target,target_mask)

@@ -27,18 +27,9 @@ class Circuit():
         self.nodes.clear()
         self.elements.clear()
     
-    def add_element(self, element:'Element') -> None:
-        assert(isinstance(element,Element))
-        high_node = self.add_node([element])
-        low_node = self.add_node([element])
-        element.high = high_node
-        element.low = low_node
-        self.elements.append(element)
-        return element
-    
-    def add_element_of(self, kind:Kinds) -> 'Element':
+    def add_element(self, kind:Kinds) -> 'Element':
         assert(isinstance(kind,Kinds))
-        element = Element(self,kind=kind)
+        element = Element(self,kind)
         high_node = self.add_node([element])
         low_node = self.add_node([element])
         element.high = high_node
@@ -46,16 +37,23 @@ class Circuit():
         self.elements.append(element)
         return element
     
-    def remove_element(self, element: 'Element'):
+    def remove_element(self, element: 'Element', merge_nodes:bool):
         if(element in self.elements):
+            if(element in element.high.elements):
+                self.remove_node(element.high)
+            if(element in element.low.elements):
+                self.remove_node(element.low)
+            if(merge_nodes):
+                self.connect(element.high,element.low)
             element.clear()
             self.elements.remove(element)
     
     def add_node(self, elements:list['Element']) -> 'Node':
         '''create a node for a new element and add to circuit.
             nodes are never created without an element. No floating nodes'''
-        
-        assert(isinstance(elements,list))
+        assert(isinstance(elements,list) or elements == None)
+        if(elements == None):
+            elements = []
         for element in elements:
             assert(isinstance(element,Element))
         ckt_node = Node(self,elements)
@@ -64,22 +62,29 @@ class Circuit():
 
     def remove_node(self, node: 'Node'):
         if(node in self.nodes):
-            node.clear()
             self.nodes.remove(node)
+            node.clear()
 
     def connect(self, from_node: 'Node', to_node: 'Node'):
-        assert(len(from_node.elements) == 1)
-        element = from_node.elements[0]
-        if(from_node == element.high):
-            self.remove_node(element.high)
-            element.high = to_node
-            element.high.add_element(element)
-        elif(from_node == element.low):
-            self.remove_node(element.low)
-            element.low = to_node
-            element.low.add_element(element)
-        else:
-            assert()
+        common_node = self.add_node([])
+        for element in from_node.elements:
+            common_node.add_element(element)
+            if(from_node == element.high):
+                element.high = common_node
+            elif(from_node == element.low):
+                element.low = common_node
+            else:
+                assert()
+        for element in to_node.elements:
+            common_node.add_element(element)
+            if(to_node == element.high):
+                element.high = common_node
+            elif(to_node == element.low):
+                element.low = common_node
+            else:
+                assert()
+        self.remove_node(from_node)
+        self.remove_node(to_node)
 
     def num_nodes(self):
         return len(self.nodes)
@@ -179,21 +184,33 @@ class Circuit():
         return elements
     
     def ring(self, source_kind:Kinds, load_kind:Kinds, num_loads:int) -> 'Circuit':
-        '''one source and all loads in parallel'''
+        '''one source and all loads in series'''
         assert(num_loads > 0)
         self.clear()
-        source = Element(self,source_kind)
-        self.add_element(source)
-        first_load = Element(self,load_kind)
-        self.add_element(first_load)
+        source = self.add_element(source_kind)
+        first_load = self.add_element(load_kind)
         self.connect(source.high, first_load.high)
         prev_element = first_load
         for l in range(num_loads-1):
-            new_load = Element(circuit=self, kind=load_kind)
-            self.add_element(new_load)
+            new_load = self.add_element(load_kind)
             self.connect(prev_element.low, new_load.high)
             prev_element = new_load
         self.connect(source.low, prev_element.low)
+
+    def ladder(self, source_kind:Kinds, load_kind:Kinds, num_loads:int) -> 'Circuit':
+        '''one source and all loads in parallel'''
+        assert(num_loads > 0)
+        self.clear()
+        source = self.add_element(source_kind)
+        first_load = self.add_element(load_kind)
+        self.connect(source.high, first_load.high)
+        self.connect(source.low, first_load.low)
+        prev_element = first_load
+        for l in range(num_loads-1):
+            new_load = self.add_element(load_kind)
+            self.connect(prev_element.high, new_load.high)
+            self.connect(prev_element.low, new_load.low)
+            prev_element = new_load
 
 class Element():
     def __init__(self, circuit: Circuit, kind:Kinds) -> None:
@@ -230,15 +247,20 @@ class Element():
         self.i = None
         self.v = None
         self.attr = None
+
+    def disconnect_low(self):
+        self.low.remove_element(self)
+        self.low = Node(self.circuit, [self])
+
+    def disconnect_high(self):
+        self.high.remove_element(self)
+        self.high = Node(self.circuit, [self])
     
 class Node():
     def __init__(self, circuit: Circuit, elements: list[Element]) -> None:
         self.circuit = circuit
         self.elements = elements
         self.potential:float = None
-        assert(self.circuit != None)
-        assert(self.elements != None)
-        assert(len(self.elements) != 0)
 
     def __repr__(self) -> str:
         return str(self.idx)
@@ -259,3 +281,7 @@ class Node():
     def add_element(self, element: Element):
         if(element not in self.elements):
             self.elements.append(element)
+
+    def remove_element(self, element: Element):
+        if(element in self.elements):
+            self.elements.remove(element)

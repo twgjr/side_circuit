@@ -25,24 +25,17 @@ class Test_Circuit(unittest.TestCase):
 
     def test_add_element(self):
         circuit = Circuit()
-        resistor = Element(circuit,Kinds.R)
         self.assertTrue(len(circuit.elements) == 0)
-        circuit.add_element(resistor)
+        resistor = circuit.add_element(Kinds.R)
+        self.assertTrue(isinstance(resistor,Element))
         self.assertTrue(circuit.elements[0].kind == Kinds.R)
-        self.assertTrue(len(circuit.elements) == 1)
-
-    def test_add_element_of(self):
-        circuit = Circuit()
-        self.assertTrue(len(circuit.elements) == 0)
-        circuit.add_element_of(Kinds.ICS)
-        self.assertTrue(circuit.elements[0].kind == Kinds.ICS)
         self.assertTrue(len(circuit.elements) == 1)
 
     def test_remove_element(self):
         circuit = Circuit()
-        ics = circuit.add_element_of(Kinds.ICS)
+        ics = circuit.add_element(Kinds.ICS)
         self.assertTrue(len(circuit.elements) == 1)
-        circuit.remove_element(ics)
+        circuit.remove_element(ics,False)
         self.assertTrue(len(circuit.elements) == 0)
 
     def test_add_node(self):
@@ -74,8 +67,8 @@ class Test_Circuit(unittest.TestCase):
 
     def test_connect(self):
         circuit = Circuit()
-        ivs = circuit.add_element_of(Kinds.IVS)
-        r = circuit.add_element_of(Kinds.R)
+        ivs = circuit.add_element(Kinds.IVS)
+        r = circuit.add_element(Kinds.R)
         self.assertTrue(ivs.high != r.high)
         circuit.connect(ivs.high, r.high)
         self.assertTrue(ivs.high == r.high)
@@ -91,7 +84,7 @@ class Test_Circuit(unittest.TestCase):
 
     def test_num_elements(self):
         circuit = Circuit()
-        circuit.add_element_of(Kinds.ICS)
+        circuit.add_element(Kinds.ICS)
         self.assertTrue(circuit.num_elements() == 1)
 
     def test_node_idx(self):
@@ -103,8 +96,8 @@ class Test_Circuit(unittest.TestCase):
 
     def test_M(self):
         circuit = Circuit()
-        source = circuit.add_element_of(Kinds.IVS)
-        load = circuit.add_element_of(Kinds.R)
+        source = circuit.add_element(Kinds.IVS)
+        load = circuit.add_element(Kinds.R)
         circuit.connect(source.high, load.high)
         circuit.connect(source.low, load.low)
         M = circuit.M()
@@ -114,9 +107,9 @@ class Test_Circuit(unittest.TestCase):
 
     def test_elements_parallel_with_1(self):
         circuit = Circuit()
-        source = circuit.add_element_of(Kinds.IVS)
-        load0 = circuit.add_element_of(Kinds.R)
-        load1 = circuit.add_element_of(Kinds.R)
+        source = circuit.add_element(Kinds.IVS)
+        load0 = circuit.add_element(Kinds.R)
+        load1 = circuit.add_element(Kinds.R)
         circuit.connect(load0.high, source.high)
         circuit.connect(load0.low, source.low)
         circuit.connect(load1.high, source.high)
@@ -126,10 +119,10 @@ class Test_Circuit(unittest.TestCase):
         
     def test_elements_parallel_with_2(self):
         circuit = Circuit()
-        source = circuit.add_element_of(Kinds.IVS)
-        load0 = circuit.add_element_of(Kinds.R)
-        load1 = circuit.add_element_of(Kinds.R)
-        load2 = circuit.add_element_of(Kinds.R)
+        source = circuit.add_element(Kinds.IVS)
+        load0 = circuit.add_element(Kinds.R)
+        load1 = circuit.add_element(Kinds.R)
+        load2 = circuit.add_element(Kinds.R)
         circuit.connect(load0.low, source.high)
         circuit.connect(load1.high, load0.high)
         circuit.connect(load1.low, source.low)
@@ -140,8 +133,8 @@ class Test_Circuit(unittest.TestCase):
 
     def test_extract_elements(self):
         circuit = Circuit()
-        ivs = circuit.add_element_of(Kinds.IVS)
-        r = circuit.add_element_of(Kinds.R)
+        ivs = circuit.add_element(Kinds.IVS)
+        r = circuit.add_element(Kinds.R)
         circuit.connect(ivs.high, r.high)
         circuit.connect(ivs.low, r.low)
         ivs.attr = 1

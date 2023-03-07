@@ -18,7 +18,6 @@ class Solver(nn.Module):
         self.known_attr_mask = self.init_known_attr_mask()
         self.base = self.init_base()
         self.attr = nn.Parameter(self.init_attr())
-        print(self.attr)
 
     def init_mask(self, kind:Kinds):
         return torch.tensor(self.data.mask_of_kind(kind))
@@ -106,17 +105,19 @@ class Solver(nn.Module):
         for p in self.parameters():
             p.data.clamp_(min, max)
 
+    def M(self):
+        return self.data.M
+
     def build(self):
         # inputs
-        M = self.data.M
         num_elements = self.data.circuit.num_elements()
         num_nodes = self.data.circuit.num_nodes()
-        kcl_row = torch.cat(tensors=(M,
-                                    torch.zeros_like(M),
-                                    torch.zeros_like(M)),dim=1)
-        kvl_row = torch.cat(tensors=(torch.zeros_like(M),
+        kcl_row = torch.cat(tensors=(self.M(),
+                                    torch.zeros_like(self.M()),
+                                    torch.zeros_like(self.M())),dim=1)
+        kvl_row = torch.cat(tensors=(torch.zeros_like(self.M()),
                                     torch.eye(num_elements),
-                                    -M.T),dim=1)
+                                    -self.M().T),dim=1)
         e_row = self.E()
         A = torch.cat(tensors=(
                 kcl_row,

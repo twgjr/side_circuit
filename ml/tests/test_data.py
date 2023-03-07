@@ -22,24 +22,27 @@ class Test_Preprocess(unittest.TestCase):
         self.assertTrue(input.base([-1,-1]) == 1)
 
     def test_normalize(self):
-        input = Data(Circuit())
-        test_list = [0,1,2]
-        base = input.base(test_list)
-        self.assertTrue(input.normalize(base,test_list) == [0,0.5,1])
+        data = Data(Circuit())
+        test_list = [1,1,2,3]
+        base = data.base(test_list)
+        mask = [False,False,True,True]
+        self.assertTrue(data.normalize(base,test_list,mask) == [1,1,2/3,1])
 
     def test_target_list(self):
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].attr = 2
         circuit.elements[-1].i = 0.5
-        input = Data(circuit)
-        target = [1,0.5,1,0.5,1,1]
-        self.assertTrue(input.target_list() == target)
+        data = Data(circuit)
+        mask = [False, True, True, False, False, False]
+        target_list_test = [1,0.25,1,1,1,1]
+        target_list = data.target_list(mask)
+        self.assertTrue(target_list == target_list_test)
     
     def test_target_mask_list(self):
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,1)
-        circuit.elements[0].attr = 1
+        circuit.elements[0].attr = 2
         circuit.elements[1].i = 0.5
         input = Data(circuit)
         test_mask = [False, True, True, False, False, False]

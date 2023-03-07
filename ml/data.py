@@ -5,8 +5,8 @@ class Data():
         self.circuit = circuit
         self.M = self.circuit.M()
         self.elements = self.circuit.export()
-        self.target = self.target_list()
         self.target_mask = self.target_mask_list()
+        self.target = self.target_list(self.target_mask)
 
     def base(self, input:list):
         input_max = 0
@@ -19,22 +19,24 @@ class Data():
         else:
             return 1
     
-    def normalize(self, base:int, input:list):
+    def normalize(self, base:int, input:list, target_mask:list):
         ret_list = []
-        for val in input:
-            ret_list.append(val/base)
+        for v in range(len(input)):
+            if(target_mask[v]):
+                ret_list.append(input[v]/base)
+            else:
+                ret_list.append(input[v])
         return ret_list
     
-    def target_list(self) -> list[float]:
+    def target_list(self, target_mask:list) -> list[float]:
         '''inputs values including source attributes in respective i and v props'''
         i_vals = self.prop_list(Props.I,True)
         v_vals = self.prop_list(Props.V,True)
         p_vals = self.prop_list(Props.Pot,True)
-        base_val = self.base(i_vals + v_vals + p_vals)
-        i_norm = self.normalize(base_val,i_vals)
-        v_norm = self.normalize(base_val,v_vals)
-        p_norm = self.normalize(base_val,p_vals)
-        return i_norm + v_norm + p_norm
+        vals = i_vals + v_vals + p_vals
+        base_val = self.base(vals)
+        vals_norm = self.normalize(base_val,vals,target_mask)
+        return vals_norm
     
     def target_mask_list(self):
         '''mask of known inputs values including source attributes in respective
