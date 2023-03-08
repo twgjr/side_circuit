@@ -47,12 +47,11 @@ class Test_Solver(unittest.TestCase):
         data = Data(circuit)
         solver = Solver(data)
         A,b = solver.build()
-        A_tester = torch.tensor([[-1,-1, 0, 0, 0, 0], 
-                                 [ 1, 1, 0, 0, 0, 0],
-                                 [ 0, 0, 1, 0, 1,-1],
-                                 [ 0, 0, 0, 1, 1,-1],
-                                 [ 0, 0, 1, 0, 0, 0],
-                                 [ 0,-1, 0, 1, 0, 0]]).to(torch.float)
+        A_tester = torch.tensor([[-1,-1, 0, 0], 
+                                 [ 1, 1, 0, 0],
+                                 [ 0, 0, 1,-1],
+                                 [ 0, 0, 1, 0],
+                                 [ 0,-1, 0, 1]]).to(torch.float)
         self.assertFalse(False in torch.eq(A, A_tester))
-        b_tester = torch.tensor([0, 0, 0, 0, 2/3, 0]).unsqueeze(1).to(torch.float)
+        b_tester = torch.tensor([0, 0, 0, 2/3, 0]).unsqueeze(1).to(torch.float)
         self.assertFalse(False in torch.eq(b, b_tester))

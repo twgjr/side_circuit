@@ -93,7 +93,7 @@ class Solver(nn.Module):
     
     def forward(self):
         A,b = self.build()
-        return torch.linalg.solve(A[1:,:-1],b[1:,:])
+        return torch.linalg.solve(A[1:,:],b[1:,:])
     
     def zero_known_grads(self):
         if(self.attr != None and self.attr.grad != None):
@@ -112,31 +112,32 @@ class Solver(nn.Module):
         # inputs
         num_elements = self.data.circuit.num_elements()
         num_nodes = self.data.circuit.num_nodes()
-        kcl_row = torch.cat(tensors=(self.M(),
-                                    torch.zeros_like(self.M()),
-                                    torch.zeros_like(self.M())),dim=1)
-        kvl_row = torch.cat(tensors=(torch.zeros_like(self.M()),
-                                    torch.eye(num_elements),
-                                    -self.M().T),dim=1)
-        e_row = self.E()
+        kcl_coef = self.M()
+        M_zeros = torch.zeros_like(kcl_coef)
+        kcl_block = torch.cat(tensors=(kcl_coef,M_zeros),dim=1)
+        kvl_coef = torch.tensor(self.data.circuit.kvl_coef()).to(torch.float)
+        kvl_zeros = torch.zeros_like(kvl_coef)
+        kvl_block = torch.cat(tensors=(kvl_zeros,kvl_coef),dim=1)
+        element_coef = self.E()
         A = torch.cat(tensors=(
-                kcl_row,
-                kvl_row,
-                e_row,
+                kcl_block,
+                kvl_block,
+                element_coef
             ), dim=0)
         kcl_zeros = torch.zeros(num_nodes)
-        kvl_zeros = torch.zeros(num_elements)
+        kvl_zeros = torch.zeros(kvl_block.shape[0])
+        s_const = self.source_attr()
         b = torch.cat(tensors=(
-                kvl_zeros,
                 kcl_zeros,
-                self.source_attr()
+                kvl_zeros,
+                s_const
             ), dim=0)
         return A,b.unsqueeze(dim=1)
     
     def E(self):
         Z = self.Z()
         Y = self.Y()
-        return torch.cat(tensors=(Z,Y,torch.zeros_like(Z)),dim=1)
+        return torch.cat(tensors=(Z,Y),dim=1)
 
     def source_attr(self):
         source_mask = torch.logical_or(self.ics_attr_mask,self.ivs_attr_mask)

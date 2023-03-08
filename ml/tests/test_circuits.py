@@ -144,7 +144,7 @@ class Test_Circuit(unittest.TestCase):
     def test_kvl_coefficients_ladder(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS,Kinds.R,3)
-        kvl = circuit.kvl_coefficients()
+        kvl = circuit.kvl_coef()
         kvl_test = [[ 1,-1, 0, 0],
                     [ 1, 0,-1, 0],
                     [ 1, 0, 0,-1]]
@@ -153,7 +153,7 @@ class Test_Circuit(unittest.TestCase):
     def test_kvl_coefficients_ring(self):
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,3)
-        kvl = circuit.kvl_coefficients()
+        kvl = circuit.kvl_coef()
         kvl_test = [[ 1,-1,-1,-1]]
         self.assertTrue(kvl == kvl_test)
 

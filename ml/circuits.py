@@ -157,7 +157,7 @@ class Circuit():
             loops_with_acyclics.append(loop_with_acyclics)
         return loops_with_acyclics
 
-    def kvl_coefficients(self) -> list[list[int]]:
+    def kvl_coef(self) -> list[list[int]]:
         '''Returns a list of lists of integers. Each list of integers represents
         the coefficients of the KVL equations for a loop in the circuit.'''
         loops = self.loops()
