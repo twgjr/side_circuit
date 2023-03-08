@@ -121,15 +121,40 @@ class Test_Circuit(unittest.TestCase):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS,Kinds.R,3)
         loops = circuit.loops()
-        self.assertTrue(len(loops) == 3)
+        s1 = circuit.elements[0]
+        r1 = circuit.elements[1]
+        r2 = circuit.elements[2]
+        r3 = circuit.elements[3]
+        loops_test = [[ s1, r1],
+                      [ s1, r2],
+                      [ s1, r3]]
+        self.assertTrue(loops == loops_test)
 
-    def test_kvl_coefficients(self):
+    def test_loops_ring(self):
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS,Kinds.R,3)
+        loops = circuit.loops()
+        s1 = circuit.elements[0]
+        r1 = circuit.elements[1]
+        r2 = circuit.elements[2]
+        r3 = circuit.elements[3]
+        loops_test = [[ s1, r3, r2, r1]]
+        self.assertTrue(loops == loops_test)
+
+    def test_kvl_coefficients_ladder(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS,Kinds.R,3)
         kvl = circuit.kvl_coefficients()
         kvl_test = [[ 1,-1, 0, 0],
                     [ 1, 0,-1, 0],
                     [ 1, 0, 0,-1]]
+        self.assertTrue(kvl == kvl_test)
+
+    def test_kvl_coefficients_ring(self):
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS,Kinds.R,3)
+        kvl = circuit.kvl_coefficients()
+        kvl_test = [[ 1,-1,-1,-1]]
         self.assertTrue(kvl == kvl_test)
 
     def test_elements_parallel_with_1(self):

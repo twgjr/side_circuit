@@ -165,31 +165,38 @@ class Circuit():
         for loop in loops:
             coefficients = [0]*self.num_elements()
             first_element = loop[0]
-            active_element = first_element
-            active_polarity = 1
-            coefficients[self.element_idx(active_element)] = active_polarity
-            next_element = self.next_in_loop(loop, active_element)
+            from_element = first_element
+            from_node = first_element.low
+            coefficients[self.element_idx(from_element)] = 1
+            next_element = self.next_element_in(loop, from_element, from_node)
             while(next_element != first_element):
-                if(next_element.high == active_element.low):
-                    active_polarity = 1
-                elif(next_element.low == active_element.low):
-                    active_polarity = -1
-                else:
-                    assert()
-                coefficients[self.element_idx(next_element)] = active_polarity
-                active_element = next_element
-                next_element = self.next_in_loop(loop, active_element)
+                from_node,polarity = self.next_node_in(next_element, from_node)
+                coefficients[self.element_idx(next_element)] = polarity
+                from_element = next_element
+                next_element = self.next_element_in(loop, from_element, from_node)
             kvl_coefficients.append(coefficients)
         return kvl_coefficients
             
-    def next_in_loop(self, loop:list['Element'], active_element:'Element') -> 'Element':
-        '''Returns the next element in the loop after active_element.'''
-        for low_element in active_element.low.elements:
-            if(low_element == active_element):
+    def next_element_in(self, loop:list['Element'], from_element: 'Element',
+                        from_node:'Node') -> 'Element':
+        '''Returns the next element in the loop after active_element.  Exit from
+        the exit node.'''
+        for element in from_node.elements:
+            if(element == from_element):
                 continue
-            elif(low_element in loop):
-                return low_element
+            elif(element in loop):
+                return element
 
+    def next_node_in(self, element:'Element', from_node:'Node') -> tuple['Node',int]:
+        '''Returns the next node in the loop after active_node.  Exit from
+        the exit node.'''
+        if(from_node == element.high):
+            return element.low, 1
+        elif(from_node == element.low):
+            return element.high, -1
+        else:
+            assert()        
+    
     def __repr__(self) -> str:
         return "Circuit with " + str(len(self.nodes)) + \
                 " nodes and "+ str(len(self.elements)) + " elements"
