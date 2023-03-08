@@ -105,17 +105,32 @@ class Test_Circuit(unittest.TestCase):
                          [ 1, 1]])
         self.assertTrue(torch.all(torch.eq(M,M_test)))
 
-    def test_minimum_spanning_tree_ladder(self):
+    def test_spanning_tree_ladder(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS,Kinds.R,3)
-        mst = circuit.minimum_spanning_tree()
+        mst = circuit.spanning_tree()
         self.assertTrue(len(mst) == 1)
     
-    def test_minimum_spanning_tree_ring(self):
+    def test_spanning_tree_ring(self):
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,3)
-        mst = circuit.minimum_spanning_tree()
+        mst = circuit.spanning_tree()
         self.assertTrue(len(mst) == 3)
+
+    def test_loops_ladder(self):
+        circuit = Circuit()
+        circuit.ladder(Kinds.IVS,Kinds.R,3)
+        loops = circuit.loops()
+        self.assertTrue(len(loops) == 3)
+
+    def test_kvl_coefficients(self):
+        circuit = Circuit()
+        circuit.ladder(Kinds.IVS,Kinds.R,3)
+        kvl = circuit.kvl_coefficients()
+        kvl_test = [[ 1,-1, 0, 0],
+                    [ 1, 0,-1, 0],
+                    [ 1, 0, 0,-1]]
+        self.assertTrue(kvl == kvl_test)
 
     def test_elements_parallel_with_1(self):
         circuit = Circuit()

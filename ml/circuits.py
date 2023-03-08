@@ -94,6 +94,9 @@ class Circuit():
     
     def node_idx(self, node: 'Node'):
         return self.nodes.index(node)
+    
+    def element_idx(self, element: 'Element'):
+        return self.elements.index(element)
 
     def draw(self):
         nx.draw(self.nx_graph(), with_labels = True)
@@ -111,33 +114,81 @@ class Circuit():
         M_tensor = torch.tensor(M_numpy,dtype=dtype)
         return M_tensor
     
-    def minimum_spanning_tree(self):
+    def spanning_tree(self) -> list['Element']:
         '''Simple minimum spanning tree algorithm that returns list of elements
         in the minimum spanning tree.'''
         unvisited_nodes = self.nodes.copy()
-        mst_elements = []
+        st_elements = []
         active_node = unvisited_nodes[-1]
         while(len(unvisited_nodes) > 0):
             for element in active_node.elements:
-                if(element not in mst_elements):
+                if(element not in st_elements):
                     if(active_node == element.high):
                         matches = self.intersection(element.low.elements,
-                                                    mst_elements)
+                                                    st_elements)
                         if(len(matches) == 0):
-                            mst_elements.append(element)
+                            st_elements.append(element)
                     elif(active_node == element.low):
                         matches = self.intersection(element.high.elements,
-                                                    mst_elements)
+                                                    st_elements)
                         if(len(matches) == 0):
-                            mst_elements.append(element)
+                            st_elements.append(element)
             unvisited_nodes.pop()
             if(len(unvisited_nodes) > 0):
                 active_node = unvisited_nodes[-1]
-        return mst_elements
+        return st_elements
 
     def intersection(self, list1, list2):
         return list(set(list1) & set(list2))
-                    
+    
+    def loops(self) -> list[list['Element']]:
+        '''Returns a list of lists of elements. Each list of elements is part of 
+        a loop in the circuit.  Each list of elements also contains elements 
+        from the spanning tree that are not part of the loop.'''
+        mst_elements = self.spanning_tree()
+        non_st_elements = []
+        for element in self.elements:
+            if(element not in mst_elements):
+                non_st_elements.append(element)
+        loops_with_acyclics = []
+        for key_element in non_st_elements:
+            loop_with_acyclics = mst_elements.copy()
+            loop_with_acyclics.append(key_element)
+            loops_with_acyclics.append(loop_with_acyclics)
+        return loops_with_acyclics
+
+    def kvl_coefficients(self) -> list[list[int]]:
+        '''Returns a list of lists of integers. Each list of integers represents
+        the coefficients of the KVL equations for a loop in the circuit.'''
+        loops = self.loops()
+        kvl_coefficients = []
+        for loop in loops:
+            coefficients = [0]*self.num_elements()
+            first_element = loop[0]
+            active_element = first_element
+            active_polarity = 1
+            coefficients[self.element_idx(active_element)] = active_polarity
+            next_element = self.next_in_loop(loop, active_element)
+            while(next_element != first_element):
+                if(next_element.high == active_element.low):
+                    active_polarity = 1
+                elif(next_element.low == active_element.low):
+                    active_polarity = -1
+                else:
+                    assert()
+                coefficients[self.element_idx(next_element)] = active_polarity
+                active_element = next_element
+                next_element = self.next_in_loop(loop, active_element)
+            kvl_coefficients.append(coefficients)
+        return kvl_coefficients
+            
+    def next_in_loop(self, loop:list['Element'], active_element:'Element') -> 'Element':
+        '''Returns the next element in the loop after active_element.'''
+        for low_element in active_element.low.elements:
+            if(low_element == active_element):
+                continue
+            elif(low_element in loop):
+                return low_element
 
     def __repr__(self) -> str:
         return "Circuit with " + str(len(self.nodes)) + \
@@ -296,6 +347,9 @@ class Node():
     def to_nx(self):
         v = {'v':self.potential}
         return (self.idx, v)
+    
+    def num_elements(self):
+        return len(self.elements)
 
     @property
     def idx(self):
