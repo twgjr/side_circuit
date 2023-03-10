@@ -12,7 +12,6 @@ class Kinds(Enum):
 class Props(Enum):
     I = 0
     V = 1
-    Pot = 2
 
 class Circuit():
     def __init__(self) -> None:
@@ -254,8 +253,6 @@ class Circuit():
                         value = None
                     else:
                         value = element.v
-                elif(prop == Props.Pot):
-                    pass
                 else:
                     assert()
                 if(value == None):

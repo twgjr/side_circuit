@@ -26,13 +26,16 @@ class Trainer():
     def __init__(self, data:Data, init_learn_rate:float) -> None:
         self.data = data
         self.model = Solver(data=data)
-        self.base_learn_rate = init_learn_rate
         self.optimizer = Adam(params=self.model.parameters(),lr=init_learn_rate)
         self.loss_fn = nn.MSELoss()
 
     def run(self, epochs, stable_threshold:float, loss_threshold:float):
-        target = torch.tensor(self.model.data.target).to(torch.float).unsqueeze(dim=1)
-        target_mask = torch.tensor(self.model.data.target_mask).to(torch.bool).unsqueeze(dim=1)
+        target = torch.tensor(
+            self.model.data.target_list(
+                self.model.i_base, self.model.v_base
+            )).to(torch.float).unsqueeze(dim=1)
+        target_mask = torch.tensor(
+            self.model.data.target_mask_list()).to(torch.bool).unsqueeze(dim=1)
         loss, attr, preds = self.step(target,target_mask)
         attr_stability = Stability(attr, stable_threshold)
         preds_stability = Stability(preds, stable_threshold)
@@ -56,8 +59,8 @@ class Trainer():
 
     def step(self,target:Tensor,target_mask:Tensor):
         self.model.train()
-        preds = self.model()
-        loss = self.loss_fn(preds[target_mask[:-1]], target[target_mask])
+        preds = self.model.forward()
+        loss = self.loss_fn(preds[target_mask], target[target_mask])
         self.model.zero_grad()
         loss.backward()
         self.model.zero_known_grads()

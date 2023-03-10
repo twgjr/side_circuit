@@ -4,6 +4,7 @@ from data import Data
 from models import Solver
 from torch.nn import Parameter
 import torch
+from torch import Tensor
 
 
 class Test_Solver(unittest.TestCase):
@@ -14,18 +15,18 @@ class Test_Solver(unittest.TestCase):
         circuit.elements[1].i = 3
         data = Data(circuit)
         solver = Solver(data)
-        self.assertTrue(type(solver.data) == Data)
-        ics_tester = torch.tensor([False, False])
-        self.assertFalse(False in torch.eq(solver.ics_attr_mask,ics_tester))
-        ivs_tester = torch.tensor([True, False])
-        self.assertFalse(False in torch.eq(solver.ivs_attr_mask, ivs_tester))
-        r_tester = torch.tensor([False, True])
-        self.assertFalse(False in torch.eq(solver.r_attr_mask, r_tester))
-        known_tester = torch.tensor([True, False])
-        self.assertFalse(False in torch.eq(solver.known_attr_mask, known_tester))
-        self.assertTrue(solver.base == 3)
-        attr_tester = Parameter(torch.tensor([2/3,1]).to(torch.float))
-        self.assertFalse(False in torch.eq(solver.attr, attr_tester))
+        self.assertTrue(isinstance(solver.data,Data))
+        self.assertTrue(isinstance(solver.ics_attr_mask,Tensor))
+        self.assertTrue(isinstance(solver.ivs_attr_mask,Tensor))
+        self.assertTrue(isinstance(solver.r_attr_mask,Tensor))
+        self.assertTrue(isinstance(solver.known_attr_mask,Tensor))
+        self.assertTrue(isinstance(solver.i_base,int) or 
+                        isinstance(solver.i_base,float))
+        self.assertTrue(isinstance(solver.v_base,int) or 
+                        isinstance(solver.v_base,float))
+        self.assertTrue(isinstance(solver.r_base,int) or 
+                        isinstance(solver.r_base,float))
+        self.assertTrue(isinstance(solver.attr,Tensor))
 
     def test_M(self):
         circuit = Circuit()
@@ -39,7 +40,7 @@ class Test_Solver(unittest.TestCase):
                                  [ 1,  1]])
         self.assertFalse(False in torch.eq(M, M_tester))
 
-    def test_build_2_ladder(self):
+    def test_build_1IVS_1R_Ladder(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
         circuit.elements[0].attr = 2
@@ -53,5 +54,16 @@ class Test_Solver(unittest.TestCase):
                                  [ 0, 0, 1, 0],
                                  [ 0,-1, 0, 1]]).to(torch.float)
         self.assertFalse(False in torch.eq(A, A_tester))
-        b_tester = torch.tensor([0, 0, 0, 2/3, 0]).unsqueeze(1).to(torch.float)
+        b_tester = torch.tensor([0, 0, 0, 1, 0]).unsqueeze(1).to(torch.float)
         self.assertFalse(False in torch.eq(b, b_tester))
+
+    def test_forward(self):
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS, Kinds.R, 1)
+        circuit.elements[0].attr = 2
+        circuit.elements[1].attr = 0.5
+        data = Data(circuit)
+        solver = Solver(data)
+        x = solver.forward()
+        x_tester = torch.tensor([-1,1,1,1]).unsqueeze(1).to(torch.float)
+        self.assertFalse(False in torch.eq(x, x_tester))

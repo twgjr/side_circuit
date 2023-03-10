@@ -14,8 +14,7 @@ class Test_Props(unittest.TestCase):
     def test_Props(self):
         self.assertTrue(Props.I)
         self.assertTrue(Props.V)
-        self.assertTrue(Props.Pot)
-        self.assertTrue(len(Props)==3)
+        self.assertTrue(len(Props)==2)
 
 class Test_Circuit(unittest.TestCase):
     def test_Circuit(self):
@@ -200,8 +199,7 @@ class Test_Circuit(unittest.TestCase):
                 },
             'properties': {
                 Props.I: [None, 0.5],
-                Props.V: [None, None],
-                Props.Pot: [None, None]
+                Props.V: [None, None]
                 },
             'attributes': {
                 Kinds.IVS: [1, None],

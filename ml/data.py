@@ -5,46 +5,82 @@ class Data():
         self.circuit = circuit
         self.M = self.circuit.M()
         self.elements = self.circuit.export()
-        self.target_mask = self.target_mask_list()
-        self.target = self.target_list(self.target_mask)
 
-    def base(self, input:list):
+    def base(self, input:list, eps:float=1e-12) -> float:
         input_max = 0
         for val in input:
             abs_val = abs(val)
             if(abs_val > input_max):
                 input_max = abs_val
-        if(input_max > 1):
-            return input_max
+        if(input_max < eps):
+            return eps
         else:
-            return 1
+            return input_max
+        
+    def init_base(self):
+        i_data = self.prop_list(Props.I,True,0)
+        i_knowns = self.mask_of_prop(Props.I,True)
+        i_has_knowns = True in i_knowns
+        v_data = self.prop_list(Props.V,True,0)
+        v_knowns = self.mask_of_prop(Props.V,True)
+        v_has_knowns = True in v_knowns
+        r_data = self.attr_list(Kinds.R,0)
+        r_knowns = self.mask_of_attr(Kinds.R)
+        r_has_knowns = True in r_knowns
+        i_base = self.base(i_data)
+        v_base = self.base(v_data)
+        r_base = self.base(r_data)
+        if(not i_has_knowns and not v_has_knowns and not r_has_knowns):
+            i_base = 1
+            v_base = 1
+            r_base = 1
+        elif(not i_has_knowns and not v_has_knowns and r_has_knowns):
+            i_base = 1/r_base
+            v_base = r_base
+        elif(not i_has_knowns and v_has_knowns and not r_has_knowns):
+            i_base = v_base
+            r_base = v_base
+        elif(not i_has_knowns and v_has_knowns and r_has_knowns):
+            i_base = v_base/r_base
+        elif(i_has_knowns and not v_has_knowns and not r_has_knowns):
+            v_base = i_base
+            r_base = 1/i_base
+        elif(i_has_knowns and not v_has_knowns and r_has_knowns):
+            v_base = i_base*r_base
+        elif(i_has_knowns and v_has_knowns and not r_has_knowns):
+            r_base = v_base/i_base
+        elif(i_has_knowns and v_has_knowns and r_has_knowns):
+            pass
+        return (i_base,v_base,r_base)
+
     
-    def normalize(self, base:int, input:list, target_mask:list):
+    def normalize(self, base:int, input:list):
         ret_list = []
         for v in range(len(input)):
-            if(target_mask[v]):
-                ret_list.append(input[v]/base)
-            else:
-                ret_list.append(input[v])
+            ret_list.append(input[v]/base)
         return ret_list
     
-    def target_list(self, target_mask:list) -> list[float]:
-        '''inputs values including source attributes in respective i and v props'''
-        i_vals = self.prop_list(Props.I,True)
-        v_vals = self.prop_list(Props.V,True)
-        p_vals = self.prop_list(Props.Pot,True)
-        vals = i_vals + v_vals + p_vals
-        base_val = self.base(vals)
-        vals_norm = self.normalize(base_val,vals,target_mask)
+    def target_list(self, i_base, v_base) -> list[float]:
+        '''returns list of normalized target values ordered by element'''
+        i_vals = self.prop_list(Props.I,True,0)
+        v_vals = self.prop_list(Props.V,True,0)
+        i_mask = self.mask_of_prop(Props.I,True)
+        v_mask = self.mask_of_prop(Props.V,True)
+        i_norm = self.normalize(i_base,i_vals)
+        v_norm = self.normalize(v_base,v_vals)
+        for m in i_mask:
+            if(not i_mask[m]):
+                i_norm[m] = 1
+            if(not v_mask[m]):
+                v_norm[m] = 1
+        vals_norm = i_norm + v_norm
         return vals_norm
     
     def target_mask_list(self):
-        '''mask of known inputs values including source attributes in respective
-          i and v props'''
+        '''returns boolean mask of target values ordered by element'''
         currents = self.mask_of_prop(Props.I,True)
         voltages = self.mask_of_prop(Props.V,True)
-        potentials = self.mask_of_prop(Props.Pot,True)
-        return currents + voltages + potentials
+        return currents + voltages
     
     def mask_of_kind(self, kind:Kinds):
         '''returns boolean mask of element kinds ordered by element'''
@@ -68,7 +104,7 @@ class Data():
     def prop_with_attrs_of_kind(self,kind:Kinds,to_prop:Props):
         to_prop_list = self.elements['properties'][to_prop]
         list_with_attr = []
-        attr_list = self.replace_nones(self.attr_list(kind))
+        attr_list = self.elements['attributes'][kind]
         for p in range(len(to_prop_list)):
             if(self.kind_list(kind)[p]):
                 list_with_attr.append(attr_list[p])
@@ -81,27 +117,25 @@ class Data():
             return self.prop_with_attrs_of_kind(Kinds.ICS,prop)
         elif(prop == Props.V):
             return self.prop_with_attrs_of_kind(Kinds.IVS,prop)
-        elif(prop == Props.Pot):
-            return self.elements['properties'][prop]
 
-    def prop_list(self, prop:Props, include_attr:bool) -> list:
+    def prop_list(self, prop:Props, include_attr:bool, init_val:int) -> list:
         '''return list of element properties (i,v,pot) with unknowns initialized
           to 1'''
         if(include_attr):
-            return self.replace_nones(self.prop_with_attrs(prop))
+            return self.replace_nones(self.prop_with_attrs(prop),init_val)
         else:
-            return self.replace_nones(self.elements['properties'][prop])
+            return self.replace_nones(self.elements['properties'][prop],init_val)
     
-    def attr_list(self,kind:Kinds) -> list:
+    def attr_list(self,kind:Kinds,init_val:float) -> list:
         '''return list of element attributes with unknowns initialized to 1'''
-        return self.replace_nones(self.elements['attributes'][kind])
+        return self.replace_nones(self.elements['attributes'][kind],init_val)
     
-    def replace_nones(self, input_list):
-        '''replaces None type items in list with False (bool) or 0 (float)'''
+    def replace_nones(self, input_list, init_val:int):
+        '''replaces None type items in list with False (bool) or init_val (float)'''
         ret_list = []
         for i in range(len(input_list)):
             if(input_list[i] == None):
-                ret_list.append(1)
+                ret_list.append(init_val)
             else:
                 ret_list.append(input_list[i])
         return ret_list
