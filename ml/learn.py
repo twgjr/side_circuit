@@ -55,7 +55,7 @@ class Trainer():
         self.model.set_r_from_knowns(preds,target,target_mask)
         i_sol, v_sol = self.model.denorm_solution(preds)
         a_sol = self.model.denorm_attr()
-        return i_sol, v_sol, a_sol, loss, epoch
+        return i_sol.squeeze(dim=1), v_sol.squeeze(dim=1), a_sol, loss, epoch
 
     def step(self,target:Tensor,target_mask:Tensor):
         self.model.train()

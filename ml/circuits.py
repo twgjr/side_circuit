@@ -211,8 +211,8 @@ class Circuit():
     def load(self, i_tensor:Tensor, v_tensor:Tensor, attr_tensor:Tensor):
         '''Takes inputs i_sol, v_sol, a_sol from solver and loads them into the circuit'''
         attr_list = attr_tensor.tolist()
-        i_list = i_tensor.squeeze(1).tolist()
-        v_list = v_tensor.squeeze(1).tolist()
+        i_list = i_tensor.tolist()
+        v_list = v_tensor.tolist()
         assert(len(attr_list) == len(i_list) == len(v_list))
         for e in range(len(self.elements)):
             element = self.elements[e]
