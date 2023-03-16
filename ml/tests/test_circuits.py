@@ -156,17 +156,26 @@ class Test_Circuit(unittest.TestCase):
         kvl_test = [[ 1,-1,-1,-1]]
         self.assertTrue(kvl == kvl_test)
 
+    def test_elements_series_elements_ring(self):
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS,Kinds.R,2)
+        source = circuit.elements[0]
+        ser_elems = circuit.elements_in_series_with(source,include_ref=False)
+        self.assertTrue(len(ser_elems) == 2)
+
+    def test_elements_series_elements_ladder(self):
+        circuit = Circuit()
+        circuit.ladder(Kinds.IVS,Kinds.R,3)
+        source = circuit.elements[0]
+        ser_elems = circuit.elements_in_series_with(source,include_ref=True)
+        self.assertTrue(len(ser_elems) == 1)
+
     def test_elements_parallel_with_1(self):
         circuit = Circuit()
-        source = circuit.add_element(Kinds.IVS)
-        load0 = circuit.add_element(Kinds.R)
-        load1 = circuit.add_element(Kinds.R)
-        circuit.connect(load0.high, source.high)
-        circuit.connect(load0.low, source.low)
-        circuit.connect(load1.high, source.high)
-        circuit.connect(load1.low, source.low)
-        par_elems = circuit.parallel_elements(source)
-        self.assertTrue(len(par_elems) == 3)
+        circuit.ladder(Kinds.IVS,Kinds.R,2)
+        source = circuit.elements[0]
+        par_elems = circuit.elements_parallel_to(source,False)
+        self.assertTrue(len(par_elems) == 2)
         
     def test_elements_parallel_with_2(self):
         circuit = Circuit()
@@ -174,12 +183,12 @@ class Test_Circuit(unittest.TestCase):
         load0 = circuit.add_element(Kinds.R)
         load1 = circuit.add_element(Kinds.R)
         load2 = circuit.add_element(Kinds.R)
-        circuit.connect(load0.low, source.high)
-        circuit.connect(load1.high, load0.high)
+        circuit.connect(source.high, load0.low)
+        circuit.connect(load0.high, load1.high)
+        circuit.connect(load1.high, load2.high)
+        circuit.connect(load1.low, load2.low)
         circuit.connect(load1.low, source.low)
-        circuit.connect(load2.high, load1.high)
-        circuit.connect(load2.low, load1.low)
-        par_elems = circuit.parallel_elements(load2)
+        par_elems = circuit.elements_parallel_to(load2, True)
         self.assertTrue(len(par_elems) == 2)
 
     def test_extract_elements(self):
@@ -216,7 +225,8 @@ class Test_Circuit(unittest.TestCase):
         self.assertTrue(circuit.num_nodes() == 2)
         self.assertTrue(circuit.elements[0].kind == Kinds.IVS)
         self.assertTrue(circuit.elements[1].kind == Kinds.R)
-        self.assertTrue(len(circuit.parallel_elements(circuit.elements[0])) == 2)
+        parallels = circuit.elements_parallel_to(circuit.elements[0],True)
+        self.assertTrue(len(parallels) == 2)
 
     def test_ring_3_element(self):
         circuit = Circuit()
@@ -226,7 +236,8 @@ class Test_Circuit(unittest.TestCase):
         self.assertTrue(circuit.elements[0].kind == Kinds.IVS)
         self.assertTrue(circuit.elements[1].kind == Kinds.R)
         self.assertTrue(circuit.elements[2].kind == Kinds.R)
-        self.assertTrue(len(circuit.parallel_elements(circuit.elements[0])) == 1)
+        parallels = circuit.elements_parallel_to(circuit.elements[0],True)
+        self.assertTrue(len(parallels) == 1)
 
 class Test_Element(unittest.TestCase):
     def test_Element(self):

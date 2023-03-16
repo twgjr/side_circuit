@@ -48,19 +48,19 @@ class Test_Preprocess(unittest.TestCase):
 
     def test_prop_list(self):
         circuit = Circuit()
-        circuit.ring(Kinds.IVS,Kinds.R,1)
+        circuit.ring(Kinds.IVS,Kinds.R,2)
         circuit.elements[0].attr = 2
         circuit.elements[1].i = 3
-        circuit.elements[1].v = 4
+        circuit.elements[2].v = 4
         input = Data(circuit)
         v_attr_F = input.prop_list(Props.V,False,1)
-        self.assertTrue(v_attr_F == [1,4])
+        self.assertTrue(v_attr_F == [1,1,4])
         v_attr_T = input.prop_list(Props.V,True,1)
-        self.assertTrue(v_attr_T == [2,4])
+        self.assertTrue(v_attr_T == [2,1,4])
         i_attr_F = input.prop_list(Props.I,False,1)
-        self.assertTrue(i_attr_F == [1,3])
+        self.assertTrue(i_attr_F == [1,3,1])
         i_attr_T = input.prop_list(Props.I,True,1)
-        self.assertTrue(i_attr_T == [1,3])
+        self.assertTrue(i_attr_T == [1,3,1])
 
     def test_mask_of_prop(self):
         circuit = Circuit()

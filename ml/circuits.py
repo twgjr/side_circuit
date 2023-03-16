@@ -167,16 +167,24 @@ class Circuit():
             from_element = first_element
             from_node = first_element.low
             coefficients[self.element_idx(from_element)] = 1
-            next_element = self.next_element_in(loop, from_element, from_node)
+            next_element = self.next_loop_element(loop, from_element, from_node)
             while(next_element != first_element):
                 from_node,polarity = self.next_node_in(next_element, from_node)
                 coefficients[self.element_idx(next_element)] = polarity
                 from_element = next_element
-                next_element = self.next_element_in(loop, from_element, from_node)
+                next_element = self.next_loop_element(loop, from_element, from_node)
             kvl_coefficients.append(coefficients)
         return kvl_coefficients
+    
+    def next_series_element(self, from_element:'Element', 
+                            shared_node:'Node') -> 'Element':
+        to_elements = shared_node.elements
+        assert(len(to_elements) == 2)
+        for element in to_elements:
+            if(element != from_element):
+                return element
             
-    def next_element_in(self, loop:list['Element'], from_element: 'Element',
+    def next_loop_element(self, loop:list['Element'], from_element: 'Element',
                         from_node:'Node') -> 'Element':
         '''Returns the next element in the loop after active_element.  Exit from
         the exit node.'''
@@ -200,13 +208,33 @@ class Circuit():
         return "Circuit with " + str(len(self.nodes)) + \
                 " nodes and "+ str(len(self.elements)) + " elements"
 
-    def parallel_elements(self, reference_element:'Element'):
+    def elements_parallel_to(self, reference_element:'Element',
+                             include_ref:bool)->list['Element']:
         parallels = []
         for high_element in reference_element.high.elements:
             for low_element in reference_element.low.elements:
                 if(high_element == low_element):
-                    parallels.append(low_element)
+                    if(low_element != reference_element or include_ref):
+                        parallels.append(low_element)
+                    break
         return parallels
+    
+    def elements_in_series_with(self, reference_element:'Element',
+                                include_ref:bool)->list['Element']:
+        series = []
+        if(include_ref):
+            series.append(reference_element)
+        for ref_node in [reference_element.low, reference_element.high]:
+            node = ref_node
+            element = reference_element
+            while(len(node.elements) == 2):
+                node,_ = self.next_node_in(element, node)
+                element = self.next_series_element(element, node)
+                if(element == reference_element):
+                    return series
+                else:
+                    series.append(element)
+        return series
 
     def load(self, i_tensor:Tensor, v_tensor:Tensor, attr_tensor:Tensor):
         '''Takes inputs i_sol, v_sol, a_sol from solver and loads them into the circuit'''
@@ -302,8 +330,8 @@ class Element():
         self.low:Node = None
         self.high:Node = None
         self.kind = kind
-        self.i:float = None
-        self.v:float = None
+        self._i:float = None
+        self._v:float = None
         self.attr:float = None
         self.i_pred:float = None
         self.v_pred:float = None
@@ -319,10 +347,54 @@ class Element():
         i = ('i',self.i)
         attr = ('attr',self.attr)
         return (self.low.idx, self.high.idx, self.key, (kind, i, v, attr))
+    
+    @property 
+    def i(self):
+        if(self.kind == Kinds.ICS):
+            return self.attr
+        else:
+            return self._i
+    
+    @i.setter
+    def i(self, value:float):
+        if(value == None):
+            self._i = None
+            return
+        series = self.circuit.elements_in_series_with(self,False)
+        i_defined = False
+        for element in series:
+            if(element.i != None):
+                i_defined = True
+        if(i_defined):
+            assert()
+        else:
+            self._i = value
+
+    @property
+    def v(self):
+        if(self.kind == Kinds.IVS):
+            return self.attr
+        else:
+            return self._v
+    
+    @v.setter
+    def v(self, value:float):
+        if(value == None):
+            self._v = None
+            return
+        parallels = self.circuit.elements_parallel_to(self,False)
+        v_defined = False
+        for element in parallels:
+            if(element.v != None):
+                v_defined = True
+        if(v_defined):
+            assert()
+        else:
+            self._v = value
 
     @property
     def key(self):
-        parallels = self.circuit.parallel_elements(self)
+        parallels = self.circuit.elements_parallel_to(self,True)
         return parallels.index(self)
 
     def clear(self):
