@@ -44,7 +44,7 @@ class TestTrainer(unittest.TestCase):
         circuit.elements[1].attr = 2
         data = Data(circuit)
         trainer = Trainer(data,0.01)
-        i_sol, v_sol, a_sol, loss, epoch = trainer.run(100,0.01,0.01)
+        i_sol, v_sol, a_sol, loss, epoch = trainer.run(1000,1e-3)
         self.assertTrue(torch.allclose(i_sol,torch.tensor([-0.5,0.5])
                                        .to(torch.float)))
         self.assertTrue(torch.allclose(v_sol,torch.tensor([1,1])

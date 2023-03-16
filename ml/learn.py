@@ -29,7 +29,7 @@ class Trainer():
         self.optimizer = Adam(params=self.model.parameters(),lr=init_learn_rate)
         self.loss_fn = nn.MSELoss()
 
-    def run(self, epochs, stable_threshold:float, loss_threshold:float):
+    def run(self, epochs, stable_threshold:float):
         target = torch.tensor(
             self.model.data.target_list(
                 self.model.i_base, self.model.v_base
@@ -42,11 +42,11 @@ class Trainer():
         epoch = 0
         reset_count = 0
         while(epoch < epochs):
-            if(loss < loss_threshold and attr_stability.is_stable(attr) and 
-            preds_stability.is_stable(preds)):
-                print('threshold met')
-                break
-            if(epoch % 2 == 0):
+            if(epoch % 2 == 1):
+                if(attr_stability.is_stable(attr) and 
+                    preds_stability.is_stable(preds)):
+                    print('threshold met')
+                    break
                 self.model.set_r_from_knowns(preds,target,target_mask)
                 reset_count += 1
             loss, attr, preds = self.step(target,target_mask)
