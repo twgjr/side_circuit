@@ -194,7 +194,7 @@ class Circuit():
         elif(from_node == element.low):
             return element.high, -1
         else:
-            assert()        
+            assert()
     
     def __repr__(self) -> str:
         return "Circuit with " + str(len(self.nodes)) + \
@@ -216,9 +216,9 @@ class Circuit():
         assert(len(attr_list) == len(i_list) == len(v_list))
         for e in range(len(self.elements)):
             element = self.elements[e]
-            element.attr = attr_list[e]
-            element.i = i_list[e]
-            element.v = v_list[e]
+            element.a_pred = attr_list[e]
+            element.i_pred = i_list[e]
+            element.v_pred = v_list[e]
 
     def export(self):
         '''
@@ -305,6 +305,9 @@ class Element():
         self.i:float = None
         self.v:float = None
         self.attr:float = None
+        self.i_pred:float = None
+        self.v_pred:float = None
+        self.a_pred:float = None
 
     def __repr__(self) -> str:
         return "("+str(self.kind.name)+", "+str(self.low.idx)+ ", "\
