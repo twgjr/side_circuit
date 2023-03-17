@@ -367,8 +367,10 @@ class Element():
                 i_defined = True
         if(i_defined):
             assert()
-        else:
+        elif(self.kind != Kinds.IVS):
             self._i = value
+        else:
+            assert(value <= 0)
 
     @property
     def v(self):
@@ -389,8 +391,10 @@ class Element():
                 v_defined = True
         if(v_defined):
             assert()
-        else:
+        elif(self.kind != Kinds.ICS):
             self._v = value
+        else:
+            assert(value <= 0)
 
     @property
     def key(self):

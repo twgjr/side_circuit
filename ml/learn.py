@@ -30,6 +30,7 @@ class Trainer():
         self.loss_fn = nn.MSELoss()
 
     def run(self, epochs, stable_threshold:float):
+        self.model.train()
         target = torch.tensor(
             self.model.data.target_list(
                 self.model.i_base, self.model.v_base
@@ -58,7 +59,6 @@ class Trainer():
         return i_sol.squeeze(dim=1), v_sol.squeeze(dim=1), a_sol, loss, epoch
 
     def step(self,target:Tensor,target_mask:Tensor):
-        self.model.train()
         preds = self.model.forward()
         loss = self.loss_fn(preds[target_mask], target[target_mask])
         self.model.zero_grad()
