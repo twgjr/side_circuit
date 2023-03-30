@@ -1,5 +1,5 @@
 import unittest
-from circuits import Element,Node,Circuit,Kinds,Props
+from circuits import Element,Node,Circuit,Kinds,Props,Signal
 from torch import tensor
 import torch
 
@@ -22,20 +22,51 @@ class Test_Circuit(unittest.TestCase):
         self.assertTrue(len(circuit.nodes)==0)
         self.assertTrue(len(circuit.elements)==0)
 
+    def test_max_signal_len(self):
+        circuit = Circuit()
+        self.assertTrue(circuit.signal_len==0)
+        circuit.add_element(Kinds.IVS)
+        self.assertTrue(circuit.signal_len==0)
+        circuit.add_element(Kinds.R)
+        circuit.elements[0].v.data = [1,2,3]
+        self.assertTrue(circuit.signal_len==3)
+        circuit.elements[1].v.data = [1,2,3,4]
+        self.assertTrue(circuit.signal_len==4)
+        circuit.elements[1].v.data = [1,2,3]
+        self.assertTrue(circuit.signal_len==3)
+
     def test_add_element(self):
         circuit = Circuit()
         self.assertTrue(len(circuit.elements) == 0)
         resistor = circuit.add_element(Kinds.R)
         self.assertTrue(isinstance(resistor,Element))
         self.assertTrue(circuit.elements[0].kind == Kinds.R)
+        self.assertTrue(circuit.elements[0].i.is_empty())
+        self.assertTrue(circuit.elements[0].v.is_empty())
+        self.assertTrue(circuit.elements[0].a == None)
         self.assertTrue(len(circuit.elements) == 1)
 
     def test_remove_element(self):
         circuit = Circuit()
-        ics = circuit.add_element(Kinds.ICS)
+        ivs = circuit.add_element(Kinds.IVS)
+        r = circuit.add_element(Kinds.R)
+        circuit.connect(ivs.high, r.high)
+        circuit.connect(ivs.low, r.low)
+        self.assertTrue(len(circuit.elements) == 2)
+        self.assertTrue(len(circuit.nodes) == 2)
+        circuit.remove_element(circuit.elements[0],False)
         self.assertTrue(len(circuit.elements) == 1)
-        circuit.remove_element(ics,False)
-        self.assertTrue(len(circuit.elements) == 0)
+        self.assertTrue(len(circuit.nodes) == 2)
+        circuit.elements[0].kind == Kinds.R
+        ics = circuit.add_element(Kinds.ICS)
+        circuit.connect(ics.high, r.high)
+        circuit.connect(ics.low, r.low)
+        self.assertTrue(len(circuit.elements) == 2)
+        self.assertTrue(len(circuit.nodes) == 2)
+        circuit.remove_element(circuit.elements[0],True)
+        self.assertTrue(len(circuit.elements) == 1)
+        self.assertTrue(len(circuit.nodes) == 1)
+        circuit.elements[0].kind == Kinds.ICS
 
     def test_add_node(self):
         circuit = Circuit()
@@ -197,26 +228,25 @@ class Test_Circuit(unittest.TestCase):
         r = circuit.add_element(Kinds.R)
         circuit.connect(ivs.high, r.high)
         circuit.connect(ivs.low, r.low)
-        ivs.attr = 1
-        r.i = 0.5
-        extract = circuit.export() 
-        extract_test = {
-            'kinds': {
+        ivs.v.data = [1]
+        r.i.data = [0.5]
+        extract = circuit.export()
+        kinds_test = {
                 Kinds.IVS: [True, False],
                 Kinds.ICS: [False, False],
                 Kinds.R: [False, True]
-                },
-            'properties': {
-                Props.I: [None, 0.5],
-                Props.V: [None, None]
-                },
-            'attributes': {
-                Kinds.IVS: [1, None],
-                Kinds.ICS: [None, None],
-                Kinds.R: [None, None]
                 }
-            }
-        self.assertTrue(extract == extract_test)
+        self.assertTrue(extract['kinds'] == kinds_test)
+        self.assertTrue(extract['properties'][Props.I][0].data == [])
+        self.assertTrue(extract['properties'][Props.I][1] == r.i)
+        self.assertTrue(extract['properties'][Props.V][0] == ivs.v)
+        self.assertTrue(extract['properties'][Props.V][1].data == [])
+        self.assertTrue(extract['attributes'][Kinds.IVS][0] == None)
+        self.assertTrue(extract['attributes'][Kinds.IVS][1] == None)
+        self.assertTrue(extract['attributes'][Kinds.ICS][0] == None)
+        self.assertTrue(extract['attributes'][Kinds.ICS][1] == None)
+        self.assertTrue(extract['attributes'][Kinds.R][0] == None)
+        self.assertTrue(extract['attributes'][Kinds.R][1] == None)
 
     def test_ring_2_element(self):
         circuit = Circuit()
@@ -247,9 +277,12 @@ class Test_Element(unittest.TestCase):
         self.assertTrue(ivs.low == None)
         self.assertTrue(ivs.high == None)
         self.assertTrue(ivs.kind == Kinds.IVS)
-        self.assertTrue(ivs.i == None)
-        self.assertTrue(ivs.v == None)
-        self.assertTrue(ivs.attr == None)
+        self.assertTrue(isinstance(ivs.i, Signal))
+        self.assertTrue(isinstance(ivs.v, Signal))
+        self.assertTrue(ivs.a == None)
+        self.assertTrue(isinstance(ivs._i, Signal))
+        self.assertTrue(isinstance(ivs._v, Signal))
+        self.assertTrue(ivs._a == None)
 
 class Test_Node(unittest.TestCase):
     def test_Node(self):
@@ -261,4 +294,3 @@ class Test_Node(unittest.TestCase):
         self.assertTrue(node.circuit == circuit)
         self.assertTrue(node.elements[0] == ivs)
         self.assertTrue(node.elements[1] == r)
-        self.assertTrue(node.potential == None)

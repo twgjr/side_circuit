@@ -1,69 +1,123 @@
 import unittest
 from circuits import Circuit,Kinds
 from data import Data
-from models import Solver
+from models import Cell,Z,Y,E,A,S,B
 from torch.nn import Parameter
 import torch
 from torch import Tensor
 
 
-class Test_Solver(unittest.TestCase):
-    def test_Solver(self):
+class Test_Cell(unittest.TestCase):
+    def test_Cell(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
-        circuit.elements[0].attr = 2
-        circuit.elements[1].i = 3
+        circuit.elements[0].v.data = [2]
+        circuit.elements[1].a = 3.0
         data = Data(circuit)
-        solver = Solver(data)
-        self.assertTrue(isinstance(solver.data,Data))
-        self.assertTrue(isinstance(solver.ics_attr_mask,Tensor))
-        self.assertTrue(isinstance(solver.ivs_attr_mask,Tensor))
-        self.assertTrue(isinstance(solver.r_attr_mask,Tensor))
-        self.assertTrue(isinstance(solver.known_attr_mask,Tensor))
-        self.assertTrue(isinstance(solver.i_base,int) or 
-                        isinstance(solver.i_base,float))
-        self.assertTrue(isinstance(solver.v_base,int) or 
-                        isinstance(solver.v_base,float))
-        self.assertTrue(isinstance(solver.r_base,int) or 
-                        isinstance(solver.r_base,float))
-        self.assertTrue(isinstance(solver.attr,Tensor))
+        init_state = data.init_dataset()
+        cell = Cell(data)
+        self.assertTrue(isinstance(cell.data,Data))
+        self.assertTrue(isinstance(cell.params,Tensor))
+        self.assertTrue(data.v_base == 2)
+        self.assertTrue(data.r_base == 3)
+        state = cell(init_state[0])
+        state_test = torch.tensor([-1,1,1,1]).float().unsqueeze(dim=1)
+        self.assertTrue(torch.allclose(state,state_test))
 
-    def test_M(self):
+class Test_Z(unittest.TestCase):
+    def test_Z(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
-        circuit.elements[0].attr = 2
-        circuit.elements[1].i = 3
+        circuit.elements[0].v.data = [2.0]
+        circuit.elements[1].a = 3.0
         data = Data(circuit)
-        solver = Solver(data)
-        M = solver.M()
-        M_tester = torch.tensor([[-1, -1,], 
-                                 [ 1,  1]])
-        self.assertFalse(False in torch.eq(M, M_tester))
+        z = Z(data)
+        self.assertTrue(isinstance(z.data,Data))
+        params = data.init_params()
+        z_out = z(params)
+        z_out_test = torch.tensor([[0, 0],
+                                   [0,-1]]).float()
+        self.assertTrue(torch.allclose(z_out,z_out_test))
 
-    def test_build_1IVS_1R_Ladder(self):
+class Test_Y(unittest.TestCase):
+    def test_Y(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
-        circuit.elements[0].attr = 2
-        circuit.elements[1].attr = 3
+        circuit.elements[0].v.data = [2.0]
+        circuit.elements[1].a = 3.0
         data = Data(circuit)
-        solver = Solver(data)
-        A,b = solver.build()
-        A_tester = torch.tensor([[-1,-1, 0, 0], 
-                                 [ 1, 1, 0, 0],
-                                 [ 0, 0, 1,-1],
-                                 [ 0, 0, 1, 0],
-                                 [ 0,-1, 0, 1]]).to(torch.float)
-        self.assertFalse(False in torch.eq(A, A_tester))
-        b_tester = torch.tensor([0, 0, 0, 1, 0]).unsqueeze(1).to(torch.float)
-        self.assertFalse(False in torch.eq(b, b_tester))
+        y = Y(data)
+        y_out = y()
+        y_out_test = torch.tensor([[1, 0],
+                                   [0, 1]]).float()
+        self.assertTrue(torch.allclose(y_out,y_out_test))
 
-    def test_forward(self):
+class Test_E(unittest.TestCase):
+    def test_E_known_r(self):
         circuit = Circuit()
-        circuit.ring(Kinds.IVS, Kinds.R, 1)
-        circuit.elements[0].attr = 2
-        circuit.elements[1].attr = 0.5
+        circuit.ladder(Kinds.IVS, Kinds.R, 1)
+        circuit.elements[0].v.data = [2.0]
+        circuit.elements[1].a = 3.0
         data = Data(circuit)
-        solver = Solver(data)
-        x = solver.forward()
-        x_tester = torch.tensor([-1,1,1,1]).unsqueeze(1).to(torch.float)
-        self.assertFalse(False in torch.eq(x, x_tester))
+        e = E(data)
+        params = data.init_params()
+        e_out = e(params)
+        e_out_test = torch.tensor([[0, 0, 1, 0],
+                                   [0,-1, 0, 1]]).float()
+        self.assertTrue(torch.allclose(e_out,e_out_test))
+
+    def test_E_missing_r(self):
+        circuit = Circuit()
+        circuit.ladder(Kinds.IVS, Kinds.R, 1)
+        circuit.elements[0].v.data = [2.0]
+        circuit.elements[1].i.data = [1.5]
+        data = Data(circuit)
+        e = E(data)
+        params = data.init_params()
+        e_out = e(params)
+        e_out_test = torch.tensor([[0, 0, 1, 0],
+                                   [0,-1, 0, 1]]).float()
+        self.assertTrue(torch.allclose(e_out,e_out_test))
+
+class Test_A(unittest.TestCase):
+    def test_A(self):
+        circuit = Circuit()
+        circuit.ladder(Kinds.IVS, Kinds.R, 1)
+        circuit.elements[0].v.data = [2.0]
+        circuit.elements[1].a = 3.0
+        data = Data(circuit)
+        a = A(data)
+        params = data.init_params()
+        a_out = a(params)
+        a_out_test = torch.tensor([[-1,-1, 0, 0],
+                                   [ 1, 1, 0, 0],
+                                   [ 0, 0, 1,-1],
+                                   [ 0, 0, 1, 0],
+                                   [ 0,-1, 0, 1]]).float()
+        self.assertTrue(torch.allclose(a_out,a_out_test))
+
+class Test_S(unittest.TestCase):
+    def test_S(self):
+        circuit = Circuit()
+        circuit.ladder(Kinds.IVS, Kinds.R, 1)
+        circuit.elements[0].v.data = [2.0]
+        circuit.elements[1].a = 3.0
+        data = Data(circuit)
+        s = S(data)
+        iv_in = torch.tensor([0.1, 0.2, 0.3, 0.4]).float().unsqueeze(1)
+        s_out = s(iv_in)
+        s_out_test = torch.tensor([0.3, 0.0]).float().unsqueeze(1)
+        self.assertTrue(torch.allclose(s_out,s_out_test))
+
+class Test_B(unittest.TestCase):
+    def test_B(self):
+        circuit = Circuit()
+        circuit.ladder(Kinds.IVS, Kinds.R, 1)
+        circuit.elements[0].v.data = [2.0]
+        circuit.elements[1].a = 3.0
+        data = Data(circuit)
+        b = B(data)
+        iv_in = torch.tensor([0.1, 0.2, 0.3, 0.4]).float().unsqueeze(1)
+        b_out = b(iv_in)
+        b_out_test = torch.tensor([0, 0, 0, 0.3, 0]).float().unsqueeze(1)
+        self.assertTrue(torch.allclose(b_out,b_out_test))
