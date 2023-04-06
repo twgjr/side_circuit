@@ -1,170 +1,103 @@
 import torch
 import torch.nn as nn
+from torch.nn import Parameter
 from torch import Tensor
-from circuits import Props,Kinds
 from data import Data
 from torch.linalg import solve
 
 class Z(nn.Module):
-    def __init__(self, r_mask: Tensor, ics_mask: Tensor):
+    def __init__(self, data:Data):
         super().__init__()
-        self.r_mask = r_mask
-        self.ics_mask = ics_mask
+        self.data = data
     
-    def forward(self,attr):
-        Z_r = torch.diag(attr) @ torch.diag(self.r_mask).to(torch.float)
-        Z_ics = torch.diag(self.ics_mask)
+    def forward(self,params:Parameter):
+        #TODO: make this more efficient by eliminating non-resistor params
+        Z_r = torch.diag(params) @ torch.diag(self.data.r_mask).to(torch.float)
+        Z_ics = torch.diag(self.data.ics_mask)
         return -Z_r + Z_ics
 
 class Y(nn.Module):
-    def __init__(self, r_mask: Tensor, ivs_mask: Tensor):
+    def __init__(self, data:Data):
         super().__init__()
-        self.Y_r = torch.diag(r_mask)
-        self.Y_ivs = torch.diag(ivs_mask)
+        self.Y_r = torch.diag(data.r_mask).float()
+        self.Y_ivs = torch.diag(data.ivs_mask).float()
     
     def forward(self):
         return self.Y_r + self.Y_ivs
 
 class E(nn.Module):
-    def __init__(self, r_mask: Tensor, ics_mask: Tensor, ivs_mask: Tensor):
+    def __init__(self, data:Data):
         super().__init__()
-        self.Z = Z(r_mask,ics_mask)
-        self.Y = Y(r_mask,ivs_mask)
+        self.Z = Z(data)
+        self.Y = Y(data)
         
-    def forward(self,attr):
-        return torch.cat(tensors=(self.Z(attr),self.Y()),dim=1)
+    def forward(self,params):
+        return torch.cat(tensors=(self.Z(params),self.Y()),dim=1)
 
 class A(nn.Module):
-    def __init__(self, data: Data, r_mask: Tensor, ics_mask: Tensor, 
-                 ivs_mask: Tensor):
+    def __init__(self, data: Data):
         super().__init__()
         M_zeros = torch.zeros_like(data.M)
         kvl_coef = torch.tensor(data.circuit.kvl_coef()).to(torch.float)
         kvl_zeros = torch.zeros_like(kvl_coef)
         self.kcl = torch.cat(tensors=(data.M,M_zeros),dim=1)
         self.kvl = torch.cat(tensors=(kvl_zeros,kvl_coef),dim=1)
-        self.elements = E(r_mask,ics_mask,ivs_mask)
+        self.elements = E(data)
     
-    def forward(self,attr):
-        return torch.cat(tensors=(self.kcl,self.kvl,self.elements(attr)), dim=0)
+    def forward(self,params):
+        return torch.cat(tensors=(self.kcl,self.kvl,self.elements(params)), dim=0)
 
 class S(nn.Module):
-    def __init__(self, ics_mask: Tensor, ivs_mask: Tensor):
+    def __init__(self, data: Data):
         super().__init__()
-        self.ics_mask = ics_mask
-        self.ivs_mask = ivs_mask
+        self.data = data
 
-    def forward(self,attr):
-        return attr * torch.logical_or(self.ics_mask,self.ivs_mask)
+    def forward(self,input:Tensor):
+        i,v = self.data.split_input_output(input)
+        ics = i * self.data.ics_mask.unsqueeze(1)
+        ivs = v * self.data.ivs_mask.unsqueeze(1)
+        return ics + ivs
     
 class B(nn.Module):
-    def __init__(self, data: Data, ics_mask: Tensor, ivs_mask: Tensor):
+    def __init__(self, data: Data):
             super().__init__()
             num_nodes = data.circuit.num_nodes()
             num_elements = data.circuit.num_elements()
-            self.kcl = torch.zeros(num_nodes)
-            self.kvl = torch.zeros(num_elements - num_nodes + 1)
-            self.sources = S(ics_mask,ivs_mask)
+            self.kcl = torch.zeros(size=(num_nodes,1))
+            self.kvl = torch.zeros(size=(num_elements - num_nodes + 1,1))
+            self.sources = S(data)
     
-    def forward(self,attr):
-        s = self.sources(attr)
+    def forward(self,input:Tensor):
+        s = self.sources(input)
         b = torch.cat(tensors=(self.kcl,self.kvl,s), dim=0)
-        return b.unsqueeze(dim=1)
+        return b
 
-class Solver(nn.Module):
+class Cell(nn.Module):
     def __init__(self, data: Data):
         super().__init__()
-        #data
         self.data = data
-        self.ics_attr_mask = self.init_mask(Kinds.ICS)
-        self.ivs_attr_mask = self.init_mask(Kinds.IVS)
-        self.r_attr_mask = self.init_mask(Kinds.R)
-        self.known_attr_mask = self.init_known_attr_mask()
-        self.i_base, self.v_base, self.r_base = self.data.init_base()
-        #model
-        self.attr = nn.Parameter(self.init_attr())
-        self.A = A(data,self.r_attr_mask,self.ics_attr_mask,self.ivs_attr_mask)
-        self.b = B(data,self.ics_attr_mask,self.ivs_attr_mask)
+        self.params = data.init_params()
+        self.A = A(data)
+        self.b = B(data)
 
-    def forward(self):
-        A = self.A(self.attr)
-        b = self.b(self.attr)
-        return solve(A[1:,:],b[1:,:])
-
-    def init_mask(self, kind:Kinds):
-        return torch.tensor(self.data.mask_of_kind(kind)).to(torch.bool)
-    
-    def init_known_attr_mask(self):
-        ics = torch.tensor(self.data.mask_of_attr(Kinds.ICS))
-        ivs = torch.tensor(self.data.mask_of_attr(Kinds.IVS))
-        r = torch.tensor(self.data.mask_of_attr(Kinds.R))
-        return torch.logical_or(ics,torch.logical_or(ivs,r))
-
-    def init_attr(self):
-        ics_list = self.data.attr_list(Kinds.ICS,1)
-        ivs_list = self.data.attr_list(Kinds.IVS,1)
-        r_list = self.data.attr_list(Kinds.R,1)
-        ics_tensor = torch.tensor(ics_list).to(torch.float)
-        ics_tensor[~self.ics_attr_mask] = 0
-        ics_tensor = ics_tensor/self.i_base
-        ivs_tensor = torch.tensor(ivs_list).to(torch.float)
-        ivs_tensor[~self.ivs_attr_mask] = 0
-        ivs_tensor = ivs_tensor/self.v_base
-        r_tensor = torch.tensor(r_list).to(torch.float)
-        r_tensor[~self.r_attr_mask] = 0
-        r_tensor = r_tensor/self.r_base
-        attr_tensor = ics_tensor + ivs_tensor + r_tensor
-        attr_tensor[~self.known_attr_mask] = 1
-        return attr_tensor
-
-    def split_solution(self, solution:Tensor):
-        split = self.data.circuit.num_elements()
-        i = solution[:split,:]
-        v = solution[split:2*split,:]
-        return i,v
-    
-    def denorm_solution(self,solution):
-        i_norm,v_norm = self.split_solution(solution)
-        i = self.denorm(i_norm,self.i_base)
-        v = self.denorm(v_norm,self.v_base)
-        return i,v
-
-    def norm(self, input:Tensor, base:float):
-        clone = input.detach().clone()
-        return clone/base
-
-    def denorm(self, input:Tensor, base:float):
-        clone = input.detach().clone()
-        return clone*base
-    
-    def denorm_attr(self):
-        attr = self.attr.clone()
-        attr[self.ics_attr_mask] = self.denorm(attr[self.ics_attr_mask],self.i_base)
-        attr[self.ivs_attr_mask] = self.denorm(attr[self.ivs_attr_mask],self.v_base)
-        attr[self.r_attr_mask] = self.denorm(attr[self.r_attr_mask],self.r_base)
-        return attr
+    def forward(self,input):
+        A = self.A(self.params)
+        b = self.b(input)
+        out = solve(A[1:,:],b[1:,:])
+        return out
     
     def zero_known_grads(self):
-        if(self.attr != None and self.attr.grad != None):
-            self.attr.grad[self.known_attr_mask] = 0
+        if(self.params != None and self.params.grad != None):
+            self.params.grad[self.data.attrs_mask] = 0
 
-    def clamp_attr(self):
+    def clamp_params(self):
         min = 1e-15
         max = 1e15
         for p in self.parameters():
             p.data.clamp_(min, max)
-    
-    def set_r_from_knowns(self, preds:Tensor,target:Tensor,target_mask:Tensor):
-        with torch.no_grad():
-            i,v = self.split_solution(preds)
-            i = i.flatten()
-            v = v.flatten()
-            i_known,v_known = self.split_solution(target)
-            i_known = i_known.flatten()
-            v_known = v_known.flatten()
-            i_known_mask,v_known_mask = self.split_solution(target_mask)
-            i_known_mask = i_known_mask.flatten()
-            v_known_mask = v_known_mask.flatten()
-            i[i_known_mask] = i_known[i_known_mask]
-            v[v_known_mask] = v_known[v_known_mask]
-            self.attr[self.r_attr_mask] = v[self.r_attr_mask]/i[self.r_attr_mask]
+
+    def set_param_vals(self, params: Tensor):
+        assert params.shape == self.params.shape
+        for p in self.parameters():
+            p.data = params
+        # self.params = Parameter(params)

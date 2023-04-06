@@ -1,14 +1,45 @@
-from circuits import Circuit,Props,Kinds
+from circuits import Circuit,Props,Kinds,Signal,Element
+from torch.utils.data import Dataset
+import torch
+from torch.nn import Parameter
+from torch import Tensor
 
 class Data():
     def __init__(self, circuit:Circuit) -> None:
         self.circuit = circuit
         self.M = self.circuit.M()
         self.elements = self.circuit.export()
+        self.i_base, self.v_base, self.r_base = self.init_base()
+        #TODO attrs_mask and Trainer.mask (v/i) should be in same place
+        self.attrs_mask = self.init_attrs_mask()
+        self.r_mask = self.init_mask(Kinds.R)
+        self.ics_mask = self.init_mask(Kinds.ICS)
+        self.ivs_mask = self.init_mask(Kinds.IVS)
 
-    def base(self, input:list, eps:float=1e-12) -> float:
+    def init_mask(self, kind:Kinds):
+        return torch.tensor(self.kind_one_hot(kind)).to(torch.bool)
+    
+    def signals_base(self, signals:list[Signal], eps:float=1e-12) -> float:
         input_max = 0
-        for val in input:
+        for signal in signals:
+            if(signal.is_empty()):
+                continue
+            else:
+                for v in range(len(signal)):
+                    val = signal[v]
+                    abs_val = abs(val)
+                    if(abs_val > input_max):
+                        input_max = abs_val
+        if(input_max < eps):
+            return eps
+        else:
+            return input_max
+    
+    def values_base(self, values:list[float], eps:float=1e-12) -> float:
+        input_max = 0
+        for val in values:
+            if(val == None):
+                continue
             abs_val = abs(val)
             if(abs_val > input_max):
                 input_max = abs_val
@@ -18,18 +49,18 @@ class Data():
             return input_max
         
     def init_base(self):
-        i_data = self.prop_list(Props.I,True,0)
-        i_knowns = self.mask_of_prop(Props.I,True)
+        i_sigs = self.prop_list(Props.I)
+        i_knowns = self.prop_mask(Props.I)
         i_has_knowns = True in i_knowns
-        v_data = self.prop_list(Props.V,True,0)
-        v_knowns = self.mask_of_prop(Props.V,True)
+        v_sigs = self.prop_list(Props.V)
+        v_knowns = self.prop_mask(Props.V)
         v_has_knowns = True in v_knowns
-        r_data = self.attr_list(Kinds.R,0)
-        r_knowns = self.mask_of_attr(Kinds.R)
+        r_vals = self.attr_list(Kinds.R)
+        r_knowns = self.attr_mask(Kinds.R)
         r_has_knowns = True in r_knowns
-        i_base = self.base(i_data)
-        v_base = self.base(v_data)
-        r_base = self.base(r_data)
+        i_base = self.signals_base(i_sigs)
+        v_base = self.signals_base(v_sigs)
+        r_base = self.values_base(r_vals)
         if(not i_has_knowns and not v_has_knowns and not r_has_knowns):
             i_base = 1
             v_base = 1
@@ -52,102 +83,181 @@ class Data():
         elif(i_has_knowns and v_has_knowns and r_has_knowns):
             pass
         return (i_base,v_base,r_base)
-
     
-    def normalize(self, base:int, input:list):
+    def init_attrs_mask(self):
+        r = torch.tensor(self.attr_mask(Kinds.R))
+        return r
+    
+    def replace_none(self, l:list[float], val:float) -> list[float]:
         ret_list = []
-        for v in range(len(input)):
-            ret_list.append(input[v]/base)
+        for x in l:
+            if(x == None):
+                ret_list.append(val)
+            else:
+                ret_list.append(x)
         return ret_list
     
-    def target_list(self, i_base, v_base) -> list[float]:
-        '''returns list of normalized target values ordered by element'''
-        i_vals = self.prop_list(Props.I,True,0)
-        v_vals = self.prop_list(Props.V,True,0)
-        i_mask = self.mask_of_prop(Props.I,True)
-        v_mask = self.mask_of_prop(Props.V,True)
-        i_norm = self.normalize(i_base,i_vals)
-        v_norm = self.normalize(v_base,v_vals)
-        for m in i_mask:
-            if(not i_mask[m]):
-                i_norm[m] = 1
-            if(not v_mask[m]):
-                v_norm[m] = 1
-        vals_norm = i_norm + v_norm
-        return vals_norm
+    def init_params(self):
+        r_list = self.norm_attrs(Kinds.R,self.r_base)
+        r_list = self.replace_none(r_list,1.0)
+        r_tensor = torch.tensor(r_list).to(torch.float)
+        attr_tensor = r_tensor
+        attr_params = torch.nn.Parameter(attr_tensor)
+        return attr_params
     
-    def target_mask_list(self):
+    def norm_signals(self, prop:Props, base:int) -> list[Signal]:
+        prop_sigs = self.prop_list(prop)
+        ret_list = []
+        for signal in prop_sigs:
+            sig_copy = signal.copy()
+            if(not sig_copy.is_empty()):
+                for d in range(len(sig_copy )):
+                    sig_copy[d] = sig_copy[d]/base
+            ret_list.append(sig_copy)
+        return ret_list
+    
+    def norm_attrs(self, kind:Kinds, base:int) -> list[float]:
+        attr_vals = self.attr_list(kind)
+        ret_list = []
+        for val in attr_vals:
+            if(val == None):
+                ret_list.append(None)
+            else:
+                ret_list.append(val/base)
+        return ret_list
+    
+    def split_input_output(self, input:Tensor):
+        split = self.circuit.num_elements()
+        assert input.shape == (2*split,1)
+        i = input[:split,:]
+        v = input[split:2*split,:]
+        return i,v
+    
+    def denorm_input_output(self,io_list:list[Tensor])->tuple[list[Tensor],list[Tensor]]:
+        assert isinstance(io_list,list)
+        i = []
+        v = []
+        for io in io_list:
+            assert isinstance(io,Tensor)
+            i_norm,v_norm = self.split_input_output(io)
+            i.append(self.denorm(i_norm,self.i_base))
+            v.append(self.denorm(v_norm,self.v_base))
+        return i,v
+
+    @staticmethod
+    def denorm(input:Tensor, base:float):
+        clone = input.detach().clone()
+        return clone*base
+    
+    def denorm_params(self, params:Parameter):
+        with torch.no_grad():
+            params[self.r_mask] = self.denorm(params[self.r_mask],self.r_base)
+        return params
+    
+    def extract_data(self) -> tuple[list[list[float]],list[list[float]]]:
+        '''Returns two lists ordered by time: currents and voltages.  Each row 
+        represents time.  Each column represents a property value for an element
+          (i or v).'''
+        elements_i = self.norm_signals(Props.I,self.i_base)
+        elements_v = self.norm_signals(Props.V,self.v_base)
+        data_i = []
+        data_v = []
+        assert self.circuit.signal_len > 0
+        for t in range(self.circuit.signal_len):
+            data_i_t = []
+            for signal in elements_i:
+                if(signal.is_empty()):
+                    data_i_t.append(None)
+                else:
+                    data_i_t.append(signal[t])
+            data_v_t = []
+            for signal in elements_v:
+                if(signal.is_empty()):
+                    data_v_t.append(None)
+                else:
+                    data_v_t.append(signal [t])
+            data_i.append(data_i_t)
+            data_v.append(data_v_t)
+        return (data_i,data_v)
+
+    def extract_attributes(self) -> list[float]:
+        '''Returns a list ordered by element: resistances.'''
+        r_attrs = self.norm_attrs(Kinds.R,self.r_base)
+        return r_attrs
+
+    def init_dataset(self)->list[Tensor]:
+        '''Returns a tensor list dataset ordered by time. Only known properties
+        are non-zero.  Shape = (signal length, 2*elements)'''
+        i_data,v_data = self.extract_data()
+        data_zip = zip(i_data,v_data)
+        data_list = []
+        for i,v in data_zip:
+            sample = i+v
+            clean_sample = []
+            for item in sample:
+                if(item == None):
+                    clean_sample.append(0)
+                else:
+                    clean_sample.append(item)
+            data_list.append(clean_sample)
+        dataset = []
+        for sample in data_list:
+            sample_tensor = torch.tensor(sample).float().unsqueeze(1)
+            dataset.append(sample_tensor)
+        return dataset
+
+    def data_mask_list(self):
         '''returns boolean mask of target values ordered by element'''
-        currents = self.mask_of_prop(Props.I,True)
-        voltages = self.mask_of_prop(Props.V,True)
+        currents = self.prop_mask(Props.I)
+        voltages = self.prop_mask(Props.V)
         return currents + voltages
-    
-    def mask_of_kind(self, kind:Kinds):
+
+    def kind_one_hot(self, kind:Kinds) -> list[bool]:
         '''returns boolean mask of element kinds ordered by element'''
-        return self.kind_list(kind)
+        assert isinstance(kind,Kinds)
+        return self.elements['kinds'][kind]
+
+    def prop_list(self, prop:Props) -> list[Signal]:
+        '''return list ordered by element of properties (i,v). Uknowns 
+        initialized to 1'''
+        assert isinstance(prop,Props)
+        return self.elements['properties'][prop]
     
-    def mask_of_prop(self, prop:Props, include_attr:bool):
+    def attr_list(self,kind:Kinds) -> list[float]:
+        '''return list of element attributes with None for unknowns'''
+        assert isinstance(kind,Kinds)
+        return self.elements['attributes'][kind]
+    
+    def prop_mask(self, prop:Props) -> list[bool]:
         '''returns boolean mask of known element properties ordered by element'''
-        if(include_attr):
-            return self.nones_to_bool_mask(self.prop_with_attrs(prop))
-        else:
-            return self.nones_to_bool_mask(self.elements['properties'][prop])
-    
-    def mask_of_attr(self, kind:Kinds):
-        '''returns boolean mask of known element attributes ordered by element'''
-        return self.nones_to_bool_mask(self.elements['attributes'][kind])
-
-    def kind_list(self, kind:Kinds) -> list:
-        kind_list = self.elements['kinds'][kind]
-        return kind_list
-    
-    def prop_with_attrs_of_kind(self,kind:Kinds,to_prop:Props):
-        to_prop_list = self.elements['properties'][to_prop]
-        list_with_attr = []
-        attr_list = self.elements['attributes'][kind]
-        for p in range(len(to_prop_list)):
-            if(self.kind_list(kind)[p]):
-                list_with_attr.append(attr_list[p])
-            else:
-                list_with_attr.append(to_prop_list[p])
-        return list_with_attr
-    
-    def prop_with_attrs(self,prop:Props):
-        if(prop == Props.I):
-            return self.prop_with_attrs_of_kind(Kinds.ICS,prop)
-        elif(prop == Props.V):
-            return self.prop_with_attrs_of_kind(Kinds.IVS,prop)
-
-    def prop_list(self, prop:Props, include_attr:bool, init_val:int) -> list:
-        '''return list of element properties (i,v,pot) with unknowns initialized
-          to 1'''
-        if(include_attr):
-            return self.replace_nones(self.prop_with_attrs(prop),init_val)
-        else:
-            return self.replace_nones(self.elements['properties'][prop],init_val)
-    
-    def attr_list(self,kind:Kinds,init_val:float) -> list:
-        '''return list of element attributes with unknowns initialized to 1'''
-        return self.replace_nones(self.elements['attributes'][kind],init_val)
-    
-    def replace_nones(self, input_list, init_val:int):
-        '''replaces None type items in list with False (bool) or init_val (float)'''
+        assert isinstance(prop,Props)
+        signals = self.elements['properties'][prop]
         ret_list = []
-        for i in range(len(input_list)):
-            if(input_list[i] == None):
-                ret_list.append(init_val)
-            else:
-                ret_list.append(input_list[i])
-        return ret_list
-    
-    def nones_to_bool_mask(self, input:list):
-        '''converts the list into a boolean list where True has a value and 
-        Falseis None type.  Used to indicate a "unknown" circuit values of None 
-        type."'''
-        ret_list = []
-        for item in input:
-            if(item == None):
+        for signal in signals:
+            assert isinstance(signal,Signal)
+            if(signal.is_empty()):
                 ret_list.append(False)
             else:
                 ret_list.append(True)
         return ret_list
+    
+    def attr_mask(self, kind:Kinds) -> list[bool]:
+        '''returns boolean mask of known element attributes ordered by element'''
+        assert isinstance(kind,Kinds)
+        assert kind != Kinds.ICS and kind != Kinds.IVS
+        attrs = self.elements['attributes'][kind]
+        ret_list = []
+        for attr in attrs:
+            assert isinstance(attr,float) or attr == None
+            ret_list.append(attr != None)
+        return ret_list
+    
+class CircuitDataset(Dataset):
+    def __init__(self,dataset:list[Tensor]):
+        self.dataset = dataset
+    
+    def __len__(self):
+        return len(self.dataset)
+    
+    def __getitem__(self, idx):
+        return self.dataset[idx]

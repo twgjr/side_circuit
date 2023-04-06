@@ -1,132 +1,282 @@
 import unittest
 from data import Data
-from circuits import Circuit,Kinds,Props
+from circuits import Circuit,Kinds,Props,Signal
+import torch
 from torch import Tensor
 
-class Test_Preprocess(unittest.TestCase):
-    def test_Preprocess(self):
+class Test_Data(unittest.TestCase):
+    def test_Data(self):
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,1)
-        input = Data(circuit)
-        self.assertTrue(type(input.circuit)==Circuit)
-        self.assertTrue(type(input.M)==Tensor)
-        self.assertTrue(type(input.elements) == dict)
-
-    def test_base(self):
-        input = Data(Circuit())
-        self.assertTrue(input.base([0,1,2]) == 2)
-        self.assertTrue(input.base([-1,1,2]) == 2)
-        self.assertTrue(input.base([0,0,0]) == 1e-12)
-        self.assertTrue(input.base([-1,-1]) == 1)
-
-    def test_normalize(self):
-        data = Data(Circuit())
-        test_list = [1,1,2,3]
-        base = data.base(test_list)
-        self.assertTrue(data.normalize(base,test_list) == [1/3,1/3,2/3,1])
-
-    def test_target_list(self):
-        circuit = Circuit()
-        circuit.ring(Kinds.IVS,Kinds.R,1)
-        circuit.elements[0].attr = 2
-        circuit.elements[-1].i = 0.5
         data = Data(circuit)
-        target_list_test = [1,1,1,1]
-        i_base,v_base,_ = data.init_base()
-        target_list = data.target_list(i_base,v_base)
-        self.assertTrue(target_list == target_list_test)
-    
-    def test_target_mask_list(self):
+        self.assertTrue(type(data.circuit)==Circuit)
+        self.assertTrue(type(data.M)==Tensor)
+        self.assertTrue(type(data.elements) == dict)
+
+    def test_signals_base(self):
+        data = Data(Circuit())
+        self.assertTrue(data.signals_base([Signal(None,[0,1,2])]) == 2)
+        self.assertTrue(data.signals_base([Signal(None,[-1,1,2])]) == 2)
+        self.assertTrue(data.signals_base([Signal(None,[0,0,0])]) == 1e-12)
+        self.assertTrue(data.signals_base([Signal(None,[-1,-1])]) == 1)
+        self.assertTrue(data.signals_base([Signal(None,[0,0]),
+                                     Signal(None,[0,0])]) == 1e-12)
+        self.assertTrue(data.signals_base([Signal(None,[0,2]),
+                                     Signal(None,[0,1])]) == 2)
+        
+    def test_init_base(self):
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS,Kinds.R,2)
+        circuit.elements[0].v = [2.0]
+        circuit.elements[1].a = 3.0
+        circuit.elements[2].a = 6.0
+        circuit.elements[1].i = [1.5,4.0]
+        data = Data(circuit)
+        self.assertTrue(data.v_base == 2.0)
+        self.assertTrue(data.r_base == 6.0)
+        self.assertTrue(data.i_base == 4.0)
+
+    def test_init_attrs_mask(self):
+        assert len(Kinds) <= 3
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS,Kinds.R,2)
+        circuit.elements[0].v = [2.0]
+        circuit.elements[1].a = 4.0
+        data = Data(circuit)
+        attrs_mask = data.init_attrs_mask()
+        self.assertTrue(torch.equal(attrs_mask, torch.tensor([False,True,False])))
+        
+    def test_values_base(self):
+        data = Data(Circuit())
+        self.assertTrue(data.values_base([0,1,2]) == 2)
+        self.assertTrue(data.values_base([-1,1,2]) == 2)
+        self.assertTrue(data.values_base([0,0,0]) == 1e-12)
+        self.assertTrue(data.values_base([-1,-1]) == 1)
+        self.assertTrue(data.values_base([0,0,0,0]) == 1e-12)
+        self.assertTrue(data.values_base([0,2,0,1]) == 2)
+
+    def test_norm_signals(self):
+        circuit = Circuit()
+        r = circuit.add_element(Kinds.R)
+        ivs = circuit.add_element(Kinds.IVS)
+        ivs.v = [1,1,2,4]
+        r.v = [1,1,2,4]
+        r.i = [1,1,2,3]
+        data = Data(circuit)
+        i_base = data.signals_base(data.prop_list(Props.I))
+        norm_i = data.norm_signals(Props.I,i_base)
+        self.assertTrue(norm_i[0] == Signal(None,[1/3,1/3,2/3,1.0]))
+        v_base = data.signals_base(data.prop_list(Props.V))
+        norm_v = data.norm_signals(Props.V,v_base)
+        self.assertTrue(norm_v[0] == Signal(None,[1/4,1/4,2/4,1]))
+        self.assertTrue(norm_v[1] == Signal(None,[1/4,1/4,2/4,1]))
+        self.assertTrue(ivs.v == Signal(None,[1,1,2,4]))
+        self.assertTrue(r.v == Signal(None,[1,1,2,4]))
+        self.assertTrue(r.i == Signal(None,[1,1,2,3]))
+
+    def test_norm_attrs(self):
+        circuit = Circuit()
+        r1 = circuit.add_element(Kinds.R)
+        r2 = circuit.add_element(Kinds.R)
+        r1.a = 2.0
+        r2.a = 4.0
+        data = Data(circuit)
+        attrs = data.attr_list(Kinds.R)
+        base = data.values_base(attrs)
+        norm_attrs = data.norm_attrs(Kinds.R,base)
+        norm_attrs_test = [0.5,1]
+        self.assertTrue(norm_attrs == norm_attrs_test)
+
+    def test_split_input_output(self):
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,1)
-        circuit.elements[0].attr = 2
-        circuit.elements[1].i = 0.5
-        input = Data(circuit)
+        data = Data(circuit)
+        input = torch.tensor([[1],
+                              [2],
+                              [3],
+                              [4]])
+        i_test = torch.tensor([[1],
+                               [2]])
+        v_test = torch.tensor([[3],
+                               [4]])
+        i_list,v_list = data.split_input_output(input)
+        self.assertTrue(torch.equal(i_list,i_test))
+        self.assertTrue(torch.equal(v_list,v_test))
+    
+    def test_denorm_input_output(self):
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS,Kinds.R,1)
+        data = Data(circuit)
+        data.i_base = 10
+        data.v_base = 10
+        input = [torch.tensor([[0.1],[0.2],[0.3],[0.4]]).float()]
+        i_test = [torch.tensor([[1],[2]]).float()]
+        v_test = [torch.tensor([[3],[4]]).float()]
+        i_tensor_list,v_tensor_list = data.denorm_input_output(input)
+        for i in range(len(i_tensor_list)):
+            self.assertTrue(torch.allclose(i_tensor_list[i],i_test[i]))
+            self.assertTrue(torch.allclose(v_tensor_list[i],v_test[i]))
+
+    def test_denorm(self):
+        base = 10
+        test_tensor = torch.tensor([[3,4,5,6],
+                                    [7,8,9,10]])
+        input_tensor = torch.tensor([[0.3,0.4,0.5,0.6],
+                                     [0.7,0.8,0.9,1]])
+        denorm_tensor = Data.denorm(input_tensor,base)
+        self.assertTrue(torch.equal(denorm_tensor,test_tensor))
+        
+    def test_denorm_params(self):
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS,Kinds.R,1)
+        data = Data(circuit)
+        data.i_base = 100
+        data.v_base = 10
+        data.r_base = 2
+        norm_params = torch.tensor([[0.1],[0.2]]).float()
+        params_test = torch.tensor([[0.1],[0.4]]).float()
+        denorm_params = data.denorm_params(norm_params)
+        self.assertTrue(torch.allclose(denorm_params,params_test))
+
+    def dataset_output(self):
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS,Kinds.R,1)
+        el0 = circuit.elements[0]
+        el_last = circuit.elements[1]
+        el0.a = [2]
+        el_last.i = [0.5]
+        data = Data(circuit)
+        data_list_test = [[],[1.0],[],[]]
+        data_list = data.extract_data()
+        self.assertTrue(data_list == data_list_test)
+
+    def test_extract_data(self):
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS,Kinds.R,1)
+        el0 = circuit.elements[0]
+        el_last = circuit.elements[1]
+        el0.v = [1,2]
+        el_last.i = [4,2]
+        data = Data(circuit)
+        test_data_i = [[None,1.0],
+                       [None,0.5]]
+        test_data_v = [[0.5,None],
+                       [1.0,None]]
+        data_i,data_v = data.extract_data()
+        self.assertTrue(data_i == test_data_i)
+        self.assertTrue(data_v == test_data_v)
+
+    def test_extract_attributes(self):
+        circuit = Circuit()
+        circuit.add_element(Kinds.IVS)
+        r1 = circuit.add_element(Kinds.R)
+        r2 = circuit.add_element(Kinds.R)
+        r1.a = 2.0
+        r2.a = 4.0
+        data = Data(circuit)
+        attrs = data.extract_attributes()
+        attrs_test = [None,0.5,1]
+        self.assertTrue(attrs == attrs_test)
+        
+    def test_init_dataset(self):
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS,Kinds.R,1)
+        el0 = circuit.elements[0]
+        el_last = circuit.elements[1]
+        el0.v = [1,2]
+        el_last.i = [4,2]
+        data = Data(circuit)
+        init_data_input = data.init_dataset()
+        init_data_test = [torch.tensor([0,1.0,0.5,0]).float().unsqueeze(1),
+                          torch.tensor([0,0.5,1.0,0]).float().unsqueeze(1)]
+        for i in range(len(init_data_test)):
+            self.assertTrue(torch.equal(init_data_test[i],init_data_input[i]))
+        
+    def test_data_mask_list(self):
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS,Kinds.R,1)
+        circuit.elements[0].v = [2]
+        circuit.elements[1].i = [0.5]
+        data = Data(circuit)
         test_mask = [False, True, True, False]
-        target_mask_list = input.target_mask_list()
-        self.assertTrue(target_mask_list == test_mask)
+        data_mask_list = data.data_mask_list()
+        self.assertTrue(data_mask_list == test_mask)
 
     def test_prop_list(self):
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,2)
-        circuit.elements[0].attr = 2
-        circuit.elements[1].i = 3
-        circuit.elements[2].v = 4
-        input = Data(circuit)
-        v_attr_F = input.prop_list(Props.V,False,1)
-        self.assertTrue(v_attr_F == [1,1,4])
-        v_attr_T = input.prop_list(Props.V,True,1)
-        self.assertTrue(v_attr_T == [2,1,4])
-        i_attr_F = input.prop_list(Props.I,False,1)
-        self.assertTrue(i_attr_F == [1,3,1])
-        i_attr_T = input.prop_list(Props.I,True,1)
-        self.assertTrue(i_attr_T == [1,3,1])
+        el0 = circuit.elements[0]
+        el1 = circuit.elements[1]
+        el2 = circuit.elements[2]
+        el0.v = [2]
+        el1.i = [3]
+        el2.v = [4]
+        data = Data(circuit)
+        v = data.prop_list(Props.V)
+        self.assertTrue(v[0] == el0.v)
+        self.assertTrue(v[1].is_empty())
+        self.assertTrue(v[2] == el2.v)
+        i = data.prop_list(Props.I)
+        self.assertTrue(i[0].is_empty())
+        self.assertTrue(i[1] == el1.i)
+        self.assertTrue(i[2].is_empty())
 
-    def test_mask_of_prop(self):
+    def test_prop_mask(self):
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,1)
-        circuit.elements[0].attr = 2
-        circuit.elements[1].i = 3
+        el0 = circuit.elements[0]
+        el1 = circuit.elements[1]
+        el0.v = [2]
+        el1.i = [3]
         input = Data(circuit)
-        i_mask = input.mask_of_prop(Props.I,False)
+        i_mask = input.prop_mask(Props.I)
         self.assertTrue(i_mask == [False,True])
-        i_mask_with_attr = input.mask_of_prop(Props.I,True)
-        self.assertTrue(i_mask_with_attr == [False,True])
-        v_mask = input.mask_of_prop(Props.V,False)
-        self.assertTrue(v_mask == [False,False])
-        v_mask_with_attr = input.mask_of_prop(Props.V,True)
-        self.assertTrue(v_mask_with_attr == [True,False])
-
-    def test_to_bool_mask(self):
-        preprocess = Data(Circuit())
-        input = [None,0,1.1]
-        mask = preprocess.nones_to_bool_mask(input)
-        self.assertTrue(mask == [False,True,True])
-
-    def test_replace_nones(self):
-        preprocess = Data(Circuit())
-        unknowns = [None,2,None,1.1]
-        change = preprocess.replace_nones(unknowns,1)
-        self.assertTrue(change == [1,2,1,1.1])
-        change = preprocess.replace_nones(unknowns,0)
-        self.assertTrue(change == [0,2,0,1.1])
-        all_knowns = [3,10.5]
-        no_change = preprocess.replace_nones(all_knowns,1)
-        self.assertTrue(no_change == all_knowns)
+        v_mask = input.prop_mask(Props.V)
+        self.assertTrue(v_mask == [True,False])
 
     def test_attr_list(self):
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,1)
-        circuit.elements[0].attr = 2
-        circuit.elements[1].attr = 3
-        preprocess = Data(circuit)
-        ivs = preprocess.attr_list(Kinds.IVS,1)
-        ics = preprocess.attr_list(Kinds.ICS,1)
-        r = preprocess.attr_list(Kinds.R,1)
-        self.assertTrue(ivs+ics+r == [2,1]+[1,1]+[1,3])
+        el0 = circuit.elements[0]
+        el1 = circuit.elements[1]
+        el0.v = [2.0]
+        el1.a = 3.0
+        data = Data(circuit)
+        ivs = data.attr_list(Kinds.IVS)
+        ics = data.attr_list(Kinds.ICS)
+        r = data.attr_list(Kinds.R)
+        self.assertTrue(ivs[0] == None)
+        self.assertTrue(ivs[1] == None)
+        self.assertTrue(r[0] == None)
+        self.assertTrue(r[1] == el1.a)
+        self.assertTrue(ics[0] == None)
+        self.assertTrue(ics[1] == None)
 
-    def test_mask_of_attr(self):
+    def test_attr_mask(self):
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,1)
-        circuit.elements[0].attr = 2
-        circuit.elements[1].attr = 4
+        circuit.elements[0].v = [2.0]
+        circuit.elements[1].a = 4.0
+        data = Data(circuit)
+        r = data.attr_mask(Kinds.R)
+        self.assertTrue(r == [False,True])
 
-        preprocess = Data(circuit)
-
-        ivs = preprocess.mask_of_attr(Kinds.IVS)
-        ics = preprocess.mask_of_attr(Kinds.ICS)
-        r = preprocess.mask_of_attr(Kinds.R)
-        self.assertTrue(ivs+ics+r == [True,False,]+[False,False]+[False,True])
-
-    def test_mask_of_kind(self):
+    def test_kind_list(self):
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,1)
-        circuit.elements[0].attr = 1
-        preprocess = Data(circuit)
+        data = Data(circuit)
+        self.assertTrue(data.kind_one_hot(Kinds.IVS) == [True,False])
+        self.assertTrue(data.kind_one_hot(Kinds.ICS) == [False,False])
+        self.assertTrue(data.kind_one_hot(Kinds.R) == [False,True])
 
-        mask = preprocess.mask_of_kind(Kinds.IVS)
+    def test_kind_one_hot(self):
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS,Kinds.R,1)
+        circuit.elements[0].v = [1]
+        data = Data(circuit)
+        mask = data.kind_one_hot(Kinds.IVS)
         self.assertTrue(mask == [True,False])
-        mask = preprocess.mask_of_kind(Kinds.ICS)
+        mask = data.kind_one_hot(Kinds.ICS)
         self.assertTrue(mask == [False,False])
-        mask = preprocess.mask_of_kind(Kinds.R)
+        mask = data.kind_one_hot(Kinds.R)
         self.assertTrue(mask == [False,True])
