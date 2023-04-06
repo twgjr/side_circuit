@@ -238,17 +238,21 @@ class Circuit():
                     series.append(element)
         return series
 
-    def load(self, i_tensor:Tensor, v_tensor:Tensor, attr_tensor:Tensor):
-        '''Takes inputs i_sol, v_sol, a_sol from solver and loads them into the circuit'''
-        attr_list = attr_tensor.tolist()
-        i_list = i_tensor.tolist()
-        v_list = v_tensor.tolist()
-        assert(len(attr_list) == len(i_list) == len(v_list))
+    def load(self, i_tensor_list:list[Tensor], v_tensor_list:list[Tensor],
+              attr_tensor:Tensor):
+        '''Stores predictions from Trainer in Circuit'''
+        assert(attr_tensor.shape[0] == self.num_elements())
+        assert(len(i_tensor_list) == len(v_tensor_list) == self.signal_len)
         for e in range(len(self.elements)):
             element = self.elements[e]
-            element.a_pred = attr_list[e]
-            element.i_pred = i_list[e]
-            element.v_pred = v_list[e]
+            element.a_pred = attr_tensor[e].item()
+            for t in range(self.signal_len):
+                i_tensor = i_tensor_list[t]
+                i_pred = i_tensor[e,:].item()
+                element.i_pred.append(i_pred)
+                v_tensor = v_tensor_list[t]
+                v_pred = v_tensor[e,:].item()
+                element.v_pred.append(v_pred)
 
     def export(self):
         '''
@@ -319,24 +323,24 @@ class Circuit():
             return
         max_sig_len = 0
         for element in self.elements:
-            i_len = len(element.i.data)
-            v_len = len(element.v.data)
+            i_len = len(element.i)
+            v_len = len(element.v)
             max_sig_len = max(max_sig_len, i_len, v_len)
         self.signal_len = signal_len
 
 class Element():
     def __init__(self, circuit: Circuit, kind:Kinds) -> None:
-        assert(isinstance(kind,Kinds))
+        assert(isinstance(kind,Kinds) and isinstance(circuit,Circuit))
         self.circuit = circuit
         self.low:Node = None
         self.high:Node = None
         self.kind = kind
-        self._i:Signal = Signal(element=self)
-        self._v:Signal = Signal(element=self)
+        self._i:Signal = Signal(self,[])
+        self._v:Signal = Signal(self,[])
         self._a:Signal = None
-        self.i_pred:Signal = None
-        self.v_pred:Signal = None
-        self.a_pred:Signal = None
+        self._i_pred:Signal = Signal(self,[])
+        self._v_pred:Signal = Signal(self,[])
+        self._a_pred:Signal = None
 
     def __repr__(self) -> str:
         return "("+str(self.kind.name)+", "+str(self.low.idx)+ ", "\
@@ -358,36 +362,26 @@ class Element():
         return self._i
     
     @i.setter
-    def i(self, value):
-        if(value == None):
-            self._i = value
-            return
-        assert isinstance(value,Signal)
+    def i(self, values:list):
+        assert isinstance(values,list)
         series = self.circuit.elements_in_series_with(self,False)
-        i_defined = False
         for element in series:
             if(not element.i.is_empty()):
-                i_defined = True
-        if(i_defined):
-            assert()
+                assert()
+        self.set_signal_data(values, self._i)
 
     @property
     def v(self):
         return self._v
     
     @v.setter
-    def v(self, value):
-        if(value == None):
-            self._v = value
-            return
-        assert isinstance(value,Signal)
+    def v(self, values:list):
+        assert isinstance(values,list)
         parallels = self.circuit.elements_parallel_to(self,False)
-        v_defined = False
         for element in parallels:
             if(not element.v.is_empty()):
-                v_defined = True
-        if(v_defined):
-            assert()
+                assert()
+        self.set_signal_data(values, self._v)
 
     @property
     def a(self):
@@ -400,19 +394,59 @@ class Element():
         self._a = value
 
     @property
+    def i_pred(self):
+        return self._i_pred
+    
+    @i_pred.setter
+    def i_pred(self, values:list):
+        assert isinstance(values,list)
+        assert values != self._v_pred.get_data()
+        self.set_signal_data(values, self._i_pred)
+
+    @property
+    def v_pred(self):
+        return self._v_pred
+    
+    @v_pred.setter
+    def v_pred(self, values:list):
+        assert isinstance(values,list)
+        assert values != self._i_pred.get_data()
+        self.set_signal_data(values, self._v_pred)
+
+    @property
+    def a_pred(self):
+        return self._a_pred
+    
+    @a_pred.setter
+    def a_pred(self, value:float):
+        assert isinstance(value,float)
+        self._a_pred = value
+
+    def set_signal_data(self, value:list, signal:'Signal'):
+        assert isinstance(value,list)
+        if(self.a == self):
+            if(self.kind == Kinds.ICS or self.kind == Kinds.IVS):
+                assert()
+        signal.set_data(value)
+        data_len = len(signal)
+        self.circuit.update_signal_len(data_len)
+
+    @property
     def key(self):
         parallels = self.circuit.elements_parallel_to(self,True)
         return parallels.index(self)
 
     def delete(self):
-        self._i.clear()
+        self._i.prep_delete()
         self._i = None
-        self._v.clear()
+        self._v.prep_delete()
         self._v = None
         self._a = None
-        self.i_pred = None
-        self.v_pred = None
-        self.a_pred = None
+        self._i_pred.prep_delete()
+        self._i_pred = None
+        self._v_pred.prep_delete()
+        self._v_pred = None
+        self._a_pred = None
         self.low.remove_element(self)
         self.low = None
         self.high.remove_element(self)
@@ -456,45 +490,65 @@ class Node():
             self.elements.remove(element)
 
 class Signal():
-    def __init__(self, element: Element = None, data:list = []) -> None:
+    def __init__(self, element: Element,data) -> None:
+        assert isinstance(element,Element) or element == None
+        assert isinstance(data,list)
         self.element = element
         self._data = data
-        if(element != None):
+        if(self.element != None):
             self.element.circuit.update_signal_len(len(self._data))
+
+    def get_data(self):
+        return self._data
+    
+    def set_data(self, value:list):
+        assert isinstance(value,list)
+        self._data = value
 
     def __repr__(self) -> str:
         return str(self._data)
 
-    def clear(self):
+    def prep_delete(self):
         self._data = []
         self.element = None
+    
+    def __len__(self):
+        return len(self._data)
+    
+    def __getitem__(self, key):
+        return self._data[key]
+    
+    def __setitem__(self, key, value):
+        self._data[key] = value
+
+    def __eq__(self, other:'Signal') -> bool:
+        assert isinstance(other,Signal)
+        if(len(self) != len(other)):
+            return False
+        for i in range(len(self)):
+            if(self[i] != other[i]):
+                return False
+        return True
+    
+    def __neg__(self):
+        data = []
+        for item in self._data:
+            data.append(-item)
+        return Signal(element=self.element, data=data)
+    
+    def clear(self):
+        self._data = []
+    
+    def append(self, value:float):
+        assert isinstance(value,float)
+        self._data.append(value)
 
     def is_empty(self):
         return len(self._data) == 0
     
     def copy(self):
         assert isinstance(self.element,Element)
-        new_signal = Signal(self.element)
-        new_signal.data = self.data.copy()
-        return new_signal
-    
-    @property
-    def data(self):
-        return self._data
-    
-    @data.setter
-    def data(self, value:list):
-        assert isinstance(value,list)
-        if(self.element.a == self):
-            if(self.element.kind == Kinds.ICS or self.element.kind == Kinds.IVS):
-                assert()
-        save_data = self._data
-        self._data = value
-        self.element.circuit.update_signal_len(len(self.data))
-        data_len = len(self._data)
-        ckt_sig_len = self.element.circuit.signal_len
-        if(data_len != 0 and ckt_sig_len != 0):
-            if(data_len != ckt_sig_len):
-                self._data = save_data
-                self.element.circuit.update_signal_len(len(self.data))
-                assert()
+        data_copy = []
+        for item in self._data:
+            data_copy.append(item)
+        return Signal(element=self.element, data=data_copy)

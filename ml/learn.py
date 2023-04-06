@@ -26,6 +26,7 @@ class Stability():
             pu_change_max = torch.max(pu_change)
             if(pu_change_max > self.pu_threshold):
                 ret_bool = False
+        self.tensor_list = tensor_list
         return ret_bool
 
 class Trainer():
@@ -35,33 +36,8 @@ class Trainer():
         self.optimizer = Adam(params=self.model.parameters(),lr=init_learn_rate)
         self.loss_fn = nn.MSELoss()
         self.dataset = data.init_dataset()
-        self.mask = torch.tensor(data.data_mask_list()).to(torch.bool)
-
-    def run(self, epochs, stable_threshold:float):
-        self.model.train()
-        loss = None
-        params = self.model.params
-        out_list = []
-        attr_stability = Stability(params, stable_threshold)
-        preds_stability = Stability(out_list, stable_threshold)
-        epoch = 0
-        reset_count = 0
-        while(epoch < epochs):
-            if(epoch % 2 == 1):
-                if(attr_stability.is_stable([params]) and 
-                    preds_stability.is_stable(out_list)):
-                    print('threshold met')
-                    break
-                # self.model.set_r_from_knowns(state,target,target_mask)
-                reset_count += 1
-            loss, out_list = self.step_sequence()
-            epoch += 1
-            params = self.model.params
-        print(f'reset_count = {reset_count}')
-        # self.model.set_r_from_knowns(state,target,target_mask)
-        i_sol, v_sol = self.data.denorm_input_output(out_list)
-        a_sol = self.data.denorm_params(params)
-        return i_sol, v_sol, a_sol, loss, epoch
+        self.mask = torch.tensor(data.data_mask_list()).to(torch.bool).unsqueeze(1)
+        (self.i_mask,self.v_mask) = self.data.split_input_output(self.mask)
 
     def step_cell(self,input:Tensor):
         '''processes one time step of the sequence'''
@@ -87,6 +63,65 @@ class Trainer():
         self.optimizer.step()
         self.model.clamp_params()
         return total_loss, out_list
+    
+    def calc_params(self, preds_list:list[Tensor], knowns_list:list[Tensor]):
+        '''Directly calculates the attributes of the circuit given the predicted
+          values and the known values.  Returns the average of the parameters 
+          across all time steps.'''
+        avg_list = []
+        for preds, knowns in zip(preds_list, knowns_list):
+            avg_list.append(self.calc_params_single(preds,knowns))
+        combined = torch.cat(avg_list,dim=1)
+        mean_params = torch.mean(combined,dim=1,keepdim=False)
+        return mean_params
+    
+    def calc_params_single(self, preds:Tensor, knowns:Tensor):
+        '''Directly calculates the circuit attribute values based on the known
+        values and the most recent predictions based on one time step.'''
+        assert(preds.shape == (2*self.data.circuit.num_elements(),1))
+        assert(preds.shape == knowns.shape)
+        with torch.no_grad():
+            i,v = self.data.split_input_output(preds)
+            i_known,v_known = self.data.split_input_output(knowns)
+            # i_known_mask,v_known_mask = self.data.split_input_output(knowns_mask)
+            i[self.i_mask] = i_known[self.i_mask]
+            v[self.v_mask] = v_known[self.v_mask]
+            r_mask = self.data.r_mask
+            # self.params[r_mask] = v[r_mask]/i[r_mask]
+            r_params = torch.zeros(size=(self.data.circuit.num_elements(),1))
+            eps = 1e-15
+            r_params[r_mask] = (v[r_mask]+eps)/(i[r_mask]+eps)
+            return r_params
+
+
+    def run(self, epochs, stable_threshold:float):
+        self.model.train()
+        loss = None
+        params = self.model.params
+        out_list = [torch.tensor([0.0]*2*len(self.data.circuit.elements))
+                    .unsqueeze(1).float()]*self.data.circuit.signal_len
+        attr_stability = Stability([params], stable_threshold)
+        preds_stability = Stability(out_list, stable_threshold)
+        epoch = 0
+        reset_count = 0
+        while(epoch < epochs):
+            loss, out_list = self.step_sequence()
+            epoch += 1
+            params = self.model.params
+            if(epoch % 2 == 1):
+                if(attr_stability.is_stable([params]) and 
+                    preds_stability.is_stable(out_list)):
+                    print('threshold met')
+                    break
+                params_recalc = self.calc_params(out_list, self.dataset)
+                self.model.set_param_vals(params_recalc)
+                reset_count += 1
+        print(f'reset_count = {reset_count}')
+        params_recalc = self.calc_params(out_list, self.dataset)
+        self.model.set_param_vals(params_recalc)
+        i_sol, v_sol = self.data.denorm_input_output(out_list)
+        a_sol = self.data.denorm_params(params)
+        return i_sol, v_sol, a_sol, loss, epoch
     
     def get_lr(self,optimizer):
         for param_group in optimizer.param_groups:

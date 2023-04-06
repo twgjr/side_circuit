@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from torch.nn import Parameter
 from torch import Tensor
-from circuits import Kinds,Signal
 from data import Data
 from torch.linalg import solve
 
@@ -89,26 +88,16 @@ class Cell(nn.Module):
     
     def zero_known_grads(self):
         if(self.params != None and self.params.grad != None):
-            self.params.grad[self.data.known_attr_mask] = 0
+            self.params.grad[self.data.attrs_mask] = 0
 
     def clamp_params(self):
         min = 1e-15
         max = 1e15
         for p in self.parameters():
             p.data.clamp_(min, max)
-    
-    def set_r_from_knowns(self, preds:Tensor,target:Tensor,target_mask:Tensor):
-        with torch.no_grad():
-            i,v = self.data.split_input_output(preds)
-            i = i.flatten()
-            v = v.flatten()
-            i_known,v_known = self.data.split_input_output(target)
-            i_known = i_known.flatten()
-            v_known = v_known.flatten()
-            i_known_mask,v_known_mask = self.data.split_input_output(target_mask)
-            i_known_mask = i_known_mask.flatten()
-            v_known_mask = v_known_mask.flatten()
-            i[i_known_mask] = i_known[i_known_mask]
-            v[v_known_mask] = v_known[v_known_mask]
-            r_mask = self.data.r_mask
-            self.params[r_mask] = v[r_mask]/i[r_mask]
+
+    def set_param_vals(self, params: Tensor):
+        assert params.shape == self.params.shape
+        for p in self.parameters():
+            p.data = params
+        # self.params = Parameter(params)

@@ -28,11 +28,11 @@ class Test_Circuit(unittest.TestCase):
         circuit.add_element(Kinds.IVS)
         self.assertTrue(circuit.signal_len==0)
         circuit.add_element(Kinds.R)
-        circuit.elements[0].v.data = [1,2,3]
+        circuit.elements[0].v = [1,2,3]
         self.assertTrue(circuit.signal_len==3)
-        circuit.elements[1].v.data = [1,2,3,4]
+        circuit.elements[1].v = [1,2,3,4]
         self.assertTrue(circuit.signal_len==4)
-        circuit.elements[1].v.data = [1,2,3]
+        circuit.elements[1].v = [1,2,3]
         self.assertTrue(circuit.signal_len==3)
 
     def test_add_element(self):
@@ -45,6 +45,16 @@ class Test_Circuit(unittest.TestCase):
         self.assertTrue(circuit.elements[0].v.is_empty())
         self.assertTrue(circuit.elements[0].a == None)
         self.assertTrue(len(circuit.elements) == 1)
+        source = circuit.add_element(Kinds.IVS)
+        resistor.a = 1.0
+        resistor.i = [2.0]
+        resistor.v = [3.0]
+        self.assertTrue(len(circuit.elements) == 2)
+        self.assertTrue(circuit.elements[0] != circuit.elements[1])
+        self.assertTrue(circuit.elements[0].kind != circuit.elements[1].kind)
+        self.assertTrue(circuit.elements[0].i != circuit.elements[1].i)
+        self.assertTrue(circuit.elements[0].v != circuit.elements[1].v)
+        self.assertTrue(circuit.elements[0].a != circuit.elements[1].a)
 
     def test_remove_element(self):
         circuit = Circuit()
@@ -222,14 +232,33 @@ class Test_Circuit(unittest.TestCase):
         par_elems = circuit.elements_parallel_to(load2, True)
         self.assertTrue(len(par_elems) == 2)
 
-    def test_extract_elements(self):
+    def test_load(self):
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS,Kinds.R,1)
+        circuit.elements[0].v = [3.0,6.0]
+        circuit.elements[1].i = [1.5,3.0]
+        i_pred = [torch.tensor([-1.5,1.5]).unsqueeze(1).to(torch.float),
+                      torch.tensor([-3.0,3.0]).unsqueeze(1).to(torch.float)]
+        v_pred = [torch.tensor([3.0,3.0]).unsqueeze(1).to(torch.float),
+                      torch.tensor([6.0,6.0]).unsqueeze(1).to(torch.float)]
+        a_pred = torch.tensor([0,2.0]).unsqueeze(1).to(torch.float)
+        circuit.load(i_pred,v_pred,a_pred)
+        i_test = [Signal(None,[-1.5,-3.0]),Signal(None,[1.5,3.0])]
+        v_test = [Signal(None,[3.0,6.0]),Signal(None,[3.0,6.0])]
+        a_test = [0,2.0]
+        for e in range(circuit.num_elements()):
+            self.assertTrue((circuit.elements[e].i_pred == i_test[e]))
+            self.assertTrue((circuit.elements[e].v_pred == v_test[e]))
+            self.assertTrue((circuit.elements[e].a_pred == a_test[e]))
+
+    def test_export(self):
         circuit = Circuit()
         ivs = circuit.add_element(Kinds.IVS)
         r = circuit.add_element(Kinds.R)
         circuit.connect(ivs.high, r.high)
         circuit.connect(ivs.low, r.low)
-        ivs.v.data = [1]
-        r.i.data = [0.5]
+        ivs.v = [1]
+        r.i = [0.5]
         extract = circuit.export()
         kinds_test = {
                 Kinds.IVS: [True, False],
@@ -237,10 +266,10 @@ class Test_Circuit(unittest.TestCase):
                 Kinds.R: [False, True]
                 }
         self.assertTrue(extract['kinds'] == kinds_test)
-        self.assertTrue(extract['properties'][Props.I][0].data == [])
+        self.assertTrue(extract['properties'][Props.I][0] == Signal(None,[]))
         self.assertTrue(extract['properties'][Props.I][1] == r.i)
         self.assertTrue(extract['properties'][Props.V][0] == ivs.v)
-        self.assertTrue(extract['properties'][Props.V][1].data == [])
+        self.assertTrue(extract['properties'][Props.V][1] == Signal(None,[]))
         self.assertTrue(extract['attributes'][Kinds.IVS][0] == None)
         self.assertTrue(extract['attributes'][Kinds.IVS][1] == None)
         self.assertTrue(extract['attributes'][Kinds.ICS][0] == None)
@@ -283,6 +312,18 @@ class Test_Element(unittest.TestCase):
         self.assertTrue(isinstance(ivs._i, Signal))
         self.assertTrue(isinstance(ivs._v, Signal))
         self.assertTrue(ivs._a == None)
+
+    def test_append_signals(self):
+        circuit = Circuit()
+        ivs = Element(circuit=circuit,kind=Kinds.IVS)
+        r = Element(circuit=circuit,kind=Kinds.R)
+        self.assertTrue(id(ivs.i) != id(r.i))
+        self.assertTrue(id(ivs.i._data) != id(r.i._data))
+        self.assertTrue(id(ivs.v) != id(r.v))
+        ivs.i.append(10.0)
+        ivs_i_data = ivs.i.get_data()
+        r_i_data = r.i.get_data()
+        self.assertTrue(ivs_i_data != r_i_data)
 
 class Test_Node(unittest.TestCase):
     def test_Node(self):

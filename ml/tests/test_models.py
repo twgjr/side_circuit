@@ -11,24 +11,24 @@ class Test_Cell(unittest.TestCase):
     def test_Cell(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
-        circuit.elements[0].v.data = [2]
+        circuit.elements[0].v = [2]
         circuit.elements[1].a = 3.0
         data = Data(circuit)
-        init_state = data.init_dataset()
+        init_dataset = data.init_dataset()
         cell = Cell(data)
         self.assertTrue(isinstance(cell.data,Data))
         self.assertTrue(isinstance(cell.params,Tensor))
         self.assertTrue(data.v_base == 2)
         self.assertTrue(data.r_base == 3)
-        state = cell(init_state[0])
-        state_test = torch.tensor([-1,1,1,1]).float().unsqueeze(dim=1)
-        self.assertTrue(torch.allclose(state,state_test))
+        out = cell(init_dataset[0])
+        out_test = torch.tensor([-1,1,1,1]).float().unsqueeze(dim=1)
+        self.assertTrue(torch.allclose(out,out_test))
 
 class Test_Z(unittest.TestCase):
     def test_Z(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
-        circuit.elements[0].v.data = [2.0]
+        circuit.elements[0].v = [2.0]
         circuit.elements[1].a = 3.0
         data = Data(circuit)
         z = Z(data)
@@ -43,7 +43,7 @@ class Test_Y(unittest.TestCase):
     def test_Y(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
-        circuit.elements[0].v.data = [2.0]
+        circuit.elements[0].v = [2.0]
         circuit.elements[1].a = 3.0
         data = Data(circuit)
         y = Y(data)
@@ -56,7 +56,7 @@ class Test_E(unittest.TestCase):
     def test_E_known_r(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
-        circuit.elements[0].v.data = [2.0]
+        circuit.elements[0].v = [2.0]
         circuit.elements[1].a = 3.0
         data = Data(circuit)
         e = E(data)
@@ -69,8 +69,8 @@ class Test_E(unittest.TestCase):
     def test_E_missing_r(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
-        circuit.elements[0].v.data = [2.0]
-        circuit.elements[1].i.data = [1.5]
+        circuit.elements[0].v = [2.0]
+        circuit.elements[1].i = [1.5]
         data = Data(circuit)
         e = E(data)
         params = data.init_params()
@@ -83,7 +83,7 @@ class Test_A(unittest.TestCase):
     def test_A(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
-        circuit.elements[0].v.data = [2.0]
+        circuit.elements[0].v = [2.0]
         circuit.elements[1].a = 3.0
         data = Data(circuit)
         a = A(data)
@@ -100,7 +100,7 @@ class Test_S(unittest.TestCase):
     def test_S(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
-        circuit.elements[0].v.data = [2.0]
+        circuit.elements[0].v = [2.0]
         circuit.elements[1].a = 3.0
         data = Data(circuit)
         s = S(data)
@@ -113,7 +113,7 @@ class Test_B(unittest.TestCase):
     def test_B(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
-        circuit.elements[0].v.data = [2.0]
+        circuit.elements[0].v = [2.0]
         circuit.elements[1].a = 3.0
         data = Data(circuit)
         b = B(data)

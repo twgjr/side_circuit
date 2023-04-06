@@ -10,7 +10,8 @@ class Data():
         self.M = self.circuit.M()
         self.elements = self.circuit.export()
         self.i_base, self.v_base, self.r_base = self.init_base()
-        self.known_attr_mask = self.init_known_attr_mask()
+        #TODO attrs_mask and Trainer.mask (v/i) should be in same place
+        self.attrs_mask = self.init_attrs_mask()
         self.r_mask = self.init_mask(Kinds.R)
         self.ics_mask = self.init_mask(Kinds.ICS)
         self.ivs_mask = self.init_mask(Kinds.IVS)
@@ -24,7 +25,8 @@ class Data():
             if(signal.is_empty()):
                 continue
             else:
-                for val in signal.data:
+                for v in range(len(signal)):
+                    val = signal[v]
                     abs_val = abs(val)
                     if(abs_val > input_max):
                         input_max = abs_val
@@ -82,7 +84,7 @@ class Data():
             pass
         return (i_base,v_base,r_base)
     
-    def init_known_attr_mask(self):
+    def init_attrs_mask(self):
         r = torch.tensor(self.attr_mask(Kinds.R))
         return r
     
@@ -109,8 +111,8 @@ class Data():
         for signal in prop_sigs:
             sig_copy = signal.copy()
             if(not sig_copy.is_empty()):
-                for d in range(len(sig_copy.data)):
-                    sig_copy.data[d] = sig_copy.data[d]/base
+                for d in range(len(sig_copy )):
+                    sig_copy[d] = sig_copy[d]/base
             ret_list.append(sig_copy)
         return ret_list
     
@@ -149,8 +151,6 @@ class Data():
     
     def denorm_params(self, params:Parameter):
         with torch.no_grad():
-            params[self.ics_mask] = self.denorm(params[self.ics_mask],self.i_base)
-            params[self.ivs_mask] = self.denorm(params[self.ivs_mask],self.v_base)
             params[self.r_mask] = self.denorm(params[self.r_mask],self.r_base)
         return params
     
@@ -169,20 +169,19 @@ class Data():
                 if(signal.is_empty()):
                     data_i_t.append(None)
                 else:
-                    data_i_t.append(signal.data[t])
+                    data_i_t.append(signal[t])
             data_v_t = []
             for signal in elements_v:
                 if(signal.is_empty()):
                     data_v_t.append(None)
                 else:
-                    data_v_t.append(signal.data[t])
+                    data_v_t.append(signal [t])
             data_i.append(data_i_t)
             data_v.append(data_v_t)
         return (data_i,data_v)
 
-    def extract_attributes(self) -> list[list[float]]:
-        '''Returns a list ordered by time: resistances.  Each row represents time.  
-        Each column represents an attribute value for an element (r).'''
+    def extract_attributes(self) -> list[float]:
+        '''Returns a list ordered by element: resistances.'''
         r_attrs = self.norm_attrs(Kinds.R,self.r_base)
         return r_attrs
 
