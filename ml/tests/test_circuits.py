@@ -251,31 +251,47 @@ class Test_Circuit(unittest.TestCase):
             self.assertTrue((circuit.elements[e].v_pred == v_test[e]))
             self.assertTrue((circuit.elements[e].a_pred == a_test[e]))
 
-    def test_export(self):
+    def test_kind_list(self):
         circuit = Circuit()
-        ivs = circuit.add_element(Kinds.IVS)
-        r = circuit.add_element(Kinds.R)
-        circuit.connect(ivs.high, r.high)
-        circuit.connect(ivs.low, r.low)
-        ivs.v = [1]
-        r.i = [0.5]
-        extract = circuit.export()
-        kinds_test = {
-                Kinds.IVS: [True, False],
-                Kinds.ICS: [False, False],
-                Kinds.R: [False, True]
-                }
-        self.assertTrue(extract['kinds'] == kinds_test)
-        self.assertTrue(extract['properties'][Props.I][0] == Signal(None,[]))
-        self.assertTrue(extract['properties'][Props.I][1] == r.i)
-        self.assertTrue(extract['properties'][Props.V][0] == ivs.v)
-        self.assertTrue(extract['properties'][Props.V][1] == Signal(None,[]))
-        self.assertTrue(extract['attributes'][Kinds.IVS][0] == None)
-        self.assertTrue(extract['attributes'][Kinds.IVS][1] == None)
-        self.assertTrue(extract['attributes'][Kinds.ICS][0] == None)
-        self.assertTrue(extract['attributes'][Kinds.ICS][1] == None)
-        self.assertTrue(extract['attributes'][Kinds.R][0] == None)
-        self.assertTrue(extract['attributes'][Kinds.R][1] == None)
+        circuit.ring(Kinds.IVS,Kinds.R,1)
+        self.assertTrue(circuit.kind_list(Kinds.IVS) == [True,False])
+        self.assertTrue(circuit.kind_list(Kinds.ICS) == [False,False])
+        self.assertTrue(circuit.kind_list(Kinds.R) == [False,True])
+
+    def test_prop_list(self):
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS,Kinds.R,2)
+        el0 = circuit.elements[0]
+        el1 = circuit.elements[1]
+        el2 = circuit.elements[2]
+        el0.v = [2]
+        el1.i = [3]
+        el2.v = [4]
+        v = circuit.prop_list(Props.V)
+        self.assertTrue(v[0] == el0.v)
+        self.assertTrue(v[1].is_empty())
+        self.assertTrue(v[2] == el2.v)
+        i = circuit.prop_list(Props.I)
+        self.assertTrue(i[0].is_empty())
+        self.assertTrue(i[1] == el1.i)
+        self.assertTrue(i[2].is_empty())
+
+    def test_attr_list(self):
+        circuit = Circuit()
+        circuit.ring(Kinds.IVS,Kinds.R,1)
+        el0 = circuit.elements[0]
+        el1 = circuit.elements[1]
+        el0.v = [2.0]
+        el1.a = 3.0
+        ivs = circuit.attr_list(Kinds.IVS)
+        ics = circuit.attr_list(Kinds.ICS)
+        r = circuit.attr_list(Kinds.R)
+        self.assertTrue(ivs[0] == None)
+        self.assertTrue(ivs[1] == None)
+        self.assertTrue(r[0] == None)
+        self.assertTrue(r[1] == el1.a)
+        self.assertTrue(ics[0] == None)
+        self.assertTrue(ics[1] == None)
 
     def test_ring_2_element(self):
         circuit = Circuit()

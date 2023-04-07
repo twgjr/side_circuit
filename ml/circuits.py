@@ -253,42 +253,39 @@ class Circuit():
                 v_tensor = v_tensor_list[t]
                 v_pred = v_tensor[e,:].item()
                 element.v_pred.append(v_pred)
-
-    def export(self):
-        '''
-        return dictinaries of circuit data and other useful precomputed lists
-        '''
-        kinds_map: dict[Kinds,list[bool]] = {}
-        props_map: dict[Props,list[Signal]] = {}
-        attributes_map: dict[Kinds,list[float]] = {}
-        for kind in Kinds:
-            kinds_map[kind] = []
-            attributes_map[kind] = []
-        for prop in Props:
-            props_map[prop] = []
-        for element in self.elements:
-            for kind in Kinds:
-                if(element.kind == kind):
-                    kinds_map[kind].append(True)
-                    attributes_map[kind].append(element.a)
-                else:
-                    kinds_map[kind].append(False)
-                    attributes_map[kind].append(None)
-            for prop in Props:
-                if(prop == Props.I):
-                    props_map[prop].append(element.i)
-                elif(prop == Props.V):
-                    props_map[prop].append(element.v)
-                else:
-                    assert()
-
-        elements = {
-            'kinds': kinds_map,
-            'properties': props_map,
-            'attributes': attributes_map,
-        }
-        return elements
     
+    def kind_list(self, kind:Kinds) -> list[bool]:
+        '''returns a list of booleans indicating which elements are of kind'''
+        elements_of = []
+        for element in self.elements:
+            if(element.kind == kind):
+                elements_of.append(True)
+            else:
+                elements_of.append(False)
+        return elements_of
+    
+    def attr_list(self, kind:Kinds) -> list[float]:
+        '''returns a list of attributes of elements of kind'''
+        attrs = []
+        for element in self.elements:
+            if(element.kind == kind):
+                attrs.append(element.a)
+            else:
+                attrs.append(None)
+        return attrs
+    
+    def prop_list(self, prop:Props) -> list['Signal']:
+        '''returns a list of properties matching prop of elements'''
+        props = []
+        for element in self.elements:
+            if(prop == Props.I):
+                props.append(element.i.copy())
+            elif(prop == Props.V):
+                props.append(element.v.copy())
+            else:
+                assert()
+        return props
+
     def ring(self, source_kind:Kinds, load_kind:Kinds, num_loads:int) -> 'Circuit':
         '''one source and all loads in series'''
         assert(num_loads > 0)
