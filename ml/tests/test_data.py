@@ -11,7 +11,6 @@ class Test_Data(unittest.TestCase):
         data = Data(circuit)
         self.assertTrue(type(data.circuit)==Circuit)
         self.assertTrue(type(data.M)==Tensor)
-        self.assertTrue(type(data.elements) == dict)
 
     def test_signals_base(self):
         data = Data(Circuit())
@@ -63,10 +62,10 @@ class Test_Data(unittest.TestCase):
         r.v = [1,1,2,4]
         r.i = [1,1,2,3]
         data = Data(circuit)
-        i_base = data.signals_base(data.prop_list(Props.I))
+        i_base = data.signals_base(circuit.prop_list(Props.I))
         norm_i = data.norm_signals(Props.I,i_base)
         self.assertTrue(norm_i[0] == Signal(None,[1/3,1/3,2/3,1.0]))
-        v_base = data.signals_base(data.prop_list(Props.V))
+        v_base = data.signals_base(circuit.prop_list(Props.V))
         norm_v = data.norm_signals(Props.V,v_base)
         self.assertTrue(norm_v[0] == Signal(None,[1/4,1/4,2/4,1]))
         self.assertTrue(norm_v[1] == Signal(None,[1/4,1/4,2/4,1]))
@@ -81,7 +80,7 @@ class Test_Data(unittest.TestCase):
         r1.a = 2.0
         r2.a = 4.0
         data = Data(circuit)
-        attrs = data.attr_list(Kinds.R)
+        attrs = circuit.attr_list(Kinds.R)
         base = data.values_base(attrs)
         norm_attrs = data.norm_attrs(Kinds.R,base)
         norm_attrs_test = [0.5,1]
@@ -202,25 +201,6 @@ class Test_Data(unittest.TestCase):
         data_mask_list = data.data_mask_list()
         self.assertTrue(data_mask_list == test_mask)
 
-    def test_prop_list(self):
-        circuit = Circuit()
-        circuit.ring(Kinds.IVS,Kinds.R,2)
-        el0 = circuit.elements[0]
-        el1 = circuit.elements[1]
-        el2 = circuit.elements[2]
-        el0.v = [2]
-        el1.i = [3]
-        el2.v = [4]
-        data = Data(circuit)
-        v = data.prop_list(Props.V)
-        self.assertTrue(v[0] == el0.v)
-        self.assertTrue(v[1].is_empty())
-        self.assertTrue(v[2] == el2.v)
-        i = data.prop_list(Props.I)
-        self.assertTrue(i[0].is_empty())
-        self.assertTrue(i[1] == el1.i)
-        self.assertTrue(i[2].is_empty())
-
     def test_prop_mask(self):
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,1)
@@ -234,24 +214,6 @@ class Test_Data(unittest.TestCase):
         v_mask = input.prop_mask(Props.V)
         self.assertTrue(v_mask == [True,False])
 
-    def test_attr_list(self):
-        circuit = Circuit()
-        circuit.ring(Kinds.IVS,Kinds.R,1)
-        el0 = circuit.elements[0]
-        el1 = circuit.elements[1]
-        el0.v = [2.0]
-        el1.a = 3.0
-        data = Data(circuit)
-        ivs = data.attr_list(Kinds.IVS)
-        ics = data.attr_list(Kinds.ICS)
-        r = data.attr_list(Kinds.R)
-        self.assertTrue(ivs[0] == None)
-        self.assertTrue(ivs[1] == None)
-        self.assertTrue(r[0] == None)
-        self.assertTrue(r[1] == el1.a)
-        self.assertTrue(ics[0] == None)
-        self.assertTrue(ics[1] == None)
-
     def test_attr_mask(self):
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,1)
@@ -260,23 +222,3 @@ class Test_Data(unittest.TestCase):
         data = Data(circuit)
         r = data.attr_mask(Kinds.R)
         self.assertTrue(r == [False,True])
-
-    def test_kind_list(self):
-        circuit = Circuit()
-        circuit.ring(Kinds.IVS,Kinds.R,1)
-        data = Data(circuit)
-        self.assertTrue(data.kind_one_hot(Kinds.IVS) == [True,False])
-        self.assertTrue(data.kind_one_hot(Kinds.ICS) == [False,False])
-        self.assertTrue(data.kind_one_hot(Kinds.R) == [False,True])
-
-    def test_kind_one_hot(self):
-        circuit = Circuit()
-        circuit.ring(Kinds.IVS,Kinds.R,1)
-        circuit.elements[0].v = [1]
-        data = Data(circuit)
-        mask = data.kind_one_hot(Kinds.IVS)
-        self.assertTrue(mask == [True,False])
-        mask = data.kind_one_hot(Kinds.ICS)
-        self.assertTrue(mask == [False,False])
-        mask = data.kind_one_hot(Kinds.R)
-        self.assertTrue(mask == [False,True])

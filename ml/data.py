@@ -8,7 +8,6 @@ class Data():
     def __init__(self, circuit:Circuit) -> None:
         self.circuit = circuit
         self.M = self.circuit.M()
-        self.elements = self.circuit.export()
         self.i_base, self.v_base, self.r_base = self.init_base()
         #TODO attrs_mask and Trainer.mask (v/i) should be in same place
         self.attrs_mask = self.init_attrs_mask()
@@ -17,7 +16,7 @@ class Data():
         self.ivs_mask = self.init_mask(Kinds.IVS)
 
     def init_mask(self, kind:Kinds):
-        return torch.tensor(self.kind_one_hot(kind)).to(torch.bool)
+        return torch.tensor(self.circuit.kind_list(kind)).to(torch.bool)
     
     def signals_base(self, signals:list[Signal], eps:float=1e-12) -> float:
         input_max = 0
@@ -49,13 +48,13 @@ class Data():
             return input_max
         
     def init_base(self):
-        i_sigs = self.prop_list(Props.I)
+        i_sigs = self.circuit.prop_list(Props.I)
         i_knowns = self.prop_mask(Props.I)
         i_has_knowns = True in i_knowns
-        v_sigs = self.prop_list(Props.V)
+        v_sigs = self.circuit.prop_list(Props.V)
         v_knowns = self.prop_mask(Props.V)
         v_has_knowns = True in v_knowns
-        r_vals = self.attr_list(Kinds.R)
+        r_vals = self.circuit.attr_list(Kinds.R)
         r_knowns = self.attr_mask(Kinds.R)
         r_has_knowns = True in r_knowns
         i_base = self.signals_base(i_sigs)
@@ -106,7 +105,7 @@ class Data():
         return attr_params
     
     def norm_signals(self, prop:Props, base:int) -> list[Signal]:
-        prop_sigs = self.prop_list(prop)
+        prop_sigs = self.circuit.prop_list(prop)
         ret_list = []
         for signal in prop_sigs:
             sig_copy = signal.copy()
@@ -117,7 +116,7 @@ class Data():
         return ret_list
     
     def norm_attrs(self, kind:Kinds, base:int) -> list[float]:
-        attr_vals = self.attr_list(kind)
+        attr_vals = self.circuit.attr_list(kind)
         ret_list = []
         for val in attr_vals:
             if(val == None):
@@ -211,27 +210,11 @@ class Data():
         currents = self.prop_mask(Props.I)
         voltages = self.prop_mask(Props.V)
         return currents + voltages
-
-    def kind_one_hot(self, kind:Kinds) -> list[bool]:
-        '''returns boolean mask of element kinds ordered by element'''
-        assert isinstance(kind,Kinds)
-        return self.elements['kinds'][kind]
-
-    def prop_list(self, prop:Props) -> list[Signal]:
-        '''return list ordered by element of properties (i,v). Uknowns 
-        initialized to 1'''
-        assert isinstance(prop,Props)
-        return self.elements['properties'][prop]
-    
-    def attr_list(self,kind:Kinds) -> list[float]:
-        '''return list of element attributes with None for unknowns'''
-        assert isinstance(kind,Kinds)
-        return self.elements['attributes'][kind]
     
     def prop_mask(self, prop:Props) -> list[bool]:
         '''returns boolean mask of known element properties ordered by element'''
         assert isinstance(prop,Props)
-        signals = self.elements['properties'][prop]
+        signals = self.circuit.prop_list(prop)
         ret_list = []
         for signal in signals:
             assert isinstance(signal,Signal)
@@ -245,7 +228,7 @@ class Data():
         '''returns boolean mask of known element attributes ordered by element'''
         assert isinstance(kind,Kinds)
         assert kind != Kinds.ICS and kind != Kinds.IVS
-        attrs = self.elements['attributes'][kind]
+        attrs = self.circuit.attr_list(kind)
         ret_list = []
         for attr in attrs:
             assert isinstance(attr,float) or attr == None
