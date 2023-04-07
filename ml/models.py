@@ -11,7 +11,6 @@ class Z(nn.Module):
         self.data = data
     
     def forward(self,params:Parameter):
-        #TODO: make this more efficient by eliminating non-resistor params
         Z_r = torch.diag(params) @ torch.diag(self.data.r_mask).to(torch.float)
         Z_ics = torch.diag(self.data.ics_mask)
         return -Z_r + Z_ics
@@ -28,11 +27,28 @@ class Y(nn.Module):
 class E(nn.Module):
     def __init__(self, data:Data):
         super().__init__()
+        self.data = data
+        self.params = data.init_params()
         self.Z = Z(data)
         self.Y = Y(data)
         
-    def forward(self,params):
-        return torch.cat(tensors=(self.Z(params),self.Y()),dim=1)
+    def forward(self):
+        return torch.cat(tensors=(self.Z(self.params),self.Y()),dim=1)
+    
+    def zero_known_grads(self):
+        if(self.params != None and self.params.grad != None):
+            self.params.grad[self.data.attrs_mask] = 0
+
+    def clamp_params(self):
+        min = 1e-15
+        max = 1e15
+        for p in self.parameters():
+            p.data.clamp_(min, max)
+
+    def set_param_vals(self, params: Tensor):
+        assert params.shape == self.params.shape
+        for p in self.parameters():
+            p.data = params
 
 class A(nn.Module):
     def __init__(self, data: Data):
@@ -44,8 +60,8 @@ class A(nn.Module):
         self.kvl = torch.cat(tensors=(kvl_zeros,kvl_coef),dim=1)
         self.elements = E(data)
     
-    def forward(self,params):
-        return torch.cat(tensors=(self.kcl,self.kvl,self.elements(params)), dim=0)
+    def forward(self):
+        return torch.cat(tensors=(self.kcl,self.kvl,self.elements()), dim=0)
 
 class S(nn.Module):
     def __init__(self, data: Data):
@@ -76,28 +92,24 @@ class Cell(nn.Module):
     def __init__(self, data: Data):
         super().__init__()
         self.data = data
-        self.params = data.init_params()
         self.A = A(data)
         self.b = B(data)
 
+    @property
+    def params(self):
+        return self.A.elements.params
+
     def forward(self,input):
-        A = self.A(self.params)
+        A = self.A()
         b = self.b(input)
         out = solve(A[1:,:],b[1:,:])
         return out
     
     def zero_known_grads(self):
-        if(self.params != None and self.params.grad != None):
-            self.params.grad[self.data.attrs_mask] = 0
+        self.A.elements.zero_known_grads()
 
     def clamp_params(self):
-        min = 1e-15
-        max = 1e15
-        for p in self.parameters():
-            p.data.clamp_(min, max)
+        self.A.elements.clamp_params()
 
     def set_param_vals(self, params: Tensor):
-        assert params.shape == self.params.shape
-        for p in self.parameters():
-            p.data = params
-        # self.params = Parameter(params)
+        self.A.elements.set_param_vals(params)
