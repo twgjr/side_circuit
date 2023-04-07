@@ -2,10 +2,7 @@ import unittest
 from circuits import Circuit,Kinds
 from data import Data
 from models import Cell,Z,Y,E,A,S,B
-from torch.nn import Parameter
 import torch
-from torch import Tensor
-
 
 class Test_Cell(unittest.TestCase):
     def test_Cell(self):
@@ -17,7 +14,6 @@ class Test_Cell(unittest.TestCase):
         init_dataset = data.init_dataset()
         cell = Cell(data)
         self.assertTrue(isinstance(cell.data,Data))
-        self.assertTrue(isinstance(cell.params,Tensor))
         self.assertTrue(data.v_base == 2)
         self.assertTrue(data.r_base == 3)
         out = cell(init_dataset[0])
@@ -60,8 +56,7 @@ class Test_E(unittest.TestCase):
         circuit.elements[1].a = 3.0
         data = Data(circuit)
         e = E(data)
-        params = data.init_params()
-        e_out = e(params)
+        e_out = e()
         e_out_test = torch.tensor([[0, 0, 1, 0],
                                    [0,-1, 0, 1]]).float()
         self.assertTrue(torch.allclose(e_out,e_out_test))
@@ -73,8 +68,7 @@ class Test_E(unittest.TestCase):
         circuit.elements[1].i = [1.5]
         data = Data(circuit)
         e = E(data)
-        params = data.init_params()
-        e_out = e(params)
+        e_out = e()
         e_out_test = torch.tensor([[0, 0, 1, 0],
                                    [0,-1, 0, 1]]).float()
         self.assertTrue(torch.allclose(e_out,e_out_test))
@@ -87,8 +81,7 @@ class Test_A(unittest.TestCase):
         circuit.elements[1].a = 3.0
         data = Data(circuit)
         a = A(data)
-        params = data.init_params()
-        a_out = a(params)
+        a_out = a()
         a_out_test = torch.tensor([[-1,-1, 0, 0],
                                    [ 1, 1, 0, 0],
                                    [ 0, 0, 1,-1],
