@@ -96,3 +96,18 @@ class TestSolutions(unittest.TestCase):
         self.assertTrue(self.is_close(c.elements[2].i,c.elements[2].i_pred))
         self.assertTrue(self.is_close(c.elements[0].v,c.elements[1].v_pred))
         self.assertTrue(self.is_close(c.elements[0].v,c.elements[2].v_pred))
+
+    def test_switched_resistor(self):
+        c = Circuit()
+        src, ctl_src, res, ctl_res, ctl, sw = c.switched_resistor()
+        src.v = [1.0]
+        ctl_src.v = [0.1]
+        res.a = 1.0
+        ctl_res.a = 1.0
+        d = Data(c)
+        trainer = Trainer(d,self.learning_rate)
+        i_sol, v_sol, a_sol,_,_ = trainer.run(self.max_epochs,
+                             self.stable_threshold)
+        c.load(i_sol,v_sol,a_sol)
+        self.assertTrue(self.is_close(src.v_pred,res.v_pred))
+        self.assertTrue(self.is_close(src.i,-res.i))

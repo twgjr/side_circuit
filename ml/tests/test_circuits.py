@@ -8,7 +8,10 @@ class Test_Kinds(unittest.TestCase):
         self.assertTrue(Kinds.ICS)
         self.assertTrue(Kinds.IVS)
         self.assertTrue(Kinds.R)
-        self.assertTrue(len(Kinds)==3)
+        self.assertTrue(Kinds.CC)
+        self.assertTrue(Kinds.VC)
+        self.assertTrue(Kinds.SW)
+        self.assertTrue(len(Kinds)==6)
 
 class Test_Props(unittest.TestCase):
     def test_Props(self):
@@ -56,27 +59,19 @@ class Test_Circuit(unittest.TestCase):
         self.assertTrue(circuit.elements[0].v != circuit.elements[1].v)
         self.assertTrue(circuit.elements[0].a != circuit.elements[1].a)
 
-    def test_remove_element(self):
+    def test_add_controlled_element(self):
         circuit = Circuit()
-        ivs = circuit.add_element(Kinds.IVS)
-        r = circuit.add_element(Kinds.R)
-        circuit.connect(ivs.high, r.high)
-        circuit.connect(ivs.low, r.low)
+        self.assertTrue(len(circuit.elements) == 0)
+        control, element = circuit.add_controlled_element(Kinds.VC,Kinds.SW)
+        self.assertTrue(isinstance(control,Element))
+        self.assertTrue(control in circuit.elements)
+        self.assertTrue(isinstance(element,Element))
+        self.assertTrue(element in circuit.elements)
+        self.assertTrue(circuit.elements[0].kind == Kinds.VC)
+        self.assertTrue(circuit.elements[1].kind == Kinds.SW)
         self.assertTrue(len(circuit.elements) == 2)
-        self.assertTrue(len(circuit.nodes) == 2)
-        circuit.remove_element(circuit.elements[0],False)
-        self.assertTrue(len(circuit.elements) == 1)
-        self.assertTrue(len(circuit.nodes) == 2)
-        circuit.elements[0].kind == Kinds.R
-        ics = circuit.add_element(Kinds.ICS)
-        circuit.connect(ics.high, r.high)
-        circuit.connect(ics.low, r.low)
-        self.assertTrue(len(circuit.elements) == 2)
-        self.assertTrue(len(circuit.nodes) == 2)
-        circuit.remove_element(circuit.elements[0],True)
-        self.assertTrue(len(circuit.elements) == 1)
-        self.assertTrue(len(circuit.nodes) == 1)
-        circuit.elements[0].kind == Kinds.ICS
+        self.assertTrue(circuit.elements[0].parent == None)
+        self.assertTrue(circuit.elements[1].parent == circuit.elements[0])
 
     def test_add_node(self):
         circuit = Circuit()
@@ -145,18 +140,6 @@ class Test_Circuit(unittest.TestCase):
                          [ 1, 1]])
         self.assertTrue(torch.all(torch.eq(M,M_test)))
 
-    def test_spanning_tree_ladder(self):
-        circuit = Circuit()
-        circuit.ladder(Kinds.IVS,Kinds.R,3)
-        mst = circuit.spanning_tree()
-        self.assertTrue(len(mst) == 1)
-    
-    def test_spanning_tree_ring(self):
-        circuit = Circuit()
-        circuit.ring(Kinds.IVS,Kinds.R,3)
-        mst = circuit.spanning_tree()
-        self.assertTrue(len(mst) == 3)
-
     def test_loops_ladder(self):
         circuit = Circuit()
         circuit.ladder(Kinds.IVS,Kinds.R,3)
@@ -178,11 +161,20 @@ class Test_Circuit(unittest.TestCase):
         r1 = circuit.elements[1]
         r2 = circuit.elements[2]
         r3 = circuit.elements[3]
-        loops_test = [[ s1, r3, r2, r1]]
+        loops_test = [[ s1, r1, r2, r3]]
         self.assertTrue(loops == loops_test)
 
     def test_kvl_coefficients_ladder(self):
         circuit = Circuit()
+        circuit.ladder(Kinds.IVS,Kinds.R,1)
+        kvl = circuit.kvl_coef()
+        kvl_test = [[ 1,-1]]
+        self.assertTrue(kvl == kvl_test)
+        circuit.ladder(Kinds.IVS,Kinds.R,2)
+        kvl = circuit.kvl_coef()
+        kvl_test = [[ 1,-1, 0],
+                    [ 1, 0,-1]]
+        self.assertTrue(kvl == kvl_test)
         circuit.ladder(Kinds.IVS,Kinds.R,3)
         kvl = circuit.kvl_coef()
         kvl_test = [[ 1,-1, 0, 0],
@@ -257,6 +249,15 @@ class Test_Circuit(unittest.TestCase):
         self.assertTrue(circuit.kind_list(Kinds.IVS) == [True,False])
         self.assertTrue(circuit.kind_list(Kinds.ICS) == [False,False])
         self.assertTrue(circuit.kind_list(Kinds.R) == [False,True])
+        src, ctl_src, res, ctl_res, ctl_el, sw = circuit.switched_resistor()
+        self.assertTrue(circuit.kind_list(Kinds.R) == 
+                        [False,False,True,True,False,False])
+        self.assertTrue(circuit.kind_list(Kinds.SW) ==
+                        [False,False,False,False,False,True])
+        self.assertTrue(circuit.kind_list(Kinds.SW,Kinds.VC) ==
+                        [False,False,False,False,False,True])
+        self.assertTrue(circuit.kind_list(Kinds.SW,Kinds.CC) ==
+                        [False,False,False,False,False,False])
 
     def test_prop_list(self):
         circuit = Circuit()
@@ -275,6 +276,14 @@ class Test_Circuit(unittest.TestCase):
         self.assertTrue(i[0].is_empty())
         self.assertTrue(i[1] == el1.i)
         self.assertTrue(i[2].is_empty())
+
+    def test_control_list(self):
+        circuit = Circuit()
+        src, ctl_src, res, ctl_res, ctl_el, sw = circuit.switched_resistor()
+        v_controls = circuit.control_list(Kinds.VC)
+        self.assertTrue(v_controls == [0,1,2,3,4,4])
+        i_controls = circuit.control_list(Kinds.CC)
+        self.assertTrue(i_controls == [0,1,2,3,4,5])
 
     def test_attr_list(self):
         circuit = Circuit()

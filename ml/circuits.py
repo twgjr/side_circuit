@@ -8,6 +8,9 @@ class Kinds(Enum):
     IVS = 0
     ICS = 1
     R = 2
+    VC = 3
+    CC = 4
+    SW = 5
 
 class Props(Enum):
     I = 0
@@ -20,34 +23,30 @@ class Circuit():
         self.signal_len = 0
 
     def clear(self):
-        for node in self.nodes:
-            node.delete()
         for element in self.elements:
             element.delete()
+        for node in self.nodes:
+            node.delete()
         self.nodes.clear()
         self.elements.clear()
     
     def add_element(self, kind:Kinds) -> 'Element':
         assert(isinstance(kind,Kinds))
         element = Element(self,kind)
-        high_node = self.add_node([element])
-        low_node = self.add_node([element])
-        element.high = high_node
-        element.low = low_node
+        element.high = self.add_node([element])
+        element.low = self.add_node([element])
         self.elements.append(element)
         return element
     
-    def remove_element(self, element: 'Element', merge_nodes:bool):
-        assert element in self.elements
-        self.elements.remove(element)
-        for node in self.nodes:
-            if(node.elements == []):
-                self.remove_node(node)
-        if(len(self.elements)==0):
-            self.nodes = []
-        elif(merge_nodes):
-            self.connect(element.high,element.low)
-        element.delete()
+    def add_controlled_element(self, control_kind:Kinds, 
+                               element_kind:Kinds) -> tuple['Element','Element']:
+        assert(control_kind == Kinds.VC)
+        assert(element_kind == Kinds.SW)
+        control = self.add_element(control_kind)
+        element = self.add_element(element_kind)
+        element.parent = control
+        control.child = element
+        return control,element
     
     def add_node(self, elements:list['Element']) -> 'Node':
         '''create a node for a new element and add to circuit.
@@ -115,48 +114,45 @@ class Circuit():
         M_tensor = torch.tensor(M_numpy,dtype=dtype)
         return M_tensor
     
-    def spanning_tree(self) -> list['Element']:
-        '''Simple minimum spanning tree algorithm that returns list of elements
-        in the minimum spanning tree.'''
-        unvisited_nodes = self.nodes.copy()
-        st_elements = []
-        active_node = unvisited_nodes[-1]
-        while(len(unvisited_nodes) > 0):
-            for element in active_node.elements:
-                if(element not in st_elements):
-                    if(active_node == element.high):
-                        matches = self.intersection(element.low.elements,
-                                                    st_elements)
-                        if(len(matches) == 0):
-                            st_elements.append(element)
-                    elif(active_node == element.low):
-                        matches = self.intersection(element.high.elements,
-                                                    st_elements)
-                        if(len(matches) == 0):
-                            st_elements.append(element)
-            unvisited_nodes.pop()
-            if(len(unvisited_nodes) > 0):
-                active_node = unvisited_nodes[-1]
-        return st_elements
-
-    def intersection(self, list1, list2):
-        return list(set(list1) & set(list2))
+    def spanning_tree(self) -> tuple[list['Element'],list['Element'],
+                                      list['Node']]:
+        '''Returns a spanning tree in the form of a list of spanning tree 
+        elements, missing elements, and leaves.'''
+        active = self.nodes[0]
+        pending: list[Node] = [active]
+        st:list[Element] = []
+        missing:list[Element] = []
+        leaves:list[Node] = []
+        while(len(pending) > 0):
+            pending.pop()
+            num_added = 0
+            for element in active.elements:
+                adjacent_node, polarity = self.next_node_in(element,active)
+                if(element not in st):
+                    if(adjacent_node in pending):
+                        missing.append(element)
+                    else:
+                        if(element not in missing):
+                            st.append(element)
+                            num_added += 1
+                            pending.append(adjacent_node)
+            if(num_added == 0):
+                leaves.append(active)
+            if(len(pending) > 0):
+                active = pending[-1]
+        return st, missing, leaves
     
     def loops(self) -> list[list['Element']]:
         '''Returns a list of lists of elements. Each list of elements is part of 
         a loop in the circuit.  Each list of elements also contains elements 
         from the spanning tree that are not part of the loop.'''
-        mst_elements = self.spanning_tree()
-        non_st_elements = []
-        for element in self.elements:
-            if(element not in mst_elements):
-                non_st_elements.append(element)
-        loops_with_acyclics = []
-        for key_element in non_st_elements:
-            loop_with_acyclics = mst_elements.copy()
-            loop_with_acyclics.append(key_element)
-            loops_with_acyclics.append(loop_with_acyclics)
-        return loops_with_acyclics
+        st, missing, leaves = self.spanning_tree()
+        st_one_added_list = []
+        for missing_element in missing:
+            st_one_added = st.copy()
+            st_one_added.append(missing_element)
+            st_one_added_list.append(st_one_added)
+        return st_one_added_list
 
     def kvl_coef(self) -> list[list[int]]:
         '''Returns a list of lists of integers. Each list of integers represents
@@ -177,14 +173,6 @@ class Circuit():
                 next_element = self.next_loop_element(loop, from_element, from_node)
             kvl_coefficients.append(coefficients)
         return kvl_coefficients
-    
-    def next_series_element(self, from_element:'Element', 
-                            shared_node:'Node') -> 'Element':
-        to_elements = shared_node.elements
-        assert(len(to_elements) == 2)
-        for element in to_elements:
-            if(element != from_element):
-                return element
             
     def next_loop_element(self, loop:list['Element'], from_element: 'Element',
                         from_node:'Node') -> 'Element':
@@ -196,16 +184,6 @@ class Circuit():
             elif(element in loop):
                 return element
 
-    def next_node_in(self, element:'Element', from_node:'Node') -> tuple['Node',int]:
-        '''Returns the next node in the loop after active_node.  Exit from
-        the exit node.'''
-        if(from_node == element.high):
-            return element.low, 1
-        elif(from_node == element.low):
-            return element.high, -1
-        else:
-            assert()
-    
     def __repr__(self) -> str:
         return "Circuit with " + str(len(self.nodes)) + \
                 " nodes and "+ str(len(self.elements)) + " elements"
@@ -237,6 +215,24 @@ class Circuit():
                 else:
                     series.append(element)
         return series
+    
+    def next_node_in(self, element:'Element', from_node:'Node') -> tuple['Node',int]:
+        '''Returns the next node of the element opposite of the from_node.  Also
+        returns the polarity of the element with respect to the from_node.'''
+        if(from_node == element.high):
+            return element.low, 1
+        elif(from_node == element.low):
+            return element.high, -1
+        else:
+            assert()
+
+    def next_series_element(self, from_element:'Element', 
+                            shared_node:'Node') -> 'Element':
+        to_elements = shared_node.elements
+        assert(len(to_elements) == 2)
+        for element in to_elements:
+            if(element != from_element):
+                return element
 
     def load(self, i_tensor_list:list[Tensor], v_tensor_list:list[Tensor],
               attr_tensor:Tensor):
@@ -254,15 +250,23 @@ class Circuit():
                 v_pred = v_tensor[e,:].item()
                 element.v_pred.append(v_pred)
     
-    def kind_list(self, kind:Kinds) -> list[bool]:
+    def kind_list(self, kind:Kinds, with_control:Kinds=None) -> list[bool]:
         '''returns a list of booleans indicating which elements are of kind'''
-        elements_of = []
+        assert(kind != with_control)
+        assert(with_control == Kinds.VC or with_control == Kinds.CC or 
+               with_control == None)
+        kind_list = []
         for element in self.elements:
             if(element.kind == kind):
-                elements_of.append(True)
+                if(with_control == None):
+                    kind_list.append(True)
+                elif(element.has_parent_of(with_control)):
+                    kind_list.append(True)
+                else:
+                    kind_list.append(False)
             else:
-                elements_of.append(False)
-        return elements_of
+                kind_list.append(False)
+        return kind_list
     
     def attr_list(self, kind:Kinds) -> list[float]:
         '''returns a list of attributes of elements of kind'''
@@ -285,6 +289,26 @@ class Circuit():
             else:
                 assert()
         return props
+    
+    def control_list(self, kind:Kinds) -> list[int]:
+        '''returns a list of indices of control elements, or None if not a 
+        controlled element'''
+        assert kind in [Kinds.VC, Kinds.CC]
+        control_list = []
+        for element in self.elements:
+            if(element.has_parent_of(kind)):
+                control_list.append(self.element_idx(element.parent))
+            else:
+                control_list.append(self.element_idx(element))
+        return control_list
+    
+    def dependent_list(self) -> list['Element']:
+        '''returns a list of elements that are dependent on other elements'''
+        dependent_list = []
+        for element in self.elements:
+            if(element.has_parent() or element.has_child()):
+                dependent_list.append(element)
+        return dependent_list
 
     def ring(self, source_kind:Kinds, load_kind:Kinds, num_loads:int) -> 'Circuit':
         '''one source and all loads in series'''
@@ -315,6 +339,25 @@ class Circuit():
             self.connect(prev_element.low, new_load.low)
             prev_element = new_load
 
+    def switched_resistor(self) -> tuple['Element', 'Element', 'Element', 
+                                         'Element', 'Element']:
+        '''one source and one load, with a switch in series. The switch control
+        has a separate voltage source  and resistor in parallel.'''
+        self.clear()
+        src = self.add_element(Kinds.IVS)
+        ctl_src = self.add_element(Kinds.IVS)
+        res = self.add_element(Kinds.R)
+        ctl_res = self.add_element(Kinds.R)
+        ctl_el, sw = self.add_controlled_element(Kinds.VC, Kinds.SW)
+        self.connect(src.high, sw.high)
+        self.connect(sw.low, res.high)
+        self.connect(src.low, res.low)
+        self.connect(ctl_src.high, ctl_res.high)
+        self.connect(ctl_res.high, ctl_el.high)
+        self.connect(ctl_src.low, ctl_res.low)
+        self.connect(ctl_res.low, ctl_el.low)
+        return src, ctl_src, res, ctl_res, ctl_el, sw
+
     def update_signal_len(self, signal_len:int):
         if(signal_len == 0):
             return
@@ -331,13 +374,15 @@ class Element():
         self.circuit = circuit
         self.low:Node = None
         self.high:Node = None
+        self._parent:Element = None
+        self._child:Element = None
         self.kind = kind
         self._i:Signal = Signal(self,[])
         self._v:Signal = Signal(self,[])
-        self._a:Signal = None
+        self._a:float = None
         self._i_pred:Signal = Signal(self,[])
         self._v_pred:Signal = Signal(self,[])
-        self._a_pred:Signal = None
+        self._a_pred:float = None
 
     def __repr__(self) -> str:
         return "("+str(self.kind.name)+", "+str(self.low.idx)+ ", "\
@@ -353,6 +398,38 @@ class Element():
         else:
             attr = ('attr',self.a)
         return (self.low.idx, self.high.idx, self.key, (kind, i, v, attr))
+    
+    @property
+    def parent(self):
+        return self._parent
+    
+    @parent.setter
+    def parent(self, element:'Element'):
+        assert(isinstance(element,Element))
+        assert(element.kind == Kinds.VC)
+        self._parent = element
+
+    def has_parent(self):
+        return self.parent != None
+    
+    def has_parent_of(self, kind:Kinds):
+        return self.has_parent() and self.parent.kind == kind
+    
+    @property
+    def child(self):
+        return self._child
+    
+    @child.setter
+    def child(self, element:'Element'):
+        assert(isinstance(element,Element))
+        assert(element.kind == Kinds.SW)
+        self._child = element
+
+    def has_child(self):
+        return self.child != None
+    
+    def has_child_of(self, kind:Kinds):
+        return self.has_child() and self.child.kind == kind
     
     @property 
     def i(self):

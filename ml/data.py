@@ -14,9 +14,16 @@ class Data():
         self.r_mask = self.init_mask(Kinds.R)
         self.ics_mask = self.init_mask(Kinds.ICS)
         self.ivs_mask = self.init_mask(Kinds.IVS)
+        self.v_control_list = self.circuit.control_list(Kinds.VC)
+        self.i_control_list = self.circuit.control_list(Kinds.CC)
+        self.vcsw_mask = self.init_mask(Kinds.SW, Kinds.VC)
+        self.ccsw_mask = self.init_mask(Kinds.SW, Kinds.CC)
+        self.vc_mask = self.init_mask(Kinds.VC)
+        self.cc_mask = self.init_mask(Kinds.CC)
 
-    def init_mask(self, kind:Kinds):
-        return torch.tensor(self.circuit.kind_list(kind)).to(torch.bool)
+    def init_mask(self, kind:Kinds, with_control:Kinds=None):
+        return torch.tensor(
+            self.circuit.kind_list(kind,with_control)).to(torch.bool)
     
     def signals_base(self, signals:list[Signal], eps:float=1e-12) -> float:
         input_max = 0

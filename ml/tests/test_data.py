@@ -36,7 +36,6 @@ class Test_Data(unittest.TestCase):
         self.assertTrue(data.i_base == 4.0)
 
     def test_init_attrs_mask(self):
-        assert len(Kinds) <= 3
         circuit = Circuit()
         circuit.ring(Kinds.IVS,Kinds.R,2)
         circuit.elements[0].v = [2.0]
