@@ -1,9 +1,9 @@
 import unittest
 from circuits import Circuit,Kinds
-from data import Data
+from data import CircuitData
 from learn import Trainer
 from torch.nn import MSELoss
-from models import Cell
+from models import CircuitCell
 from torch.optim import Adam
 import torch
 
@@ -13,10 +13,10 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v = [3.0]
         circuit.elements[1].a = 2.0
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
-        self.assertTrue(isinstance(trainer.data,Data))
-        self.assertTrue(isinstance(trainer.model,Cell))
+        self.assertTrue(isinstance(trainer.data,CircuitData))
+        self.assertTrue(isinstance(trainer.model,CircuitCell))
         self.assertTrue(isinstance(trainer.optimizer,Adam))
         self.assertTrue(isinstance(trainer.loss_fn,MSELoss))
 
@@ -25,7 +25,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v= [3.0]
         circuit.elements[1].i= [1.5]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         input = trainer.dataset[0]
         loss,out = trainer.step_cell(input)
@@ -39,7 +39,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v= [-3.0]
         circuit.elements[1].i= [-1.5]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         input = trainer.dataset[0]
         loss,out = trainer.step_cell(input)
@@ -53,7 +53,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v= [0.0]
         circuit.elements[1].i= [0.0]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         input = trainer.dataset[0]
         loss,out = trainer.step_cell(input)
@@ -67,7 +67,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v= [3.0]
         circuit.elements[1].a = 2.0
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         loss,out_list = trainer.step_sequence()
         self.assertTrue(len(out_list) == 1)
@@ -82,7 +82,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v= [4.0,8.0]
         circuit.elements[1].a = 2.0
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         loss,out_list = trainer.step_sequence()
         self.assertTrue(len(out_list) == 2)
@@ -99,7 +99,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v= [4.0,0.0]
         circuit.elements[1].a = 2.0
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         loss,out_list = trainer.step_sequence()
         self.assertTrue(len(out_list) == 2)
@@ -116,7 +116,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v= [4.0,-4.0]
         circuit.elements[1].a = 2.0
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         loss,out_list = trainer.step_sequence()
         self.assertTrue(len(out_list) == 2)
@@ -133,7 +133,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v= [3.0]
         circuit.elements[1].i = [1.5]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         loss,out_list = trainer.step_sequence()
         params = trainer.calc_params_single(out_list[0],trainer.dataset[0])
@@ -144,7 +144,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v= [0.0]
         circuit.elements[1].i = [0.0]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         loss,out_list = trainer.step_sequence()
         params = trainer.calc_params_single(out_list[0],trainer.dataset[0])
@@ -155,7 +155,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v= [-3.0]
         circuit.elements[1].i = [-1.5]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         loss,out_list = trainer.step_sequence()
         params = trainer.calc_params_single(out_list[0],trainer.dataset[0])
@@ -166,7 +166,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v= [3.0,6.0]
         circuit.elements[1].i = [1.5,3.0]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         loss,out_list = trainer.step_sequence()
         params = trainer.calc_params(out_list,trainer.dataset)
@@ -177,7 +177,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v= [3.0,-6.0]
         circuit.elements[1].i = [1.5,-3.0]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         loss,out_list = trainer.step_sequence()
         params = trainer.calc_params(out_list,trainer.dataset)
@@ -188,7 +188,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v= [3.0,0.0]
         circuit.elements[1].i = [1.5,0.0]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         loss,out_list = trainer.step_sequence()
         params = trainer.calc_params(out_list,trainer.dataset)
@@ -199,7 +199,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v = [3.0]
         circuit.elements[1].i = [1.5]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         i_sol, v_sol, a_sol, loss, epoch = trainer.run(1000,1e-3)
         self.assertTrue(len(i_sol) == 1)
@@ -216,7 +216,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v = [3.0,6.0]
         circuit.elements[1].i = [1.5,3.0]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         i_sol, v_sol, a_sol, loss, epoch = trainer.run(1000,1e-3)
         self.assertTrue(len(i_sol) == 2)
@@ -237,7 +237,7 @@ class TestTrainer(unittest.TestCase):
         circuit.ring(Kinds.IVS,Kinds.R,1)
         circuit.elements[0].v = [3.0,6.0,0.0]
         circuit.elements[1].i = [1.5,3.0,0.0]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         trainer = Trainer(data,0.01)
         i_sol, v_sol, a_sol, loss, epoch = trainer.run(1000,1e-3)
         self.assertTrue(len(i_sol) == 3)

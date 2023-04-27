@@ -2,11 +2,11 @@ import torch
 import torch.nn as nn
 from torch.nn import Parameter
 from torch import Tensor
-from data import Data
+from data import CircuitData, SystemData
 from torch.linalg import solve
 
 class Switch(nn.Module):
-    def __init__(self, data:Data):
+    def __init__(self, data:CircuitData):
         super().__init__()
         self.data = data
 
@@ -15,7 +15,7 @@ class Switch(nn.Module):
         return torch.diag(triggers) @ torch.diag(self.data.vcsw_mask).float()
     
 class VoltageControl(nn.Module):
-    def __init__(self, data:Data):
+    def __init__(self, data:CircuitData):
         super().__init__()
         self.data = data
     
@@ -23,7 +23,7 @@ class VoltageControl(nn.Module):
         return torch.diag(self.data.vc_mask).float()
 
 class Impedance(nn.Module):
-    def __init__(self, data:Data):
+    def __init__(self, data:CircuitData):
         super().__init__()
         self.data = data
         self.Z_vcsw = Switch(data)
@@ -35,7 +35,7 @@ class Impedance(nn.Module):
         return -Z_r + self.Z_ics + self.Z_vcsw(triggers) + self.Z_vc()
 
 class Admittance(nn.Module):
-    def __init__(self, data:Data):
+    def __init__(self, data:CircuitData):
         super().__init__()
         self.data = data
         self.Y_r = torch.diag(data.r_mask).float()
@@ -46,9 +46,10 @@ class Admittance(nn.Module):
         return self.Y_r + self.Y_ivs + self.Y_vcsw(~triggers)
 
 class Elements(nn.Module):
-    def __init__(self, data:Data):
+    def __init__(self, data:CircuitData, system_data:SystemData):
         super().__init__()
         self.data = data
+        self.system_data = system_data
         self.params = data.init_params()
         self.Z = Impedance(data)
         self.Y = Admittance(data)
@@ -61,8 +62,8 @@ class Elements(nn.Module):
     def triggers(self, i_in:Tensor, v_in:Tensor):
         v_in_flat = v_in.flatten()
         i_in_flat = i_in.flatten()
-        v_ctrl_idx = torch.tensor(self.data.v_control_list).to(torch.int64)
-        i_ctrl_idx = torch.tensor(self.data.i_control_list).to(torch.int64)
+        v_ctrl_idx = torch.tensor(self.system_data.v_control_list).to(torch.int64)
+        i_ctrl_idx = torch.tensor(self.system_data.i_control_list).to(torch.int64)
         v_in_reordered = torch.gather(dim=0, index=v_ctrl_idx, input=v_in_flat)
         i_in_reordered = torch.gather(dim=0, index=i_ctrl_idx, input=i_in_flat)
         v_ctrl = v_in_reordered * self.data.vcsw_mask
@@ -88,7 +89,7 @@ class Elements(nn.Module):
             p.data = params
 
 class Coefficients(nn.Module):
-    def __init__(self, data: Data):
+    def __init__(self, data: CircuitData):
         super().__init__()
         M_zeros = torch.zeros_like(data.M)
         kvl_coef = torch.tensor(data.circuit.kvl_coef()).to(torch.float)
@@ -102,7 +103,7 @@ class Coefficients(nn.Module):
             self.kcl,self.kvl,self.elements(i_in,v_in)), dim=0)
 
 class Sources(nn.Module):
-    def __init__(self, data: Data):
+    def __init__(self, data: CircuitData):
         super().__init__()
         self.data = data
 
@@ -112,7 +113,7 @@ class Sources(nn.Module):
         return ics_out + ivs_out
     
 class Constants(nn.Module):
-    def __init__(self, data: Data):
+    def __init__(self, data: CircuitData):
             super().__init__()
             num_nodes = data.circuit.num_nodes()
             num_elements = data.circuit.num_elements()
@@ -125,8 +126,8 @@ class Constants(nn.Module):
         b = torch.cat(tensors=(self.kcl,self.kvl,s), dim=0)
         return b
 
-class Cell(nn.Module):
-    def __init__(self, data: Data):
+class CircuitCell(nn.Module):
+    def __init__(self, data: CircuitData):
         super().__init__()
         self.data = data
         self.A = Coefficients(data)
@@ -151,3 +152,24 @@ class Cell(nn.Module):
 
     def set_param_vals(self, params: Tensor):
         self.A.elements.set_param_vals(params)
+
+class SystemCell(nn.Module):
+    def __init__(self, system_data: SystemData):
+        super().__init__()
+        self.system_data = system_data
+        self.circuit_cells = self.init_circuit_cells()
+
+    def init_circuit_cells(self):
+        circuit_cells = []
+        for circuit_data in self.system_data.circuit_data_list:
+            circuit_cells.append(CircuitCell(circuit_data))
+        return nn.ModuleList(circuit_cells)
+    
+    def forward(self, input:Tensor):
+        output_list = []
+        for i, circuit_cell in enumerate(self.circuit_cells):
+            circuit_data = self.system_data.circuit_data_list[i]
+            circuit_input = circuit_data.extract_input(input)
+            circuit_output = circuit_cell(circuit_input)
+            output_list.append(circuit_output)
+        return torch.cat(tensors=output_list, dim=0)

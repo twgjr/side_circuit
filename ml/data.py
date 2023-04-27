@@ -1,11 +1,35 @@
-from circuits import Circuit,Props,Kinds,Signal,Element
+from circuits import Circuit,Props,Kinds,Signal,Element,System
 from torch.utils.data import Dataset
 import torch
 from torch.nn import Parameter
 from torch import Tensor
 
-class Data():
-    def __init__(self, circuit:Circuit) -> None:
+class SystemData():
+    def __init__(self, system:System):
+        self.system = system
+        self.circuit_data_list = self.init_circuit_data_list()
+        self.circuit_masks = self.init_circuit_masks()
+        self.v_control_list = self.system.parent_indices(Kinds.VC)
+        self.i_control_list = self.system.parent_indices(Kinds.CC)
+
+    def init_circuit_data_list(self):
+        return [CircuitData(circuit,self) 
+                for circuit in self.system.circuits.values()]
+    
+    def init_circuit_masks(self)->list[list[bool]]:
+        '''returns a list of circuit masks.  Each mask is a list of int indices.
+        The order of the list corresponds to the order of the elements in the 
+        respective circuit.  The index value at each position refers to the 
+        element somewhere in the system that is a control input to that element
+        in the circuit.  '''
+        circuit_masks = []
+        for circuit in self.system.circuits.values():
+            circuit_masks.append(circuit.circuit_mask())
+        return circuit_masks
+    
+class CircuitData():
+    def __init__(self, circuit:Circuit, system_data:SystemData) -> None:
+        self.system_data = system_data
         self.circuit = circuit
         self.M = self.circuit.M()
         self.i_base, self.v_base, self.r_base = self.init_base()
@@ -14,12 +38,11 @@ class Data():
         self.r_mask = self.init_mask(Kinds.R)
         self.ics_mask = self.init_mask(Kinds.ICS)
         self.ivs_mask = self.init_mask(Kinds.IVS)
-        self.v_control_list = self.circuit.control_list(Kinds.VC)
-        self.i_control_list = self.circuit.control_list(Kinds.CC)
         self.vcsw_mask = self.init_mask(Kinds.SW, Kinds.VC)
         self.ccsw_mask = self.init_mask(Kinds.SW, Kinds.CC)
         self.vc_mask = self.init_mask(Kinds.VC)
         self.cc_mask = self.init_mask(Kinds.CC)
+        self.circuit_mask = self.system_data.circuit_masks[self.circuit.index]
 
     def init_mask(self, kind:Kinds, with_control:Kinds=None):
         return torch.tensor(
@@ -241,6 +264,23 @@ class Data():
             assert isinstance(attr,float) or attr == None
             ret_list.append(attr != None)
         return ret_list
+    
+    def extract_input(self, 
+                      system_i:Tensor, 
+                      system_v:Tensor) -> tuple[Tensor,Tensor]:
+        '''returns circuit_i, circuit_v that are inputs to the next iteration
+        of the circuit solver.  Circuit_i and circuit_v are indexed from 
+        system_i and system_v by the circuit mask.  The circuit mask is a list
+        indices of the inputs to the circuit, such as current sources currents, 
+        voltage sources voltages, and switch control voltage.'''
+        assert isinstance(system_i,Tensor)
+        assert isinstance(system_v,Tensor)
+        assert system_i.shape == system_v.shape
+        assert system_i.shape[0] == self.system_data.system.num_elements()
+        assert system_i.shape[1] == 1
+        circuit_i = system_i[self.circuit_mask]
+        circuit_v = system_v[self.circuit_mask]
+        return circuit_i,circuit_v
     
 class CircuitDataset(Dataset):
     def __init__(self,dataset:list[Tensor]):

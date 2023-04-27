@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.optim import Adam
-from models import Cell
-from data import Data
+from models import CircuitCell
+from data import CircuitData
 
 class Stability():
     '''takes attributes from solver and determines if the all attributes have 
@@ -30,9 +30,9 @@ class Stability():
         return ret_bool
 
 class Trainer():
-    def __init__(self, data:Data, init_learn_rate:float) -> None:
+    def __init__(self, data:CircuitData, init_learn_rate:float) -> None:
         self.data = data
-        self.model = Cell(data=data)
+        self.model = CircuitCell(data=data)
         self.optimizer = Adam(params=self.model.parameters(),lr=init_learn_rate)
         self.loss_fn = nn.MSELoss()
         self.dataset = data.init_dataset()

@@ -1,7 +1,7 @@
 import unittest
 from circuits import Circuit,Kinds
-from data import Data
-from models import Cell,Impedance,Admittance,Elements,Coefficients,Sources,\
+from data import CircuitData
+from models import CircuitCell,Impedance,Admittance,Elements,Coefficients,Sources,\
                     Constants,Switch
 import torch
 
@@ -11,15 +11,23 @@ class Test_Cell(unittest.TestCase):
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
         circuit.elements[0].v = [2]
         circuit.elements[1].a = 3.0
-        data = Data(circuit)
+        data = CircuitData(circuit)
         init_dataset = data.init_dataset()
-        cell = Cell(data)
-        self.assertTrue(isinstance(cell.data,Data))
+        cell = CircuitCell(data)
+        self.assertTrue(isinstance(cell.data,CircuitData))
         self.assertTrue(data.v_base == 2)
         self.assertTrue(data.r_base == 3)
         out = cell(init_dataset[0])
         out_test = torch.tensor([-1,1,1,1]).float().unsqueeze(dim=1)
         self.assertTrue(torch.allclose(out,out_test))
+
+    def test_switched_resistor(self):
+        circuit = Circuit()
+        circuit.switched_resistor()
+        data = CircuitData(circuit)
+        init_dataset = data.init_dataset()
+        cell = CircuitCell(data)
+        
 
 class Test_Impedance(unittest.TestCase):
     def test_Impedance(self):
@@ -27,9 +35,9 @@ class Test_Impedance(unittest.TestCase):
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
         circuit.elements[0].v = [2.0]
         circuit.elements[1].a = 3.0
-        data = Data(circuit)
+        data = CircuitData(circuit)
         z = Impedance(data)
-        self.assertTrue(isinstance(z.data,Data))
+        self.assertTrue(isinstance(z.data,CircuitData))
         iv_in = data.init_dataset()[0]
         i_in, v_in = data.split_input_output(iv_in)
         e = Elements(data)
@@ -46,7 +54,7 @@ class Test_Admittance(unittest.TestCase):
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
         circuit.elements[0].v = [2.0]
         circuit.elements[1].a = 3.0
-        data = Data(circuit)
+        data = CircuitData(circuit)
         y = Admittance(data)
         iv_in = data.init_dataset()[0]
         i_in, v_in = data.split_input_output(iv_in)
@@ -64,7 +72,7 @@ class Test_SW(unittest.TestCase):
         circuit = Circuit()
         src, ctl_src, res, ctl_res, ctl, sw = circuit.switched_resistor()
         ctl.v = [1.0]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         sw = Switch(data)
         iv_in = data.init_dataset()[0]
         i_in, v_in = data.split_input_output(iv_in)
@@ -97,7 +105,7 @@ class Test_Elements(unittest.TestCase):
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
         circuit.elements[0].v = [2.0]
         circuit.elements[1].a = 3.0
-        data = Data(circuit)
+        data = CircuitData(circuit)
         iv_in = data.init_dataset()[0]
         i_in, v_in = data.split_input_output(iv_in)
         e = Elements(data)
@@ -111,7 +119,7 @@ class Test_Elements(unittest.TestCase):
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
         circuit.elements[0].v = [2.0]
         circuit.elements[1].i = [1.5]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         e = Elements(data)
         iv_in = data.init_dataset()[0]
         i_in, v_in = data.split_input_output(iv_in)
@@ -124,7 +132,7 @@ class Test_Elements(unittest.TestCase):
         circuit = Circuit()
         src, ctl_src, res, ctl_res, ctl_el, sw = circuit.switched_resistor()
         ctl_el.v = [1.0]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         iv_in = data.init_dataset()[0]
         i_in, v_in = data.split_input_output(iv_in)
         e = Elements(data)
@@ -138,7 +146,7 @@ class Test_Elements(unittest.TestCase):
         res.a = 1.0
         ctl_res.a = 2.0
         ctl_el.v = [1.0]
-        data = Data(circuit)
+        data = CircuitData(circuit)
         iv_in = data.init_dataset()[0]
         i_in, v_in = data.split_input_output(iv_in)
         e = Elements(data)
@@ -157,7 +165,7 @@ class Test_Coefficients(unittest.TestCase):
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
         circuit.elements[0].v = [2.0]
         circuit.elements[1].a = 3.0
-        data = Data(circuit)
+        data = CircuitData(circuit)
         a = Coefficients(data)
         iv_in = data.init_dataset()[0]
         i_in, v_in = data.split_input_output(iv_in)
@@ -175,7 +183,7 @@ class Test_Sources(unittest.TestCase):
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
         circuit.elements[0].v = [2.0]
         circuit.elements[1].a = 3.0
-        data = Data(circuit)
+        data = CircuitData(circuit)
         s = Sources(data)
         iv_in = torch.tensor([0.1, 0.2, 0.3, 0.4]).float().unsqueeze(1)
         i_in, v_in = data.split_input_output(iv_in)
@@ -189,7 +197,7 @@ class Test_Constants(unittest.TestCase):
         circuit.ladder(Kinds.IVS, Kinds.R, 1)
         circuit.elements[0].v = [2.0]
         circuit.elements[1].a = 3.0
-        data = Data(circuit)
+        data = CircuitData(circuit)
         b = Constants(data)
         iv_in = torch.tensor([0.1, 0.2, 0.3, 0.4]).float().unsqueeze(1)
         i_in, v_in = data.split_input_output(iv_in)

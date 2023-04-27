@@ -1,6 +1,6 @@
 import unittest
 from circuits import Circuit,Kinds,Signal
-from data import Data
+from data import CircuitData
 from learn import Trainer
 import torch
 
@@ -33,7 +33,7 @@ class TestSolutions(unittest.TestCase):
         c.ring(Kinds.IVS,Kinds.R,2)
         c.elements[0].v = [1]
         c.elements[2].v = [0.1]
-        d = Data(c)
+        d = CircuitData(c)
         trainer = Trainer(d,self.learning_rate)
         i_sol, v_sol, a_sol,_,_ = trainer.run(self.max_epochs,
                                               self.stable_threshold)
@@ -48,7 +48,7 @@ class TestSolutions(unittest.TestCase):
         c.ring(Kinds.IVS,Kinds.R,2)
         c.elements[0].v = [1,0,-1]
         c.elements[2].v = [0.1,0,-0.1]
-        d = Data(c)
+        d = CircuitData(c)
         trainer = Trainer(d,self.learning_rate)
         i_sol, v_sol, a_sol,_,_ = trainer.run(self.max_epochs,
                                               self.stable_threshold)
@@ -61,7 +61,7 @@ class TestSolutions(unittest.TestCase):
         c.ring(Kinds.IVS,Kinds.R,100)
         c.elements[0].v = [1.0]
         c.elements[-1].v = [0.1]
-        d = Data(c)
+        d = CircuitData(c)
         trainer = Trainer(d,self.learning_rate)
         i_sol, v_sol, a_sol,_,_ = trainer.run(self.max_epochs,
                              self.stable_threshold)
@@ -74,7 +74,7 @@ class TestSolutions(unittest.TestCase):
         c.ring(Kinds.IVS,Kinds.R,2)
         c.elements[0].v = [1.0]
         c.elements[2].v = [1e-12]
-        d = Data(c)
+        d = CircuitData(c)
         trainer = Trainer(d,self.learning_rate)
         i_sol, v_sol, a_sol,_,_ = trainer.run(self.max_epochs,
                              self.stable_threshold)
@@ -87,7 +87,7 @@ class TestSolutions(unittest.TestCase):
         c.elements[0].v = [1.0]
         c.elements[1].i = [1.0]
         c.elements[2].i = [1e-12]
-        d = Data(c)
+        d = CircuitData(c)
         trainer = Trainer(d,self.learning_rate)
         i_sol, v_sol, a_sol,_,_ = trainer.run(self.max_epochs,
                              self.stable_threshold)
@@ -104,7 +104,7 @@ class TestSolutions(unittest.TestCase):
         ctl_src.v = [0.1]
         res.a = 1.0
         ctl_res.a = 1.0
-        d = Data(c)
+        d = CircuitData(c)
         trainer = Trainer(d,self.learning_rate)
         i_sol, v_sol, a_sol,_,_ = trainer.run(self.max_epochs,
                              self.stable_threshold)
