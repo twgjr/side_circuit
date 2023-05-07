@@ -14,6 +14,7 @@ class Kinds(Enum):
 class Props(Enum):
     I = 0
     V = 1
+    A = 2
 
 class System():
     '''Collection of isolated Circuits that are only connected by parent/child
@@ -22,44 +23,91 @@ class System():
     Circuits are merged, retaining the larger Circuit of the two connecting
     Elements.'''
     def __init__(self) -> None:
-        self.circuits: dict[int,Circuit] = {}
+        self.circuits: list[Circuit] = []
+        self.elements: list[Element] = []
+        self.nodes: list[Node] = []
+        self.i_base = 0
+        self.v_base = 0
+        self.r_base = 0
+        self.signal_len = 0
+
+    def load(self, pred):
+        for t,pred_t in enumerate(pred):
+            pred_ckts = pred_t['circuits']
+            for c,circuit in enumerate(self.circuits):
+                circuit.load(pred_ckts[c],t)
+
+    def update_signal_len(self, signal_len:int):
+        if(signal_len == 0):
+            return
+        max_sig_len = 0
+        for element in self.elements:
+            i_len = len(element.i)
+            v_len = len(element.v)
+            max_sig_len = max(max_sig_len, i_len, v_len)
+        self.signal_len = signal_len
+
+    def init_signal_data(self):
+        '''initializes undefined signal data'''
+        return [1]*self.signal_len
 
     def num_circuits(self) -> int:
         return len(self.circuits)
     
     def num_elements(self) -> int:
-        return sum([self.circuits[c].num_elements() for c in self.circuits])
+        return sum([c.num_elements() for c in self.circuits])
         
     def prep_for_delete(self):
         for c in self.circuits:
-            self.circuits[c].prep_for_delete()
+            c.prep_for_delete()
         self.circuits.clear()
 
     def add_circuit(self) -> 'Circuit':
         circuit = Circuit(self)
-        self.circuits[len(self.circuits)] = circuit
+        self.circuits.append(circuit)
         return circuit
     
     def remove_circuit(self, circuit: 'Circuit'):
         circuit.prep_for_delete()
-        del self.circuits[circuit.index]
+        self.circuits.remove(circuit)
         for c in self.circuits:
-            if(self.circuits[c] == circuit):
-                del self.circuits[c]
+            if(c == circuit):
+                self.circuits.remove(c)
                 break
-        self.renumber_circuits()
-            
-    def renumber_circuits(self):
-        new_circuits = {}
-        for c in self.circuits:
-            new_circuits[len(new_circuits)] = self.circuits[c]
-        self.circuits = new_circuits
+
+    def add_node(self, circuit:'Circuit', elements:list['Element']) -> 'Node':
+        assert(isinstance(elements,list))
+        assert(circuit in self.circuits)
+        ckt_node = Node(circuit,elements)
+        self.nodes.append(ckt_node)
+        return ckt_node
+    
+    def remove_node(self, node: 'Node'):
+        node.circuit.remove_node(node)
+        self.nodes.remove(node)
+        if(node.circuit.is_empty()):
+            self.remove_circuit(node.circuit)
     
     def add_element_of(self, kind:Kinds) -> 'Element':
         circuit = self.add_circuit()
-        return circuit.add_element_of(kind)
+        high_node = self.add_node(circuit,[])
+        low_node = self.add_node(circuit,[])
+        circuit.nodes.append(high_node)
+        circuit.nodes.append(low_node)
+        element = Element(circuit, high_node, low_node, kind)
+        self.elements.append(element)
+        high_node.elements.append(element)
+        low_node.elements.append(element)
+        circuit.elements.append(element)
+        return element
+    
+    def remove_element(self, element: 'Element'):
+        element.circuit.remove_element(element)
+        if(element.circuit.is_empty()):
+            self.remove_circuit(element.circuit)
+        self.elements.remove(element)
 
-    def add_ctl_element(self, parent_kind:Kinds, 
+    def add_element_pair(self, parent_kind:Kinds, 
                         child_kind:Kinds) -> tuple['Element','Element']:
         assert(parent_kind == Kinds.VC)
         assert(child_kind == Kinds.SW)
@@ -69,73 +117,75 @@ class System():
         parent.child = child
         return parent, child
     
-    def connect(self, from_node: 'Node', to_node: 'Node'):
-        '''Merge two nodes together.  If the nodes are in different circuits, 
-        then the elements of the smaller circuit are moved to the larger circuit.
-        if the nodes are in the same circuit, then the circuit is unchanged.'''
-        assert(isinstance(from_node,Node))
-        assert(isinstance(to_node,Node))
-        assert(from_node.circuit != None)
-        assert(to_node.circuit != None)
-        if(from_node.circuit == to_node.circuit):
-            from_node.circuit.connect(from_node,to_node)
-        else:
-            if(from_node.circuit.num_elements() > 
-               to_node.circuit.num_elements()):
-                # "from" circuit is larger, move "to" circuit to "from"
-                large_circuit = from_node.circuit
-                small_circuit = to_node.circuit
-            else:
-                # "to" circuit is equal or larger, move "from" circuit to "to"
-                large_circuit = to_node.circuit
-                small_circuit = from_node.circuit
-            self.transfer_circuit(small_circuit,large_circuit)
-            large_circuit.connect(from_node,to_node)
-            self.renumber_circuits()
-            
+    def name_exists(self, name: str) -> bool:
+        for c in self.circuits:
+            if c.name_exists(name):
+                return True
+        return False
 
-    def transfer_circuit(self, small: 'Circuit', large: 'Circuit'):
-        for element in small.elements.values():
+    def connect(self, a: 'Node', b: 'Node'):
+        '''Merge two nodes together into one. If the nodes are in different
+        circuits, then merge the smaller circuit into the larger circuit.  If
+        the nodes are in the same circuit, then transfer all elements from the
+        smaller node to the larger node.  Finally remove the smaller node.'''
+        assert(isinstance(a, Node))
+        assert(isinstance(b, Node))
+        if(a == b):
+            return
+        if(a.circuit != b.circuit):
+            self.merge_circuits(a.circuit, b.circuit)
+        self.merge_nodes(a, b)
+
+    def merge_nodes(self, a: 'Node', b: 'Node'):
+        '''Merge two nodes together into one.  Transfer all elements from the 
+        smaller node to the larger node.  Finally remove the smaller node.'''
+        assert(isinstance(a, Node))
+        assert(isinstance(b, Node))
+        if(a == b):
+            return
+        if(a.circuit != b.circuit):
+            raise Exception('Cannot merge nodes in different circuits')
+        if(a.num_elements() < b.num_elements()):
+            small = a
+            large = b
+        else:
+            small = b
+            large = a
+        for element in small.elements:
+            if(element.high == small):
+                element.high = large
+            if(element.low == small):
+                element.low = large
+            large.elements.append(element)
+        small.elements.clear()
+        small.circuit.nodes.remove(small)
+        self.nodes.remove(small)
+
+    def merge_circuits(self, a: 'Circuit', b: 'Circuit'):
+        '''Merge two circuits together into one.  Transfer all elements from
+        the smaller circuit to the larger circuit.  Finally remove the smaller
+        circuit.'''
+        assert(isinstance(a, Circuit))
+        assert(isinstance(b, Circuit))
+        if(a == b):
+            return
+        if(a.num_elements() < b.num_elements()):
+            small = a
+            large = b
+        else:
+            small = b
+            large = a
+        for element in small.elements:
             element.circuit = large
-            large.elements[len(large.elements)] = element
-        for node in small.nodes.values():
+            large.elements.append(element)
+        for node in small.nodes:
             node.circuit = large
-            large.nodes[len(large.nodes)] = node
+            large.nodes.append(node)
         small.elements.clear()
         small.nodes.clear()
-        del self.circuits[small.index]
-
-    def flatten_elements(self) -> list['Element']:
-        '''return a list of all elements in the system, ordered by circuit'''
-        elements = []
-        for circuit in self.circuits.values():
-            elements += list(circuit.elements.values())
-        return elements
+        self.circuits.remove(small)
     
-    def parent_indices(self, kind:Kinds) -> list[int]:
-        '''return a list of the indices of elements in the system.  If an 
-        element has a parent, then the index of the parent is returned.  If
-        an element has no parent, then the index of the element itself is
-        returned.'''
-        elements = self.flatten_elements()
-        control_list = []
-        for element in elements:
-            if(element.parent == kind):
-                control_list.append(elements.index(element.parent))
-            else:
-                control_list.append(elements.index(element))
-        return control_list
-    
-    def control_mask(self) -> list[bool]:
-        '''True if the element has a control, False otherwise.'''
-        elements = self.flatten_elements()
-        control_mask_list = []
-        for element in elements:
-            control_mask_list.append(element.parent != None)
-        return control_mask_list
-
-    def switched_resistor(self) -> tuple['Element', 'Element', 'Element', 
-                                         'Element', 'Element', 'Element']:
+    def switched_resistor(self) -> tuple['Circuit', 'Circuit']:
         '''one source and one load, with a switch in series. The switch control
         has a separate voltage source  and resistor in parallel.'''
         self.prep_for_delete()
@@ -143,7 +193,7 @@ class System():
         parent_src = self.add_element_of(Kinds.IVS)
         child_res = self.add_element_of(Kinds.R)
         parent_res = self.add_element_of(Kinds.R)
-        parent, child = self.add_ctl_element(Kinds.VC, Kinds.SW)
+        parent, child = self.add_element_pair(Kinds.VC, Kinds.SW)
         self.connect(child_src.high, child.high)
         self.connect(child.low, child_res.high)
         self.connect(child_src.low, child_res.low)
@@ -151,125 +201,156 @@ class System():
         self.connect(parent_res.high, parent.high)
         self.connect(parent_src.low, parent_res.low)
         self.connect(parent_res.low, parent.low)
-        return child_src, parent_src, child_res, parent_res, parent, child
+        return parent.circuit, child.circuit
     
     def ring(self, source_kind:Kinds, load_kind:Kinds, num_loads:int) -> 'Circuit':
         '''one source and all loads in series'''
         assert(num_loads > 0)
         self.prep_for_delete()
-        circuit = self.add_circuit()
-        source = circuit.add_element_of(source_kind)
-        first_load = circuit.add_element_of(load_kind)
-        circuit.connect(source.high, first_load.high)
+        source = self.add_element_of(source_kind)
+        first_load = self.add_element_of(load_kind)
+        self.connect(source.high, first_load.high)
         prev_element = first_load
         for l in range(num_loads-1):
-            new_load = circuit.add_element_of(load_kind)
-            circuit.connect(prev_element.low, new_load.high)
+            new_load = self.add_element_of(load_kind)
+            self.connect(prev_element.low, new_load.high)
             prev_element = new_load
-        circuit.connect(source.low, prev_element.low)
-        return circuit
+        self.connect(source.low, prev_element.low)
+        return source.circuit
 
     def ladder(self, source_kind:Kinds, load_kind:Kinds, num_loads:int) -> 'Circuit':
         '''one source and all loads in parallel'''
         assert(num_loads > 0)
         self.prep_for_delete()
-        circuit = self.add_circuit()
-        source = circuit.add_element_of(source_kind)
-        first_load = circuit.add_element_of(load_kind)
-        circuit.connect(source.high, first_load.high)
-        circuit.connect(source.low, first_load.low)
+        source = self.add_element_of(source_kind)
+        first_load = self.add_element_of(load_kind)
+        self.connect(source.high, first_load.high)
+        self.connect(source.low, first_load.low)
         prev_element = first_load
         for l in range(num_loads-1):
-            new_load = circuit.add_element_of(load_kind)
-            circuit.connect(prev_element.high, new_load.high)
-            circuit.connect(prev_element.low, new_load.low)
+            new_load = self.add_element_of(load_kind)
+            self.connect(prev_element.high, new_load.high)
+            self.connect(prev_element.low, new_load.low)
             prev_element = new_load
-        return circuit
+        return source.circuit
+    
+    def update_bases(self):
+        i_sigs = []
+        i_knowns = []
+        v_sigs = []
+        v_knowns = []
+        r_vals = []
+        r_knowns = []
+        for circuit in self.circuits:
+            i_sigs += circuit.prop_list(Props.I)
+            v_sigs += circuit.prop_list(Props.V)
+            r_vals += circuit.attr_list(Kinds.R)
+            i_knowns += circuit.prop_mask(Props.I)
+            v_knowns += circuit.prop_mask(Props.V)
+            r_knowns += circuit.attr_mask(Kinds.R)
+        i_has_knowns = True in i_knowns
+        v_has_knowns = True in v_knowns
+        r_has_knowns = True in r_knowns
+        i_base = self.signals_base(i_sigs)
+        v_base = self.signals_base(v_sigs)
+        r_base = self.values_base(r_vals)
+        if(not i_has_knowns and not v_has_knowns and not r_has_knowns):
+            i_base = 1
+            v_base = 1
+            r_base = 1
+        elif(not i_has_knowns and not v_has_knowns and r_has_knowns):
+            i_base = 1/r_base
+            v_base = r_base
+        elif(not i_has_knowns and v_has_knowns and not r_has_knowns):
+            i_base = v_base
+            r_base = v_base
+        elif(not i_has_knowns and v_has_knowns and r_has_knowns):
+            i_base = v_base/r_base
+        elif(i_has_knowns and not v_has_knowns and not r_has_knowns):
+            v_base = i_base
+            r_base = 1/i_base
+        elif(i_has_knowns and not v_has_knowns and r_has_knowns):
+            v_base = i_base*r_base
+        elif(i_has_knowns and v_has_knowns and not r_has_knowns):
+            r_base = v_base/i_base
+        elif(i_has_knowns and v_has_knowns and r_has_knowns):
+            pass
+        self.i_base = i_base
+        self.v_base = v_base
+        self.r_base = r_base
+    
+    def signals_base(self, signals:list['Signal'], eps:float=1e-12) -> float:
+        input_max = 0
+        for signal in signals:
+            if(signal.is_empty()):
+                continue
+            else:
+                for v in range(len(signal)):
+                    val = signal[v]
+                    abs_val = abs(val)
+                    if(abs_val > input_max):
+                        input_max = abs_val
+        if(input_max < eps):
+            return eps
+        else:
+            return input_max
+        
+        
+    def values_base(self, values:list[float], eps:float=1e-12) -> float:
+        input_max = 0
+        for val in values:
+            if(val == None):
+                continue
+            abs_val = abs(val)
+            if(abs_val > input_max):
+                input_max = abs_val
+        if(input_max < eps):
+            return eps
+        else:
+            return input_max
 
 class Circuit():
+    '''A Circuit is a subset collection of Nodes and Elements from the System'''
     def __init__(self, system:System) -> None:
         self.system = system
-        self.nodes: dict[int,Node] = {}
-        self.elements: dict[int,Element] = {}
+        self.nodes: list[Node] = []
+        self.elements: list[Element] = []
         self.signal_len = 0
 
     @property
     def index(self) -> int:
-        key_list = list(self.system.circuits.keys())
-        val_list = list(self.system.circuits.values())
-        position = val_list.index(self)
-        return key_list[position]
+        return self.system.circuits.index(self)
+    
+    def name_exists(self, name:str) -> bool:
+        for e in self.elements:
+            if e.name == name:
+                return False
+        return True
+    
+    def is_empty(self) -> bool:
+        return len(self.elements) == 0 and len(self.nodes) == 0
 
     def prep_for_delete(self):
         for e in self.elements:
-            self.elements[e].prep_for_delete()
+            e.prep_for_delete()
         for n in self.nodes:
-            self.nodes[n].prep_for_delete()
+            n.prep_for_delete()
         self.clear()
 
     def clear(self):
         self.nodes.clear()
         self.elements.clear()
     
-    def add_element_of(self, kind:Kinds) -> 'Element':
-        assert(isinstance(kind,Kinds))
-        element = Element(self,kind)
-        element.high = self.add_node([element])
-        element.low = self.add_node([element])
-        self.elements[len(self.elements)] = element
-        return element
-    
     def remove_element(self, element: 'Element'):
         element.prep_for_delete()
-        del self.elements[element.index]
-        self.renumber_elements()
-            
-    def renumber_elements(self):
-        new_elements = {}
-        for e in self.elements:
-            new_elements[len(new_elements)] = self.elements[e]
-        self.elements = new_elements
+        self.elements.remove(element)
     
-    def add_node(self, elements:list['Element']) -> 'Node':
-        '''create a node for a new element and add to circuit.
-            nodes are never created without an element. No floating nodes'''
-        assert(isinstance(elements,list))
-        ckt_node = Node(self,elements)
-        self.nodes[len(self.nodes)] = ckt_node
-        return ckt_node
+    def add_node(self, node: 'Node'):
+        self.nodes.append(node)
 
     def remove_node(self, node: 'Node'):
-        del self.nodes[node.index]
+        self.nodes.remove(node)
         node.prep_for_delete()
-        self.renumber_nodes()
-
-    def renumber_nodes(self):
-        new_nodes = {}
-        for n in self.nodes:
-            new_nodes[len(new_nodes)] = self.nodes[n]
-        self.nodes = new_nodes
-
-    def transfer_elements(self, from_node: 'Node', to_node: 'Node'):
-        '''transfer all elements from one node to another.  This is used
-        when a node is deleted and its elements are transferred to another
-        node.'''
-        for element in from_node.elements:
-            to_node.add_element(element)
-            if(from_node == element.high):
-                element.high = to_node
-            elif(from_node == element.low):
-                element.low = to_node
-            else:
-                assert()
-        self.remove_node(from_node)
-
-    def connect(self, a: 'Node', b: 'Node'):
-        c = self.add_node([])
-        self.transfer_elements(a, c)
-        self.transfer_elements(b, c)
-        self.renumber_elements()
-        self.renumber_nodes()
-        return c
 
     def num_nodes(self):
         return len(self.nodes)
@@ -282,7 +363,7 @@ class Circuit():
 
     def nx_graph(self):
         graph = nx.MultiDiGraph()
-        for element in self.elements.values():
+        for element in self.elements:
             element = element.to_nx()
             graph.add_edges_from([element])
         return graph
@@ -292,76 +373,6 @@ class Circuit():
         M_numpy = M_scipy.toarray()
         M_tensor = torch.tensor(M_numpy,dtype=dtype)
         return M_tensor
-    
-    def spanning_tree(self) -> tuple[list['Element'],list['Element'],
-                                      list['Node']]:
-        '''Returns a spanning tree in the form of a list of spanning tree 
-        elements, missing elements, and leaves.'''
-        active = self.nodes[0]
-        pending: list[Node] = [active]
-        st:list[Element] = []
-        missing:list[Element] = []
-        leaves:list[Node] = []
-        while(len(pending) > 0):
-            pending.pop()
-            num_added = 0
-            for element in active.elements:
-                adjacent_node, polarity = self.next_node_in(element,active)
-                if(element not in st):
-                    if(adjacent_node in pending):
-                        missing.append(element)
-                    else:
-                        if(element not in missing):
-                            st.append(element)
-                            num_added += 1
-                            pending.append(adjacent_node)
-            if(num_added == 0):
-                leaves.append(active)
-            if(len(pending) > 0):
-                active = pending[-1]
-        return st, missing, leaves
-    
-    def loops(self) -> list[list['Element']]:
-        '''Returns a list of lists of elements. Each list of elements is part of 
-        a loop in the circuit.  Each list of elements also contains elements 
-        from the spanning tree that are not part of the loop.'''
-        st, missing, leaves = self.spanning_tree()
-        st_one_added_list = []
-        for missing_element in missing:
-            st_one_added = st.copy()
-            st_one_added.append(missing_element)
-            st_one_added_list.append(st_one_added)
-        return st_one_added_list
-
-    def kvl_coef(self) -> list[list[int]]:
-        '''Returns a list of lists of integers. Each list of integers represents
-        the coefficients of the KVL equations for a loop in the circuit.'''
-        loops = self.loops()
-        kvl_coefficients = []
-        for loop in loops:
-            coefficients = [0]*self.num_elements()
-            first_element = loop[0]
-            from_element = first_element
-            from_node = first_element.low
-            coefficients[from_element.index] = 1
-            next_element = self.next_loop_element(loop, from_element, from_node)
-            while(next_element != first_element):
-                from_node,polarity = self.next_node_in(next_element, from_node)
-                coefficients[next_element.index] = polarity
-                from_element = next_element
-                next_element = self.next_loop_element(loop, from_element, from_node)
-            kvl_coefficients.append(coefficients)
-        return kvl_coefficients
-            
-    def next_loop_element(self, loop:list['Element'], from_element: 'Element',
-                        from_node:'Node') -> 'Element':
-        '''Returns the next element in the loop after active_element.  Exit from
-        the exit node.'''
-        for element in from_node.elements:
-            if(element == from_element):
-                continue
-            elif(element in loop):
-                return element
 
     def elements_parallel_to(self, reference_element:'Element',
                              include_ref:bool)->list['Element']:
@@ -409,21 +420,27 @@ class Circuit():
             if(element != from_element):
                 return element
 
-    def load(self, i_tensor_list:list[Tensor], v_tensor_list:list[Tensor],
-              attr_tensor:Tensor):
+    def load(self, pred_ckt_t:dict[str:Tensor], time:int):
         '''Stores predictions from Trainer in Circuit'''
-        assert(attr_tensor.shape[0] == self.num_elements())
-        assert(len(i_tensor_list) == len(v_tensor_list) == self.signal_len)
-        for e in range(len(self.elements)):
-            element = self.elements[e]
-            element.a_pred = attr_tensor[e].item()
-            for t in range(self.signal_len):
-                i_tensor = i_tensor_list[t]
-                i_pred = i_tensor[e,:].item()
-                element.i_pred.append(i_pred)
-                v_tensor = v_tensor_list[t]
-                v_pred = v_tensor[e,:].item()
-                element.v_pred.append(v_pred)
+        for e,element in enumerate(self.elements):
+            denorm_i = pred_ckt_t[Props.I][e].item() * self.system.i_base
+            denorm_v = pred_ckt_t[Props.V][e].item() * self.system.v_base
+            element.i_pred.append(denorm_i)
+            element.v_pred.append(denorm_v)
+            if(time == 0):
+                norm_a = pred_ckt_t[Props.A][e].item() if element.kind != Kinds.VC else None
+                if(element.kind == Kinds.R):
+                    element.a_pred = norm_a * self.system.r_base
+                elif(element.kind == Kinds.IVS):
+                    element.a_pred = norm_a * self.system.v_base
+                elif(element.kind == Kinds.VC):
+                    pass
+                elif(element.kind == Kinds.ICS):
+                    element.a_pred = norm_a * self.system.i_base
+                elif(element.kind == Kinds.SW):
+                    pass
+                else:
+                    assert()
     
     def kind_list(self, kind:Kinds, with_control:Kinds=None) -> list[bool]:
         '''returns a list of booleans indicating which elements are of kind'''
@@ -431,7 +448,7 @@ class Circuit():
         assert(with_control == Kinds.VC or with_control == Kinds.CC or 
                with_control == None)
         kind_list = []
-        for element in self.elements.values():
+        for element in self.elements:
             if(element.kind == kind):
                 if(with_control == None):
                     kind_list.append(True)
@@ -446,7 +463,7 @@ class Circuit():
     def attr_list(self, kind:Kinds) -> list[float]:
         '''returns a list of attributes of elements of kind'''
         attrs = []
-        for element in self.elements.values():
+        for element in self.elements:
             if(element.kind == kind):
                 attrs.append(element.a)
             else:
@@ -456,7 +473,7 @@ class Circuit():
     def prop_list(self, prop:Props) -> list['Signal']:
         '''returns a list of properties matching prop of elements'''
         props = []
-        for element in self.elements.values():
+        for element in self.elements:
             if(prop == Props.I):
                 props.append(element.i.copy())
             elif(prop == Props.V):
@@ -464,61 +481,41 @@ class Circuit():
             else:
                 assert()
         return props
-
-    # def ring(self, source_kind:Kinds, load_kind:Kinds, num_loads:int) -> 'Circuit':
-    #     '''one source and all loads in series'''
-    #     assert(num_loads > 0)
-    #     self.prep_for_delete()
-    #     source = self.add_element_of(source_kind)
-    #     first_load = self.add_element_of(load_kind)
-    #     self.connect(source.high, first_load.high)
-    #     prev_element = first_load
-    #     for l in range(num_loads-1):
-    #         new_load = self.add_element_of(load_kind)
-    #         self.connect(prev_element.low, new_load.high)
-    #         prev_element = new_load
-    #     self.connect(source.low, prev_element.low)
-
-    # def ladder(self, source_kind:Kinds, load_kind:Kinds, num_loads:int) -> 'Circuit':
-    #     '''one source and all loads in parallel'''
-    #     assert(num_loads > 0)
-    #     self.prep_for_delete()
-    #     source = self.add_element_of(source_kind)
-    #     first_load = self.add_element_of(load_kind)
-    #     self.connect(source.high, first_load.high)
-    #     self.connect(source.low, first_load.low)
-    #     prev_element = first_load
-    #     for l in range(num_loads-1):
-    #         new_load = self.add_element_of(load_kind)
-    #         self.connect(prev_element.high, new_load.high)
-    #         self.connect(prev_element.low, new_load.low)
-    #         prev_element = new_load
-
-    def update_signal_len(self, signal_len:int):
-        if(signal_len == 0):
-            return
-        max_sig_len = 0
-        for element in self.elements.values():
-            i_len = len(element.i)
-            v_len = len(element.v)
-            max_sig_len = max(max_sig_len, i_len, v_len)
-        self.signal_len = signal_len
-
-    def circuit_mask(self) -> list[bool]:
-        '''returns a list of booleans indicating which elements are in the 
-        circuit among all the system elements, if the system elements were
-        flattened into a list ordered by circuit, then by element.'''
-        start_index = self.index
-        end_index = start_index + len(self.elements)
-        circuit_mask = [False]*self.system.num_elements()
-        circuit_mask[start_index:end_index] = True
+    
+    def prop_mask(self, prop:Props) -> list[bool]:
+        '''returns boolean mask of known element properties ordered by element'''
+        assert isinstance(prop,Props)
+        ret_list = []
+        for element in self.elements:
+            if(prop == Props.I):
+                ret_list.append(len(element.i)>0)
+            elif(prop == Props.V):
+                ret_list.append(len(element.v)>0)
+            elif(prop == Props.A):
+                ret_list.append(element.a != None)
+            else:
+                assert()
+        return ret_list
+    
+    def attr_mask(self, kind:Kinds) -> list[bool]:
+        '''returns boolean mask of known element attributes ordered by element'''
+        assert isinstance(kind,Kinds)
+        assert kind != Kinds.ICS and kind != Kinds.IVS
+        attrs = self.attr_list(kind)
+        ret_list = []
+        for attr in attrs:
+            assert isinstance(attr,float) or attr == None
+            ret_list.append(attr != None)
+        return ret_list
 
 class Element():
-    def __init__(self, circuit: Circuit, kind:Kinds) -> None:
+    def __init__(self, circuit: Circuit, high:'Node', low:'Node', kind:Kinds, 
+                 name:str=None) -> None:
         assert(isinstance(kind,Kinds) and isinstance(circuit,Circuit))
+        self.system = circuit.system
         self.circuit = circuit
-        self.low:Node = None
-        self.high:Node = None
+        self.low:Node = low
+        self.high:Node = high
         self._parent:Element = None
         self._child:Element = None
         self.kind = kind
@@ -528,13 +525,45 @@ class Element():
         self._i_pred:Signal = Signal(self,[])
         self._v_pred:Signal = Signal(self,[])
         self._a_pred:float = None
+        self._name = name
+
+    @property
+    def name(self, name:str) -> str:
+        assert(isinstance(name,str) or name == None)
+        if(name == None):
+            return self.id
+        else:
+            return self._name
+        
+    @name.setter
+    def name(self, name:str) -> None:
+        assert(isinstance(name,str))
+        if(self.circuit.system.name_exists(name)):
+            raise ValueError('name already exists')
+        self._name = name
 
     @property
     def index(self) -> list[int]:
-        key_list = list(self.circuit.elements.keys())
-        val_list = list(self.circuit.elements.values())
-        position = val_list.index(self)
-        return key_list[position]
+        return self.circuit.elements.index(self)
+    
+    @property
+    def name(self):
+        return self._name
+    
+    @name.setter
+    def name(self, name:str):
+        assert(isinstance(name,str))
+        if(self.circuit.system.name_exists(name)):
+            raise ValueError('name already exists')
+        self._name = name
+    
+    @property
+    def id(self) -> str:
+        return str(self.kind.name) \
+            + '_' + str(self.circuit.index) + '_' + str(self.index)
+    
+    def __repr__(self) -> str:
+        return self.name + '_' + self.id
 
     def to_nx(self):
         kind = ('kind',self.kind)
@@ -652,7 +681,7 @@ class Element():
                 assert()
         signal.set_data(value)
         data_len = len(signal)
-        self.circuit.update_signal_len(data_len)
+        self.circuit.system.update_signal_len(data_len)
 
     @property
     def key(self):
@@ -679,40 +708,32 @@ class Element():
     
 class Node():
     def __init__(self, circuit: Circuit, elements: list[Element]) -> None:
+        self.system = circuit.system
         self.circuit = circuit
         self.elements = elements
 
     def __repr__(self) -> str:
-        return str(self.index)
+        el_str = ''
+        for element in self.elements:
+            el_str += str(element) + ','
+        el_str = el_str[:-1]    # remove last comma
+        return f'Node({self.index}:{el_str})'
     
     def num_elements(self):
         return len(self.elements)
 
     @property
     def index(self) -> int:
-        key_list = list(self.circuit.nodes.keys())
-        val_list = list(self.circuit.nodes.values())
-        position = val_list.index(self)
-        return key_list[position]
+        return self.circuit.nodes.index(self)
 
     def prep_for_delete(self):
-        '''remove all references to this Node and clear any data it holds'''
-        # self.remove_self_from_elements()
         for element in self.elements:
             assert element.low != self and element.high != self
         self.clear()
 
     def clear(self):
-        '''clear any data this Node holds'''
         self.circuit = None
         self.elements = []
-
-    # def remove_self_from_elements(self):
-    #     for element in self.elements:
-    #         if(element.low == self):
-    #             element.low = None
-    #         if(element.high == self):
-    #             element.high = None
 
     def add_element(self, element: Element):
         if(element not in self.elements):
@@ -729,7 +750,7 @@ class Signal():
         self.element = element
         self._data = data
         if(self.element != None):
-            self.element.circuit.update_signal_len(len(self._data))
+            self.element.circuit.system.update_signal_len(len(self._data))
 
     def get_data(self):
         return self._data
@@ -753,15 +774,6 @@ class Signal():
     
     def __setitem__(self, key, value):
         self._data[key] = value
-
-    def __eq__(self, other:'Signal') -> bool:
-        assert isinstance(other,Signal)
-        if(len(self) != len(other)):
-            return False
-        for i in range(len(self)):
-            if(self[i] != other[i]):
-                return False
-        return True
     
     def __neg__(self):
         data = []
