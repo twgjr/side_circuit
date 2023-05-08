@@ -52,12 +52,18 @@ class TestLearning(unittest.TestCase):
         ch_ivs = child.elements[0]
         ch_sw = child.elements[1]
         ch_r = child.elements[2]
-        par_ivs.v = [1.0,-0.0]
+        par_ivs.v = [1.0,0.0]
         ch_ivs.v = [0.1,0.1]
         par_r.a = 1.0
         ch_r.a = 1.0
         trainer = Trainer(system,self.learning_rate)
         pred,loss,epoch = trainer.run(self.max_epochs, self.stable_threshold)
         system.load(pred)
+        test_par_r_i = Signal(None,[1.0,0.0])
+        self.assertTrue(self.is_close(par_r.i_pred,test_par_r_i))
+        test_par_r_v = Signal(None,[1.0,0.0])
+        self.assertTrue(self.is_close(par_r.v_pred,test_par_r_v))
         test_ch_r_i = Signal(None,[0.1,0.0])
         self.assertTrue(self.is_close(ch_r.i_pred,test_ch_r_i))
+        test_ch_r_v = Signal(None,[0.1,0.0])
+        self.assertTrue(self.is_close(ch_r.v_pred,test_ch_r_v))

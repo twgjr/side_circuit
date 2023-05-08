@@ -32,10 +32,10 @@ class Coefficients(nn.Module):
                 mod_list.append(SwitchCoeff(element))
         return  nn.ModuleList(mod_list)
     
-    def forward(self):
+    def forward(self, time:int):
         coeff = torch.cat(tensors=(self.kcl,self.kvl), dim=0)
         for element in self.elements:
-            el_out = element()
+            el_out = element(time)
             coeff = torch.cat(tensors=(coeff,el_out), dim=0)
         return coeff
 
@@ -79,7 +79,7 @@ class ResistorCoeff(ElementModule):
             self.is_known = True
         self.params = Parameter(torch.tensor([init_val]))
 
-    def forward(self):
+    def forward(self,time:int):
         p = torch.zeros(self.num_nodes)
         z = torch.zeros(self.num_elements)
         z[self.pos] = -self.params
@@ -91,7 +91,7 @@ class VoltageSourceCoeff(ElementModule):
     def __init__(self, element):
         super().__init__(element)
 
-    def forward(self):
+    def forward(self,time:int):
         p = torch.zeros(self.num_nodes)
         z = torch.zeros(self.num_elements)
         y = torch.zeros(self.num_elements)
@@ -102,7 +102,7 @@ class VoltageControlCoeff(ElementModule):
     def __init__(self, element):
         super().__init__(element)
 
-    def forward(self):
+    def forward(self,time:int):
         p = torch.zeros(self.num_nodes)
         z = torch.zeros(self.num_elements)
         y = torch.zeros(self.num_elements)
@@ -112,13 +112,14 @@ class VoltageControlCoeff(ElementModule):
 class SwitchCoeff(ElementModule):
     def __init__(self, element:Element):
         super().__init__(element)
-        self.params = Parameter(torch.tensor([0.0]))
+        sig_len = self.element.circuit.system.signal_len
+        self.params = Parameter(torch.tensor([0.0]*sig_len))
 
-    def forward(self):
+    def forward(self,time:int):
         p = torch.zeros(self.num_nodes)
         z = torch.zeros(self.num_elements)
         y = torch.zeros(self.num_elements)
-        if(self.params > 0):
+        if(torch.sigmoid(self.params[time]) > 0.5):
             y[self.pos] = 1.0
         else:
             z[self.pos] = 1.0
@@ -200,7 +201,7 @@ class CircuitModule(nn.Module):
         return params_list
 
     def forward(self,time:int):
-        A = self.A()
+        A = self.A(time)
         b = self.b(time)
         solution_out:Tensor = solve(A[1:,:-1],b[1:,:])
         split = self.circuit.num_elements()
