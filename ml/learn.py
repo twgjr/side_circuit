@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.optim import Adam
-from models import Cell
+from circuits import System,Props
+from models import SystemModule
 from data import Data
 
 class Stability():
@@ -30,98 +31,62 @@ class Stability():
         return ret_bool
 
 class Trainer():
-    def __init__(self, data:Data, init_learn_rate:float) -> None:
-        self.data = data
-        self.model = Cell(data=data)
+    def __init__(self, system:System, init_learn_rate:float) -> None:
+        self.data = Data(system)
+        self.model = SystemModule(system)
         self.optimizer = Adam(params=self.model.parameters(),lr=init_learn_rate)
         self.loss_fn = nn.MSELoss()
-        self.dataset = data.init_dataset()
-        self.mask = torch.tensor(data.data_mask_list()).to(torch.bool).unsqueeze(1)
-        (self.i_mask,self.v_mask) = self.data.split_input_output(self.mask)
-
-    def step_cell(self,input:Tensor):
-        '''processes one time step of the sequence'''
-        out = self.model.forward(input)
-        loss = self.loss_fn(out[self.mask], input[self.mask])
-        return loss,out
     
     def step_sequence(self):
-        '''Calls step() for each item in self.dataset. Returns the total
-          loss, the model parameters, and the output of the model for each time
-          step.'''
-        loss_list = []
-        input = None
-        out_list = []
-        for input in self.dataset:
-            loss, out = self.step_cell(input)
-            out_list.append(out)
-            loss_list.append(loss)
-        total_loss = sum(loss_list)
+        '''Returns the total loss, the model parameters, and the output of the 
+        model for each time step.'''
+        system_sequence = []
+        for t in range(len(self.data.sequence)):
+            ckt_out_list,sw_err_out_list = self.model.forward(t)
+            system_sequence.append({'circuits':ckt_out_list,
+                                    'switches':sw_err_out_list})
+        sequence_loss_list = []
+        for t,sys_step in enumerate(system_sequence):
+            ckt_out_list = sys_step['circuits']
+            sw_out_list = sys_step['switches']
+            for c,ckt_out in enumerate(ckt_out_list):
+                ckt_data = self.data.sequence[t].circuits[c]
+                ckt_mask = self.data.masks[c]
+                for key in ckt_mask:
+                    if(key==Props.A):
+                        continue
+                    pred_mask = ckt_mask[key]
+                    pred_prop = ckt_out[key]
+                    pred_knowns = pred_prop[pred_mask]
+                    knowns = ckt_data[key]
+                    loss = self.loss_fn(pred_knowns, knowns)
+                    sequence_loss_list.append(loss)
+            for sw_err_out in sw_out_list:
+                sw_loss = self.loss_fn(sw_err_out, torch.zeros_like(sw_err_out))
+                sequence_loss_list.append(sw_loss)
+        total_loss = sum(sequence_loss_list)
         self.model.zero_grad()
         total_loss.backward()
         self.model.zero_known_grads()
         self.optimizer.step()
         self.model.clamp_params()
-        return total_loss, out_list
+        return total_loss, system_sequence
     
-    def calc_params(self, preds_list:list[Tensor], knowns_list:list[Tensor]):
-        '''Directly calculates the attributes of the circuit given the predicted
-          values and the known values.  Returns the average of the parameters 
-          across all time steps.'''
-        avg_list = []
-        for preds, knowns in zip(preds_list, knowns_list):
-            avg_list.append(self.calc_params_single(preds,knowns))
-        combined = torch.cat(avg_list,dim=1)
-        mean_params = torch.mean(combined,dim=1,keepdim=False)
-        return mean_params
-    
-    def calc_params_single(self, preds:Tensor, knowns:Tensor):
-        '''Directly calculates the circuit attribute values based on the known
-        values and the most recent predictions based on one time step.'''
-        assert(preds.shape == (2*self.data.circuit.num_elements(),1))
-        assert(preds.shape == knowns.shape)
-        with torch.no_grad():
-            i,v = self.data.split_input_output(preds)
-            i_known,v_known = self.data.split_input_output(knowns)
-            # i_known_mask,v_known_mask = self.data.split_input_output(knowns_mask)
-            i[self.i_mask] = i_known[self.i_mask]
-            v[self.v_mask] = v_known[self.v_mask]
-            r_mask = self.data.r_mask
-            # self.params[r_mask] = v[r_mask]/i[r_mask]
-            r_params = torch.zeros(size=(self.data.circuit.num_elements(),1))
-            eps = 1e-15
-            r_params[r_mask] = (v[r_mask]+eps)/(i[r_mask]+eps)
-            return r_params
-
-
     def run(self, epochs, stable_threshold:float):
         self.model.train()
-        loss = None
-        params = self.model.params
-        out_list = [torch.tensor([0.0]*2*len(self.data.circuit.elements))
-                    .unsqueeze(1).float()]*self.data.circuit.signal_len
-        attr_stability = Stability([params], stable_threshold)
-        preds_stability = Stability(out_list, stable_threshold)
+        params = list(self.model.parameters())
+        loss, pred_list = self.step_sequence()
+        param_stability = Stability(params, stable_threshold)
         epoch = 0
-        reset_count = 0
         while(epoch < epochs):
-            loss, out_list = self.step_sequence()
+            loss, pred_list = self.step_sequence()
             epoch += 1
-            params = self.model.params
-            if(epoch % 2 == 1):
-                if(attr_stability.is_stable([params]) and 
-                    preds_stability.is_stable(out_list)):
+            params = list(self.model.parameters())
+            if(epoch % 100 == 99):
+                if(param_stability.is_stable(params)):
                     print('threshold met')
                     break
-                params_recalc = self.calc_params(out_list, self.dataset)
-                self.model.set_param_vals(params_recalc)
-                reset_count += 1
-        print(f'reset_count = {reset_count}')
-        params_recalc = self.calc_params(out_list, self.dataset)
-        self.model.set_param_vals(params_recalc)
-        i_sol, v_sol = self.data.denorm_input_output(out_list)
-        a_sol = self.data.denorm_params(params)
-        return i_sol, v_sol, a_sol, loss, epoch
+        return pred_list, loss, epoch
     
     def get_lr(self,optimizer):
         for param_group in optimizer.param_groups:
