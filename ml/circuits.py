@@ -10,11 +10,14 @@ class Kinds(Enum):
     VC = 3
     CC = 4
     SW = 5
+    L = 6
+    C = 7
 
 class Props(Enum):
     I = 0
     V = 1
     A = 2
+    D = 3
 
 class System():
     '''Collection of isolated Circuits that are only connected by parent/child
@@ -26,16 +29,18 @@ class System():
         self.circuits: list[Circuit] = []
         self.elements: list[Element] = []
         self.nodes: list[Node] = []
-        self.i_base = 0
-        self.v_base = 0
-        self.r_base = 0
+        self.i_base = 1
+        self.v_base = 1
+        self.r_base = 1
+        self.l_base = 1
+        self.c_base = 1
         self.signal_len = 0
+        self.dt = 1e-6
 
     def load(self, pred):
         for t,pred_t in enumerate(pred):
-            pred_ckts = pred_t['circuits']
             for c,circuit in enumerate(self.circuits):
-                circuit.load(pred_ckts[c],t)
+                circuit.load(pred_t[c],t)
 
     def update_signal_len(self, signal_len:int):
         if(signal_len == 0):
@@ -236,51 +241,25 @@ class System():
     
     def update_bases(self):
         i_sigs = []
-        i_knowns = []
         v_sigs = []
-        v_knowns = []
         r_vals = []
-        r_knowns = []
+        l_vals = []
+        c_vals = []
         for circuit in self.circuits:
             i_sigs += circuit.prop_list(Props.I)
             v_sigs += circuit.prop_list(Props.V)
             r_vals += circuit.attr_list(Kinds.R)
-            i_knowns += circuit.prop_mask(Props.I)
-            v_knowns += circuit.prop_mask(Props.V)
-            r_knowns += circuit.attr_mask(Kinds.R)
-        i_has_knowns = True in i_knowns
-        v_has_knowns = True in v_knowns
-        r_has_knowns = True in r_knowns
+            l_vals += circuit.attr_list(Kinds.L)
+            c_vals += circuit.attr_list(Kinds.C)
         i_base = self.signals_base(i_sigs)
         v_base = self.signals_base(v_sigs)
         r_base = self.values_base(r_vals)
-        if(not i_has_knowns and not v_has_knowns and not r_has_knowns):
-            i_base = 1
-            v_base = 1
-            r_base = 1
-        elif(not i_has_knowns and not v_has_knowns and r_has_knowns):
-            i_base = 1/r_base
-            v_base = r_base
-        elif(not i_has_knowns and v_has_knowns and not r_has_knowns):
-            i_base = v_base
-            r_base = v_base
-        elif(not i_has_knowns and v_has_knowns and r_has_knowns):
-            i_base = v_base/r_base
-        elif(i_has_knowns and not v_has_knowns and not r_has_knowns):
-            v_base = i_base
-            r_base = 1/i_base
-        elif(i_has_knowns and not v_has_knowns and r_has_knowns):
-            v_base = i_base*r_base
-        elif(i_has_knowns and v_has_knowns and not r_has_knowns):
-            r_base = v_base/i_base
-        elif(i_has_knowns and v_has_knowns and r_has_knowns):
-            pass
-        self.i_base = i_base
-        self.v_base = v_base
-        self.r_base = r_base
+        l_base = self.values_base(l_vals)
+        c_base = self.values_base(c_vals)
+        return {'i':i_base,'v':v_base,'r':r_base,'l':l_base,'c':c_base}
     
-    def signals_base(self, signals:list['Signal'], eps:float=1e-12) -> float:
-        input_max = 0
+    def signals_base(self, signals:list['Signal']) -> float:
+        input_max = 1
         for signal in signals:
             if(signal.is_empty()):
                 continue
@@ -290,24 +269,17 @@ class System():
                     abs_val = abs(val)
                     if(abs_val > input_max):
                         input_max = abs_val
-        if(input_max < eps):
-            return eps
-        else:
-            return input_max
+        return input_max
         
-        
-    def values_base(self, values:list[float], eps:float=1e-12) -> float:
-        input_max = 0
+    def values_base(self, values:list[float]) -> float:
+        input_max = 1
         for val in values:
             if(val == None):
                 continue
             abs_val = abs(val)
             if(abs_val > input_max):
                 input_max = abs_val
-        if(input_max < eps):
-            return eps
-        else:
-            return input_max
+        return input_max
 
 class Circuit():
     '''A Circuit is a subset collection of Nodes and Elements from the System'''
@@ -439,6 +411,10 @@ class Circuit():
                     element.a_pred = norm_a * self.system.i_base
                 elif(element.kind == Kinds.SW):
                     pass
+                elif(element.kind == Kinds.C):
+                    element.a_pred = norm_a * self.system.c_base
+                elif(element.kind == Kinds.L):
+                    element.a_pred = norm_a * self.system.l_base
                 else:
                     assert()
     

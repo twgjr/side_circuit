@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch import Tensor
 from torch.optim import Adam
 from circuits import System,Props
-from models import SystemModule
+from models import DynamicModule
 from data import Data
 
 class Stability():
@@ -33,38 +33,34 @@ class Stability():
 class Trainer():
     def __init__(self, system:System, init_learn_rate:float) -> None:
         self.data = Data(system)
-        self.model = SystemModule(system)
+        self.model = DynamicModule(system)
         self.optimizer = Adam(params=self.model.parameters(),lr=init_learn_rate)
         self.loss_fn = nn.MSELoss()
     
     def step_sequence(self):
         '''Returns the total loss, the model parameters, and the output of the 
-        model for each time step.'''
-        system_sequence = []
-        for t in range(len(self.data.sequence)):
-            ckt_out_list,sw_err_out_list = self.model.forward(t)
-            system_sequence.append({'circuits':ckt_out_list,
-                                    'switches':sw_err_out_list})
+        model for all time steps.'''
+        dyn_out = self.model.forward()
+        system_sequence = dyn_out['sys_seq']
+        sw_err_out = dyn_out['sw_err']
+        delta_err_out = dyn_out['delta_err']
         sequence_loss_list = []
-        for t,sys_step in enumerate(system_sequence):
-            ckt_out_list = sys_step['circuits']
-            sw_out_list = sys_step['switches']
-            for c,ckt_out in enumerate(ckt_out_list):
-                ckt_data = self.data.sequence[t].circuits[c]
-                ckt_mask = self.data.masks[c]
-                for key in ckt_mask:
+        for t,sys_t in enumerate(system_sequence):
+            for c,ckt_t_out in enumerate(sys_t):
+                ckt_t_data = self.data.sequence[t].circuits[c]
+                ckt_t_mask = self.data.masks[c]
+                for key in ckt_t_mask:
                     if(key==Props.A):
                         continue
-                    pred_mask = ckt_mask[key]
-                    pred_prop = ckt_out[key]
+                    pred_mask = ckt_t_mask[key]
+                    pred_prop = ckt_t_out[key]
                     pred_knowns = pred_prop[pred_mask]
-                    knowns = ckt_data[key]
+                    knowns = ckt_t_data[key]
                     loss = self.loss_fn(pred_knowns, knowns)
                     sequence_loss_list.append(loss)
-            for sw_err_out in sw_out_list:
-                sw_loss = self.loss_fn(sw_err_out, torch.zeros_like(sw_err_out))
-                sequence_loss_list.append(sw_loss)
-        total_loss = sum(sequence_loss_list)
+        sw_loss = self.loss_fn(sw_err_out, torch.zeros_like(sw_err_out))
+        delta_loss = self.loss_fn(delta_err_out, torch.zeros_like(delta_err_out))
+        total_loss = sum(sequence_loss_list) + sw_loss + delta_loss
         self.model.zero_grad()
         total_loss.backward()
         self.model.zero_known_grads()

@@ -2,6 +2,7 @@ import unittest
 from circuits import Kinds,Signal,System
 from learn import Trainer
 import torch
+import math
 
 class TestLearning(unittest.TestCase):
     def __init__(self, methodName: str = "runTest") -> None:
@@ -67,3 +68,27 @@ class TestLearning(unittest.TestCase):
         self.assertTrue(self.is_close(ch_r.i_pred,test_ch_r_i))
         test_ch_r_v = Signal(None,[0.1,0.0])
         self.assertTrue(self.is_close(ch_r.v_pred,test_ch_r_v))
+
+    def test_RC_low_pass_steady_state(self):
+        system = System()
+        ivs = system.add_element_of(Kinds.IVS)
+        r = system.add_element_of(Kinds.R)
+        c = system.add_element_of(Kinds.C)
+        system.connect(ivs.high,r.high)
+        system.connect(r.low,c.high)
+        system.connect(c.low,ivs.low)
+        # using the default sample dt of 1us (1kHz)
+        num_periods = 1
+        period_samples = 10
+        frequency = period_samples/system.dt
+        p = 2*math.pi/period_samples
+        per_rads = [i*p for i in range(period_samples)] * num_periods
+        ivs.v = int(period_samples/2)*[1] + int(period_samples/2)*[-1]  # 100Hz square wave
+        c.v = [math.sin(rad) for rad in per_rads] * num_periods # 100Hz cos wave
+        trainer = Trainer(system,self.learning_rate)
+        pred,loss,epoch = trainer.run(self.max_epochs,self.stable_threshold)
+        system.load(pred)
+        self.assertTrue(self.is_close(-ivs.i_pred,res_top.i_pred))
+        self.assertTrue(self.is_close(res_top.i_pred,load.i_pred))
+        self.assertTrue(self.is_close(ivs.v,ivs.v_pred))
+        self.assertTrue(self.is_close(load.v,load.v_pred))
