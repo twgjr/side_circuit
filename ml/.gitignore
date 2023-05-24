@@ -1,0 +1,34 @@
+# Python and Jupyter Notebook .gitignore
+
+# Ignore compiled Python bytecode
+*.pyc
+
+# Ignore Python virtual environments
+venv/
+env/
+*.env
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Exclude the _working folder at the top level
+/_working/
+
+# Ignore Jupyter Notebook kernel connection files
+*.json
+
+# Ignore Jupyter Notebook output files
+*.html
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+
+# Ignore Jupyter Notebook metadata
+.ipynb_meta/
+
+# Ignore Jupyter Notebook execution logs
+execution_history.json
+execution_history.sqlite

@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch import Tensor
 from torch.optim import Adam
 from circuits import System,Props
-from models import DynamicModule
+from models import DynamicModule,SystemModule
 from data import Data
 
 class Stability():
@@ -31,23 +31,24 @@ class Stability():
         return ret_bool
 
 class Trainer():
-    def __init__(self, system:System, init_learn_rate:float) -> None:
-        self.data = Data(system)
+    def __init__(self, system:System, learn_rate:float) -> None:
         self.model = DynamicModule(system)
-        self.optimizer = Adam(params=self.model.parameters(),lr=init_learn_rate)
+        self.data = Data(system,self.model)
+        self.learn_rate = learn_rate
+        self.optimizer = None
         self.loss_fn = nn.MSELoss()
+
+    def init_optimizer(self):
+        self.optimizer = Adam(params=self.model.parameters(),lr=self.learn_rate)
     
     def step_sequence(self):
         '''Returns the total loss, the model parameters, and the output of the 
         model for all time steps.'''
-        dyn_out = self.model.forward()
-        system_sequence = dyn_out['sys_seq']
-        sw_err_out = dyn_out['sw_err']
-        delta_err_out = dyn_out['delta_err']
+        system_sequence,sw_err_out,delta_err_out = self.model.forward()
         sequence_loss_list = []
-        for t,sys_t in enumerate(system_sequence):
+        for time,sys_t in system_sequence.items():
             for c,ckt_t_out in enumerate(sys_t):
-                ckt_t_data = self.data.sequence[t].circuits[c]
+                ckt_t_data = self.data.sequence[time].circuits[c]
                 ckt_t_mask = self.data.masks[c]
                 for key in ckt_t_mask:
                     if(key==Props.A):
@@ -55,6 +56,7 @@ class Trainer():
                     pred_mask = ckt_t_mask[key]
                     pred_prop = ckt_t_out[key]
                     pred_knowns = pred_prop[pred_mask]
+                    if(len(pred_knowns)==0):continue
                     knowns = ckt_t_data[key]
                     loss = self.loss_fn(pred_knowns, knowns)
                     sequence_loss_list.append(loss)
@@ -62,26 +64,32 @@ class Trainer():
         delta_loss = self.loss_fn(delta_err_out, torch.zeros_like(delta_err_out))
         total_loss = sum(sequence_loss_list) + sw_loss + delta_loss
         self.model.zero_grad()
+        # if(sw_loss.requires_grad):
+        #     sw_loss.backward(retain_graph=True)
+        # if(delta_loss.requires_grad):
+        #     delta_loss.backward(retain_graph=True)
+        # if(seq_loss.requires_grad):
+        #     seq_loss.backward()
         total_loss.backward()
-        self.model.zero_known_grads()
+        self.init_optimizer()
         self.optimizer.step()
         self.model.clamp_params()
         return total_loss, system_sequence
     
     def run(self, epochs, stable_threshold:float):
-        self.model.train()
-        params = list(self.model.parameters())
+        # self.model.train()
+        # params = list(self.model.parameters())
         loss, pred_list = self.step_sequence()
-        param_stability = Stability(params, stable_threshold)
+        # param_stability = Stability(params, stable_threshold)
         epoch = 0
         while(epoch < epochs):
             loss, pred_list = self.step_sequence()
             epoch += 1
-            params = list(self.model.parameters())
-            if(epoch % 100 == 99):
-                if(param_stability.is_stable(params)):
-                    print('threshold met')
-                    break
+            # params = list(self.model.parameters())
+            # if(epoch % 200 == 199):
+            #     if(param_stability.is_stable(params)):
+            #         print('threshold met')
+            #         break
         return pred_list, loss, epoch
     
     def get_lr(self,optimizer):
