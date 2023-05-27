@@ -14,7 +14,7 @@ class Kinds(Enum):
     L = 6
     C = 7
     VG = 8
-    IG = 9
+    CG = 9
 
 class Props(Enum):
     I = 0
@@ -32,12 +32,6 @@ class System():
         self.circuits: list[Circuit] = []
         self.elements: list[Element] = []
         self.nodes: list[Node] = []
-        # self.i_base = 1
-        # self.v_base = 1
-        # self.r_base = 1
-        # self.l_base = 1
-        # self.c_base = 1
-        self.dt = 1e-6
 
     def load(self, pred):
         for t,pred_t in enumerate(pred):
