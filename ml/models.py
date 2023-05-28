@@ -175,7 +175,7 @@ class CircuitModule(nn.Module):
             elements = self.b.elements
         for module in elements:
             module:ElementCoeff
-            attr_list.append(module.values.get_param(time,static=True))
+            attr_list.append(module.values.get_param(time))#,static=True))
         return attr_list
 
     def forward(self, time:float, time_prev:float):
@@ -212,7 +212,15 @@ class ControlledElementError(nn.Module):
         self.p_ckt_idx = self.parent.circuit.index
 
     def forward(self, ckt_list:list[tuple[Tensor]]) -> Tensor:
-        a = ckt_list[self.ckt_idx][Props.A][self.idx]
+        prop = None
+        if(self.element.kind == Kinds.SW):
+            prop = Props.A
+        elif(self.element.kind == Kinds.CG or self.element.kind == Kinds.VG):
+            prop = Props.B
+        else:
+            assert()
+        a = ckt_list[self.ckt_idx][prop][self.idx]
+        
         if(self.element.kind == Kinds.SW or self.element.kind == Kinds.VG or
            self.element.kind == Kinds.CG):
             if(self.parent.kind == Kinds.VC):
@@ -260,7 +268,7 @@ class SystemModule(nn.Module):
             sys_out.append(circuit_output)
         for ctrl_el_err in self.ctrl_el_err_list:
             ctrl_el_err:ControlledElementError
-            ctrl_el_err_out += ctrl_el_err.forward(time,sys_out)
+            ctrl_el_err_out += ctrl_el_err.forward(sys_out)
         return (sys_out, ctrl_el_err_out)
 
     def clamp_params(self):
@@ -366,13 +374,13 @@ class TimeSeries(nn.Module):
             param:Parameter = self._params[key]
             param.requires_grad = False
 
-    def get_param(self,time:float, static:bool=False):
+    def get_param(self,time:float):#, static:bool=False):
         key = str(time).replace(".", "_")
         if(key in self._params):
             return self._params[key]
         else:
-            if(static == True):
-                return None
+            # if(static == True):
+            #     return None
             self._params[key] = Parameter(torch.tensor(1.0))
             return self._params[key]
         

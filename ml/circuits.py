@@ -33,10 +33,11 @@ class System():
         self.elements: list[Element] = []
         self.nodes: list[Node] = []
 
-    def load(self, pred):
-        for t,pred_t in enumerate(pred):
+    def load(self, pred:dict):
+        for time in pred:
+            pred_t = pred[time]
             for c,circuit in enumerate(self.circuits):
-                circuit.load(pred_t[c],t)
+                circuit.load(pred_t[c],time)
 
     def num_circuits(self) -> int:
         return len(self.circuits)
@@ -96,8 +97,9 @@ class System():
 
     def add_element_pair(self, parent_kind:Kinds, 
                         child_kind:Kinds) -> tuple['Element','Element']:
-        assert(parent_kind == Kinds.VC)
-        assert(child_kind == Kinds.SW)
+        assert(parent_kind == Kinds.VC or parent_kind == Kinds.CC)
+        assert(child_kind == Kinds.SW or child_kind == Kinds.VG or
+               child_kind == Kinds.CG)
         parent = self.add_element_of(parent_kind)
         child = self.add_element_of(child_kind)
         child.parent = parent
@@ -374,41 +376,21 @@ class Circuit():
             if(element != from_element):
                 return element
 
-    def load(self, pred_ckt_t:dict[str:Tensor], time:int):
+    def load(self, pred_ckt_t:dict[str:Tensor], time:float):
         '''Stores predictions from Trainer in Circuit'''
         for e,element in enumerate(self.elements):
-            # denorm_i = pred_ckt_t[Props.I][e].item() * self.system.i_base
-            # denorm_v = pred_ckt_t[Props.V][e].item() * self.system.v_base
-            denorm_i = pred_ckt_t[Props.I][e].item()
-            denorm_v = pred_ckt_t[Props.V][e].item()
-            element.i_pred[time] = denorm_i
-            element.v_pred[time] = denorm_v
+            element.i_pred[time] = pred_ckt_t[Props.I][e].item()
+            element.v_pred[time] = pred_ckt_t[Props.V][e].item()
             if(time > 0): continue
-            if(pred_ckt_t[Props.A][e] != None):
-                norm_a = None
-                if(element.kind != Kinds.VC):
-                    norm_a = pred_ckt_t[Props.A][e].item()  
-                if(element.kind == Kinds.R):
-                    # element.a_pred = norm_a * self.system.r_base
-                    element.a_pred = norm_a
-                elif(element.kind == Kinds.IVS):
-                    # element.a_pred = norm_a * self.system.v_base
-                    element.a_pred = norm_a
-                elif(element.kind == Kinds.VC):
-                    pass
-                elif(element.kind == Kinds.ICS):
-                    # element.a_pred = norm_a * self.system.i_base
-                    element.a_pred = norm_a
-                elif(element.kind == Kinds.SW):
-                    pass
-                elif(element.kind == Kinds.C):
-                    # element.a_pred = norm_a * self.system.c_base
-                    element.a_pred = norm_a
-                elif(element.kind == Kinds.L):
-                    # element.a_pred = norm_a * self.system.l_base
-                    element.a_pred = norm_a
-                else:
-                    assert()
+            if(element.kind == Kinds.VC or element.kind == Kinds.CC): continue
+            if(element.kind == Kinds.R or element.kind == Kinds.L or
+                element.kind == Kinds.C or element.kind == Kinds.SW):
+                element.a_pred = pred_ckt_t[Props.A][e].item()
+            elif(element.kind == Kinds.VG or element.kind == Kinds.CG or
+                 element.kind == Kinds.IVS or element.kind == Kinds.ICS):
+                element.a_pred = pred_ckt_t[Props.B][e].item()
+            else:
+                assert()
     
     def kind_list(self, kind:Kinds, with_control:Kinds=None) -> list[bool]:
         '''returns a list of booleans indicating which elements are of kind'''
@@ -662,12 +644,12 @@ class Signal():
     def __eq__(self, obj) -> bool:
         if(not isinstance(obj,Signal)):
             return False
-        if(len(self.items() != len(obj.items()))):
+        if(len(self) != len(obj)):
             return False
-        for time,value in self.items():
-            if(time not in obj.items()):
+        for time in self:
+            if(time not in obj):
                 return False
-            if(not isclose(obj[time],value)):
+            if(not isclose(obj[time],self[time],rel_tol=1e-6)):
                 return False
         return True
     

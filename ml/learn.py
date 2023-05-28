@@ -87,7 +87,7 @@ class Trainer():
         stat_loss = self.loss_fn(stat_el_err_out, torch.zeros_like(stat_el_err_out))
         delta_loss = self.loss_fn(delta_err_out, torch.zeros_like(delta_err_out))
         sequence_loss = sum(sequence_loss_list)
-        total_loss = sequence_loss + stat_loss + delta_loss #+ dyn_loss
+        total_loss = sequence_loss + stat_loss + delta_loss
         num_optimizer_params = sum(p.numel() for p in self.optimizer.param_groups[0]['params'])
         num_model_params = sum(p.numel() for p in self.model.parameters())
         if(num_optimizer_params != num_model_params):
@@ -113,7 +113,6 @@ class Trainer():
             if(epoch % 10 == 9):
                 with torch.no_grad():
                     self.reinforce(system_sequence)
-
             params = list(self.model.parameters())
             if(len(params)>len(param_stability.param_list)):
                 param_stability = ParamStability(params, stable_threshold)
@@ -122,7 +121,6 @@ class Trainer():
                 state = param_stability.check_stable(params)
                 if(state==States.FINE):
                     break
-
             epoch += 1
         return system_sequence, loss, epoch
     

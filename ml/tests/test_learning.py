@@ -29,20 +29,18 @@ class TestLearning(unittest.TestCase):
 
     def test_gain(self):
         system = System()
-        circuit = system.add_circuit()
         ivs = system.add_element_of(Kinds.IVS)
         vc_res = system.add_element_of(Kinds.R)
-        vc = system.add_element_of(Kinds.VC)
-        vg = system.add_element_of(Kinds.VG)
-        res = circuit.elements[2]
+        vc, vg = system.add_element_pair(Kinds.VC,Kinds.VG)
+        res = system.add_element_of(Kinds.R)
         system.connect(ivs.high,vc_res.high)
         system.connect(ivs.low,vc_res.low)
         system.connect(ivs.high,vc.high)
         system.connect(ivs.low,vc.low)
         system.connect(vg.high,res.high)
         system.connect(vg.low,res.low)
-        ivs.v = [0.1]
-        res.v = [1.0]
+        ivs.v[0.0] = 0.1
+        res.v[0.0] = 0.5
         trainer = Trainer(system,self.learning_rate)
         pred,loss,epoch = trainer.run(self.max_epochs,self.stable_threshold)
         system.load(pred)
