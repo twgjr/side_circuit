@@ -42,20 +42,9 @@ class ElementCoeff(nn.Module):
         self.element = element
         self.num_elements = element.circuit.num_elements()
         self.num_nodes = element.circuit.num_nodes()
-        self.ckt_idx = element.circuit.index
         self.idx = element.index
-        self.p_ckt_idx = None
-        self.p_idx = None
-        self.p_prop = None
-        if(element.has_parent()):
-            self.p_ckt_idx = element.parent.circuit.index
-            self.p_idx = element.parent.index
-            if(element.parent.kind == Kinds.VC): self.p_prop = Props.V 
-            elif(element.parent.kind == Kinds.CC): self.p_prop = Props.I
-            else: assert()
-        self.is_known:bool = False
         self.values = TimeSeries(self.time_set)
-        for time,value in element.a:
+        for time,value in element.a.items():
             self.values.set_param(time,value)
 
     def forward(self, time:float, time_prev:float):
@@ -63,24 +52,24 @@ class ElementCoeff(nn.Module):
         y = torch.zeros(self.num_elements)
         p = torch.zeros(self.num_nodes)
         if(self.element.kind == Kinds.R):
-            z[self.idx] = self.values(0.0)
+            z[self.idx] = self.values.forward(0.0)
             y[self.idx] = -1.0
         elif(self.element.kind == Kinds.C):
             dt = time - time_prev
-            z[self.idx] = dt/self.values(0.0)
+            z[self.idx] = dt/self.values.forward(0.0)
             y[self.idx] = -1.0
         elif(self.element.kind == Kinds.L):
             dt = time - time_prev
             z[self.idx] = -1.0
-            y[self.idx] = dt/self.values(0.0)
-        elif(self.element.kind == Kinds.IVS or self.element.kind == Kinds.VG 
+            y[self.idx] = dt/self.values.forward(0.0)
+        elif(self.element.kind == Kinds.VS or self.element.kind == Kinds.VG 
              or self.element.kind == Kinds.CC):
             y[self.idx] = 1.0
-        elif(self.element.kind == Kinds.ICS or self.element.kind == Kinds.CG
+        elif(self.element.kind == Kinds.CS or self.element.kind == Kinds.CG
              or self.element.kind == Kinds.VC):
             z[self.idx] = 1.0
         elif(self.element.kind == Kinds.SW):
-            if(torch.sigmoid(self.values(time)) > 0.5):
+            if(torch.sigmoid(self.values.forward(time)) > 0.5):
                 y[self.idx] = 1.0
             else:
                 z[self.idx] = 1.0
@@ -88,7 +77,6 @@ class ElementCoeff(nn.Module):
         return torch.cat((z,y,p)).unsqueeze(0)
 
     def clamp_params(self):
-        # if(self.values != None):
         min = 1e-18
         max = 1e18
         for p in self.parameters():
@@ -137,9 +125,9 @@ class ElementConstant(nn.Module):
     
     def init_values(self):
         signal = None
-        if(self.element.kind == Kinds.IVS):
+        if(self.element.kind == Kinds.VS):
             signal = self.element.v
-        elif(self.element.kind == Kinds.ICS):
+        elif(self.element.kind == Kinds.CS):
             signal = self.element.i
         elif(self.element.kind == Kinds.VG):
             signal = self.element.parent.v
@@ -150,10 +138,10 @@ class ElementConstant(nn.Module):
             self.values.set_param(time,signal[time])
 
     def forward(self, time:float, time_prev:float):
-        if(self.element.kind == Kinds.IVS or self.element.kind == Kinds.ICS):
-            return self.values(time)
+        if(self.element.kind == Kinds.VS or self.element.kind == Kinds.CS):
+            return self.values.forward(time)
         if(self.element.kind == Kinds.L or self.element.kind == Kinds.C):
-            return self.values(time_prev) * self.gain(time)
+            return self.values.forward(time_prev) * self.gain.forward(time)
         else:
             return torch.tensor(0.0)
 
@@ -175,7 +163,7 @@ class CircuitModule(nn.Module):
             elements = self.b.elements
         for module in elements:
             module:ElementCoeff
-            attr_list.append(module.values.get_param(time))#,static=True))
+            attr_list.append(module.values.get_param_static(time))
         return attr_list
 
     def forward(self, time:float, time_prev:float):
@@ -278,7 +266,7 @@ class SystemModule(nn.Module):
 
 class TimeDeltaError(nn.Module):
     '''Let t0, t1, and t2 be times.  There are two time deltas t1-t0, and t2-t1.
-    But the model actually creats a parameter that represents the t1 when it is 
+    But the model actually creates a parameter that represents t1 when it is 
     used as a previous time (i.e. t2-t1_pri and t1-t0_pri).  This module 
     reconciles t0 with t0_pri and t1 with t1_pri so that they converge to the 
     same value.'''
@@ -310,7 +298,6 @@ class DynamicModule(nn.Module):
         self.system = system
         self.system_mod = SystemModule(system,self.timeset)
         self.time_errors = self.init_time_errors()
-        # self.dyn_el_errors = self.init_element_errors()
         self.timeset.sort()
 
     def init_time_errors(self):
@@ -374,15 +361,22 @@ class TimeSeries(nn.Module):
             param:Parameter = self._params[key]
             param.requires_grad = False
 
-    def get_param(self,time:float):#, static:bool=False):
+    def get_param_forward(self,time:float):
+        '''Returns the parameter already at that time, or creates one if missing'''
         key = str(time).replace(".", "_")
         if(key in self._params):
             return self._params[key]
         else:
-            # if(static == True):
-            #     return None
             self._params[key] = Parameter(torch.tensor(1.0))
             return self._params[key]
+        
+    def get_param_static(self,time:float):
+        '''Returns the parameter without creating one if missing'''
+        key = str(time).replace(".", "_")
+        if(key in self._params):
+            return self._params[key]
+        else:
+            return None
         
     def reinforce_param(self, time:float, value:float):
         assert(isinstance(time,float))
@@ -390,4 +384,4 @@ class TimeSeries(nn.Module):
         self._params[key] = Parameter(torch.tensor(value))
         
     def forward(self,time:float):
-        return self.get_param(time)
+        return self.get_param_forward(time)

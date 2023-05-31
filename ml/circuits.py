@@ -5,8 +5,8 @@ from torch import Tensor
 from math import isclose
 
 class Kinds(Enum):
-    IVS = 0
-    ICS = 1
+    VS = 0
+    CS = 1
     R = 2
     VC = 3
     CC = 4
@@ -178,8 +178,8 @@ class System():
         '''one source and one load, with a switch in series. The switch control
         has a separate voltage source  and resistor in parallel.'''
         self.prep_for_delete()
-        child_src = self.add_element_of(Kinds.IVS)
-        parent_src = self.add_element_of(Kinds.IVS)
+        child_src = self.add_element_of(Kinds.VS)
+        parent_src = self.add_element_of(Kinds.VS)
         child_res = self.add_element_of(Kinds.R)
         parent_res = self.add_element_of(Kinds.R)
         parent, child = self.add_element_pair(Kinds.VC, Kinds.SW)
@@ -385,10 +385,10 @@ class Circuit():
             if(element.kind == Kinds.VC or element.kind == Kinds.CC): continue
             if(element.kind == Kinds.R or element.kind == Kinds.L or
                 element.kind == Kinds.C or element.kind == Kinds.SW):
-                element.a_pred = pred_ckt_t[Props.A][e].item()
+                element.a_pred[time] = pred_ckt_t[Props.A][e].item()
             elif(element.kind == Kinds.VG or element.kind == Kinds.CG or
-                 element.kind == Kinds.IVS or element.kind == Kinds.ICS):
-                element.a_pred = pred_ckt_t[Props.B][e].item()
+                 element.kind == Kinds.VS or element.kind == Kinds.CS):
+                element.a_pred[time] = pred_ckt_t[Props.B][e].item()
             else:
                 assert()
     
@@ -450,7 +450,7 @@ class Circuit():
     def attr_mask(self, kind:Kinds) -> list[bool]:
         '''returns boolean mask of known element attributes ordered by element'''
         assert isinstance(kind,Kinds)
-        assert kind != Kinds.ICS and kind != Kinds.IVS
+        assert kind != Kinds.CS and kind != Kinds.VS
         attrs = self.attr_list(kind)
         ret_list = []
         for attr in attrs:
@@ -505,7 +505,7 @@ class Element():
         v = ('v',self.v)
         i = ('i',self.i)
         attr = None
-        if(self.kind == Kinds.ICS or self.kind == Kinds.IVS):
+        if(self.kind == Kinds.CS or self.kind == Kinds.VS):
             attr = ('attr',None)
         else:
             attr = ('attr',self.a)
@@ -641,15 +641,15 @@ class Signal():
     def __iter__(self):
         return iter(self._data)
     
-    def __eq__(self, obj) -> bool:
-        if(not isinstance(obj,Signal)):
+    def __eq__(self, signal) -> bool:
+        if(not isinstance(signal,Signal)):
             return False
-        if(len(self) != len(obj)):
+        if(len(self) != len(signal)):
             return False
         for time in self:
-            if(time not in obj):
+            if(time not in signal):
                 return False
-            if(not isclose(obj[time],self[time],rel_tol=1e-6)):
+            if(not isclose(signal[time],self[time],rel_tol=1e-6)):
                 return False
         return True
     
@@ -659,6 +659,38 @@ class Signal():
             data[key] = -value
         return Signal(element=self.element, data=data)
     
+    def __add__(self,signal):
+        assert(isinstance(signal,Signal))
+        assert(len(self)==len(signal))
+        sig_sum = {}
+        for time in self:
+            sig_sum[time] = self[time] + signal[time]
+        return Signal(None,sig_sum)
+
+    def __sub__(self,signal):
+        assert(isinstance(signal,Signal))
+        assert(len(self)==len(signal))
+        sig_sum = {}
+        for time in self:
+            sig_sum[time] = self[time] - signal[time]
+        return Signal(None,sig_sum)
+    
+    def __mul__(self,signal):
+        assert(isinstance(signal,Signal))
+        assert(len(self)==len(signal))
+        sig_sum = {}
+        for time in self:
+            sig_sum[time] = self[time] * signal[time]
+        return Signal(None,sig_sum)
+    
+    def __truediv__(self,signal):
+        assert(isinstance(signal,Signal))
+        assert(len(self)==len(signal))
+        sig_sum = {}
+        for time in self:
+            sig_sum[time] = self[time] / signal[time]
+        return Signal(None,sig_sum)
+
     def clear(self):
         self._data = {}
 

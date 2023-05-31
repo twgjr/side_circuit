@@ -58,6 +58,6 @@ class CircuitDataT():
                 if(len(element.v) > 0):
                     prop_list.append(element.v[time])
             elif(prop == Props.A):
-                if(element.a != None):
-                    prop_list.append(element.a)
+                if(len(element.a) > 0):
+                    prop_list.append(element.a[time])
         return torch.tensor(prop_list).float()

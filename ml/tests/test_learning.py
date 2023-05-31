@@ -11,9 +11,27 @@ class TestLearning(unittest.TestCase):
         self.learning_rate = 0.5e-1
         self.stable_threshold = 1e-10
 
-    def test_voltage_divider(self):
+    def test_voltage_divider_voltage(self):
         system = System()
-        circuit = system.ring(Kinds.IVS,Kinds.R,2)
+        circuit = system.ring(Kinds.VS,Kinds.R,2)
+        ivs = circuit.elements[0]
+        res_top = circuit.elements[1]
+        res_low = circuit.elements[2]
+        res_top.a[0.0] = 0.9
+        res_low.a[0.0] = 0.1
+        res_low.v[0.0] = 0.05
+        trainer = Trainer(system,self.learning_rate)
+        pred,loss,epoch = trainer.run(self.max_epochs,self.stable_threshold)
+        system.load(pred)
+        pred_low_volt_calc = ivs.v_pred*res_low.a_pred/(res_top.a_pred+res_low.a_pred)
+        self.assertTrue(res_top.a==res_top.a_pred)
+        self.assertTrue(res_low.a==res_low.a_pred)
+        self.assertTrue(res_low.v==res_low.v_pred)
+        self.assertTrue(res_low.v_pred==pred_low_volt_calc)
+
+    def test_voltage_divider_resistance(self):
+        system = System()
+        circuit = system.ring(Kinds.VS,Kinds.R,2)
         ivs = circuit.elements[0]
         res_top = circuit.elements[1]
         res_low = circuit.elements[2]
@@ -29,7 +47,7 @@ class TestLearning(unittest.TestCase):
 
     def test_gain(self):
         system = System()
-        ivs = system.add_element_of(Kinds.IVS)
+        ivs = system.add_element_of(Kinds.VS)
         vc_res = system.add_element_of(Kinds.R)
         vc, vg = system.add_element_pair(Kinds.VC,Kinds.VG)
         res = system.add_element_of(Kinds.R)
@@ -73,7 +91,7 @@ class TestLearning(unittest.TestCase):
 
     def test_RC_low_pass_steady_state(self):
         system = System()
-        ivs = system.add_element_of(Kinds.IVS)
+        ivs = system.add_element_of(Kinds.VS)
         r = system.add_element_of(Kinds.R)
         c = system.add_element_of(Kinds.C)
         system.connect(ivs.high,r.high)

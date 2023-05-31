@@ -67,8 +67,8 @@ class Trainer():
         model for all time steps.'''
         model_out = self.model.forward()
         system_sequence = model_out[0]
-        stat_el_err_out = model_out[1]
-        delta_err_out = model_out[2]
+        delta_err_out = model_out[1]
+        ctrl_el_err_out = model_out[2]
         sequence_loss_list = []
         for time,sys_t in system_sequence.items():
             for c,ckt_t_out in enumerate(sys_t):
@@ -84,10 +84,10 @@ class Trainer():
                     knowns = ckt_t_data[prop]
                     loss = self.loss_fn(pred, knowns)
                     sequence_loss_list.append(loss)
-        stat_loss = self.loss_fn(stat_el_err_out, torch.zeros_like(stat_el_err_out))
+        ctrl_loss = self.loss_fn(ctrl_el_err_out, torch.zeros_like(ctrl_el_err_out))
         delta_loss = self.loss_fn(delta_err_out, torch.zeros_like(delta_err_out))
         sequence_loss = sum(sequence_loss_list)
-        total_loss = sequence_loss + stat_loss + delta_loss
+        total_loss = sequence_loss + ctrl_loss + delta_loss
         num_optimizer_params = sum(p.numel() for p in self.optimizer.param_groups[0]['params'])
         num_model_params = sum(p.numel() for p in self.model.parameters())
         if(num_optimizer_params != num_model_params):
@@ -131,6 +131,11 @@ class Trainer():
             for ckt_t_mod in self.model.system_mod.circuits:
                 ckt_t_mod:CircuitModule
                 for element in ckt_t_mod.A.elements:
+                    static_param:nn.Parameter = element.values.get_param_static(time)
+                    if(static_param==None):
+                        continue
+                    if(static_param.requires_grad == False):
+                        continue
                     element:ElementCoeff
                     i=None
                     if(time in element.element.i):
@@ -155,6 +160,9 @@ class Trainer():
                         
                 for element in ckt_t_mod.b.elements:
                     element:ElementConstant
+                    if(element.element.kind == Kinds.VG or 
+                       element.element.kind == Kinds.CG):
+                        assert()
     
     def get_lr(self):
         for param_group in self.optimizer.param_groups:
