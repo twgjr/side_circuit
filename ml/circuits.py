@@ -566,6 +566,29 @@ class Element():
         self.high = None
         self.kind = None
         self.circuit = None
+
+    def can_calc(self,prop:Props,time:float):
+        if(prop == Props.I):
+            if(self.kind == Kinds.R):
+                return time in self.v and time in self.a
+        if(prop == Props.V):
+            if(self.kind == Kinds.R):
+                return time in self.i and time in self.a
+        if(prop == Props.A):
+            if(self.kind == Kinds.R):
+                return time in self.v and time in self.i
+        return False
+            
+    def calc(self,prop:Props,time:float):
+        if(prop == Props.I):
+            if(self.kind == Kinds.R):
+                return self.v[time] / self.a[time]
+        if(prop == Props.V):
+            if(self.kind == Kinds.R):
+                return self.i[time] * self.a[time]
+        if(prop == Props.A):
+            if(self.kind == Kinds.R):
+                return self.v[time] / self.i[time]
     
 class Node():
     def __init__(self, circuit: Circuit, elements: list[Element]) -> None:

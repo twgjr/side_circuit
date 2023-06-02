@@ -4,6 +4,12 @@ from torch.nn import Parameter
 from torch import Tensor
 from circuits import System,Kinds,Circuit,Element,Props,Signal
 from torch.linalg import solve
+from enum import Enum
+
+class Modes(Enum):
+    Normal = 0
+    ReinfI = 1
+    ReinfV = 2
 
 class Coefficients(nn.Module):
     def __init__(self, circuit:Circuit,time_set:'TimeSet'):
@@ -27,11 +33,11 @@ class Coefficients(nn.Module):
             mod_list.append(el_coeff)
         return  nn.ModuleList(mod_list)
     
-    def forward(self, time:float, time_prev:float):
+    def forward(self, time:float, time_prev:float, mode:Modes):
         coeff = torch.cat(tensors=(self.kcl,self.kvl), dim=0)
         for element in self.elements:
             element:ElementCoeff
-            el_out = element.forward(time,time_prev)
+            el_out = element.forward(time,time_prev,mode)
             coeff = torch.cat(tensors=(coeff,el_out), dim=0)
         return coeff
 
@@ -47,10 +53,23 @@ class ElementCoeff(nn.Module):
         for time,value in element.a.items():
             self.values.set_param(time,value)
 
-    def forward(self, time:float, time_prev:float):
+    def forward(self, time:float, time_prev:float, mode:Modes):
         z = torch.zeros(self.num_elements)
         y = torch.zeros(self.num_elements)
         p = torch.zeros(self.num_nodes)
+
+        if(mode == Modes.ReinfI):
+            if(time in self.element.i or 
+               self.element.can_calc(Props.I,time)):
+                z[self.idx] = 1.0
+                return torch.cat((z,y,p)).unsqueeze(0)
+            
+        if(mode == Modes.ReinfV):
+            if(time in self.element.v or 
+               self.element.can_calc(Props.V,time)):
+                y[self.idx] = 1.0
+                return torch.cat((z,y,p)).unsqueeze(0)
+
         if(self.element.kind == Kinds.R):
             z[self.idx] = self.values.forward(0.0)
             y[self.idx] = -1.0
@@ -98,11 +117,11 @@ class Constants(nn.Module):
             mod_list.append(ElementConstant(element,self.time_set))
         return  nn.ModuleList(mod_list)
     
-    def forward(self, time:float, time_prev:float):
+    def forward(self, time:float, time_prev:float, mode:Modes):
         consts = torch.cat(tensors=(self.kcl,self.kvl), dim=0)
         for element in self.elements:
             element:ElementConstant
-            el_out = element.forward(time,time_prev).unsqueeze(0).unsqueeze(0)
+            el_out = element.forward(time,time_prev,mode).unsqueeze(0).unsqueeze(0)
             consts = torch.cat(tensors=(consts,el_out), dim=0)
         return consts
     
@@ -137,7 +156,17 @@ class ElementConstant(nn.Module):
         for time in signal:
             self.values.set_param(time,signal[time])
 
-    def forward(self, time:float, time_prev:float):
+    def forward(self, time:float, time_prev:float, mode:Modes):
+        if(mode == Modes.ReinfI):
+            if(time in self.element.i):
+                return torch.tensor(self.element.i[time])
+            elif(self.element.can_calc(Props.I,time)):
+                    return torch.tensor(self.element.calc(Props.I,time))
+        if(mode == Modes.ReinfV):
+            if(time in self.element.v):
+                return torch.tensor(self.element.v[time])
+            elif(self.element.can_calc(Props.V,time)):
+                    return torch.tensor(self.element.calc(Props.V,time))
         if(self.element.kind == Kinds.VS or self.element.kind == Kinds.CS):
             return self.values.forward(time)
         if(self.element.kind == Kinds.L or self.element.kind == Kinds.C):
@@ -166,9 +195,9 @@ class CircuitModule(nn.Module):
             attr_list.append(module.values.get_param_static(time))
         return attr_list
 
-    def forward(self, time:float, time_prev:float):
-        A = self.A.forward(time,time_prev)
-        b = self.b.forward(time,time_prev)
+    def forward(self, time:float, time_prev:float, mode:Modes):
+        A = self.A.forward(time,time_prev,mode)
+        b = self.b.forward(time,time_prev,mode)
         solution_out:Tensor = solve(A[1:,:-1],b[1:,:])
         split = self.circuit.num_elements()
         i_out = solution_out[:split,:].squeeze()
@@ -247,12 +276,12 @@ class SystemModule(nn.Module):
             mod_list.append(CircuitModule(circuit,self.time_set))
         return nn.ModuleList(mod_list)
     
-    def forward(self, time:float, time_prev:float):
+    def forward(self, time:float, time_prev:float, mode:Modes):
         sys_out = []
         ctrl_el_err_out = torch.tensor(0.0)
         for circuit in self.circuits:
             circuit:CircuitModule
-            circuit_output = circuit.forward(time,time_prev)
+            circuit_output = circuit.forward(time,time_prev,mode)
             sys_out.append(circuit_output)
         for ctrl_el_err in self.ctrl_el_err_list:
             ctrl_el_err:ControlledElementError
@@ -307,14 +336,14 @@ class DynamicModule(nn.Module):
                 delta_errors.append(TimeDeltaError(element))
         return nn.ModuleList(delta_errors)
 
-    def forward(self):
+    def forward(self, mode:Modes):
         system_sequence:dict[float:Tensor] = {}
         delta_err_out = torch.tensor(0.0)
         ctrl_el_err_out = torch.tensor(0.0)
         time = 0.0
         time_prev = time
         for t,time in enumerate(self.timeset.times):
-            system_t,ctrl_el_err_t = self.system_mod.forward(time,time_prev)
+            system_t,ctrl_el_err_t = self.system_mod.forward(time,time_prev,mode)
             ctrl_el_err_out += ctrl_el_err_t
             system_sequence[time] = system_t
             for delta_err in self.time_errors:

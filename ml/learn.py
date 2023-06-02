@@ -3,14 +3,14 @@ import torch.nn as nn
 from torch import Tensor
 from torch.optim import Adam
 from circuits import System,Props,Kinds
-from models import DynamicModule,CircuitModule,ElementCoeff,ElementConstant
+from models import DynamicModule,CircuitModule,ElementCoeff,ElementConstant,Modes
 from data import Data
 from enum import Enum
 
 class States(Enum):
-    UNSTABLE = 0
-    COURSE = 1
-    FINE = 2
+    REINFI = 0
+    REINFV = 1
+    NORMAL = 2
 
 class ParamStability():
     '''takes parameters from model and determines if the each parameter has 
@@ -21,8 +21,7 @@ class ParamStability():
             for tensor in tensor_list:
                 self.param_list.append(tensor.detach().clone())
         self.pu_threshold = pu_threshold
-        self.course_threshold = max(self.pu_threshold,1e10*self.pu_threshold)
-        self.state = States.UNSTABLE
+        self.state = States.REINFI
     
     def check_stable(self,tensor_list:list[Tensor]):
         assert len(self.param_list) > 0
@@ -34,19 +33,13 @@ class ParamStability():
             prev_abs = torch.abs(self.param_list[index])
             pu_change = abs_val / prev_abs
             pu_change_max = torch.max(pu_change)
-            if(pu_change_max > self.pu_threshold):
-                is_fine = False
-            if(pu_change_max > self.course_threshold):
-                is_course = False
         self.param_list = tensor_list
-        if(self.state == States.UNSTABLE):
-            if(is_course or is_fine):
-                self.state = States.COURSE
-        elif(self.state == States.COURSE):
-            if(is_fine):
-                self.state = States.FINE
-            else:
-                self.state = States.UNSTABLE
+        if(self.state == States.REINFI):
+            if(pu_change_max > self.pu_threshold):
+                self.state = States.REINFV
+        elif(self.state == States.REINFI):
+            if(pu_change_max > self.pu_threshold):
+                self.state = States.NORMAL
         return self.state
 
 class Trainer():
@@ -62,10 +55,10 @@ class Trainer():
         self.optimizer = Adam(params=self.model.parameters(),lr=self.learn_rate)#,
                               #weight_decay=1-self.learn_rate)
     
-    def step_sequence(self):
+    def step_sequence(self,mode:Modes):
         '''Returns the total loss, the model parameters, and the output of the 
         model for all time steps.'''
-        model_out = self.model.forward()
+        model_out = self.model.forward(mode)
         system_sequence = model_out[0]
         delta_err_out = model_out[1]
         ctrl_el_err_out = model_out[2]
@@ -104,23 +97,26 @@ class Trainer():
         return total_loss, system_sequence
     
     def run(self, epochs, stable_threshold:float):
-        loss_prev, system_sequence = self.step_sequence()
+        loss_prev, system_sequence = self.step_sequence(Modes.Normal)
         params = list(self.model.parameters())
         param_stability = ParamStability(params, stable_threshold)
         epoch = 0
         while(epoch < epochs):
-            loss, system_sequence = self.step_sequence()
-            if(epoch % 10 == 9):
-                with torch.no_grad():
-                    self.reinforce(system_sequence)
-            params = list(self.model.parameters())
-            if(len(params)>len(param_stability.param_list)):
-                param_stability = ParamStability(params, stable_threshold)
-                continue
-            elif(epoch % 10 == 9):
-                state = param_stability.check_stable(params)
-                if(state==States.FINE):
-                    break
+            if(epoch % 2 == 0):
+                loss, system_sequence = self.step_sequence(Modes.ReinfI)
+            # elif(epoch % 10 == 9):
+            #     loss, system_sequence = self.step_sequence(Modes.ReinfV)
+            else:
+                loss, system_sequence = self.step_sequence(Modes.Normal)
+
+            # params = list(self.model.parameters())
+            # if(len(params)>len(param_stability.param_list)):
+            #     param_stability = ParamStability(params, stable_threshold)
+            #     continue
+            # elif(epoch % 10 == 9):
+            #     state = param_stability.check_stable(params)
+            #     if(state==States.FINE):
+            #         break
             epoch += 1
         return system_sequence, loss, epoch
     
