@@ -2,96 +2,168 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.optim import Adam
-from circuits import System,Props
-from models import SystemModule
+from circuits import System,Props,Kinds
+from models import DynamicModule,CircuitModule,ElementCoeff,ElementConstant,Modes
 from data import Data
+from enum import Enum
 
-class Stability():
-    '''takes attributes from solver and determines if the all attributes have 
-    converged to a stable value.'''
+class States(Enum):
+    REINFI = 0
+    REINFV = 1
+    NORMAL = 2
+
+class ParamStability():
+    '''takes parameters from model and determines if the each parameter has 
+    crossed a stability threshold.'''
     def __init__(self, tensor_list:list[Tensor], pu_threshold:float) -> None:
-        self.tensor_list = []
+        self.param_list = []
         if(len(tensor_list) > 0):
             for tensor in tensor_list:
-                self.tensor_list.append(tensor.detach().clone())
+                self.param_list.append(tensor.detach().clone())
         self.pu_threshold = pu_threshold
+        self.state = States.REINFI
     
-    def is_stable(self,tensor_list:list[Tensor]):
-        assert len(self.tensor_list) > 0
-        ret_bool = True
+    def check_stable(self,tensor_list:list[Tensor]):
+        assert len(self.param_list) > 0
+        is_course = True
+        is_fine = True
         for index in range(len(tensor_list)):
             new_tensor = tensor_list[index].detach().clone()
-            abs_val = torch.abs(new_tensor - self.tensor_list[index])
-            prev_abs = torch.abs(self.tensor_list[index])
+            abs_val = torch.abs(new_tensor - self.param_list[index])
+            prev_abs = torch.abs(self.param_list[index])
             pu_change = abs_val / prev_abs
             pu_change_max = torch.max(pu_change)
+        self.param_list = tensor_list
+        if(self.state == States.REINFI):
             if(pu_change_max > self.pu_threshold):
-                ret_bool = False
-        self.tensor_list = tensor_list
-        return ret_bool
+                self.state = States.REINFV
+        elif(self.state == States.REINFI):
+            if(pu_change_max > self.pu_threshold):
+                self.state = States.NORMAL
+        return self.state
 
 class Trainer():
-    def __init__(self, system:System, init_learn_rate:float) -> None:
-        self.data = Data(system)
-        self.model = SystemModule(system)
-        self.optimizer = Adam(params=self.model.parameters(),lr=init_learn_rate)
+    def __init__(self, system:System, learn_rate:float) -> None:
+        self.model = DynamicModule(system)
+        self.data = Data(system,self.model)
+        self.learn_rate = learn_rate
+        self.optimizer = None
+        self.init_optimizer()
         self.loss_fn = nn.MSELoss()
+
+    def init_optimizer(self):
+        self.optimizer = Adam(params=self.model.parameters(),lr=self.learn_rate)#,
+                              #weight_decay=1-self.learn_rate)
     
-    def step_sequence(self):
+    def step_sequence(self,mode:Modes):
         '''Returns the total loss, the model parameters, and the output of the 
-        model for each time step.'''
-        system_sequence = []
-        for t in range(len(self.data.sequence)):
-            ckt_out_list,sw_err_out_list = self.model.forward(t)
-            system_sequence.append({'circuits':ckt_out_list,
-                                    'switches':sw_err_out_list})
+        model for all time steps.'''
+        model_out = self.model.forward(mode)
+        system_sequence = model_out[0]
+        delta_err_out = model_out[1]
+        ctrl_el_err_out = model_out[2]
         sequence_loss_list = []
-        for t,sys_step in enumerate(system_sequence):
-            ckt_out_list = sys_step['circuits']
-            sw_out_list = sys_step['switches']
-            for c,ckt_out in enumerate(ckt_out_list):
-                ckt_data = self.data.sequence[t].circuits[c]
-                ckt_mask = self.data.masks[c]
-                for key in ckt_mask:
-                    if(key==Props.A):
+        for time,sys_t in system_sequence.items():
+            for c,ckt_t_out in enumerate(sys_t):
+                ckt_t_data = self.data.sequence[time].circuits[c]
+                ckt_t_mask = self.data.masks[c]
+                for prop in ckt_t_mask:
+                    if(prop==Props.A):
                         continue
-                    pred_mask = ckt_mask[key]
-                    pred_prop = ckt_out[key]
-                    pred_knowns = pred_prop[pred_mask]
-                    knowns = ckt_data[key]
-                    loss = self.loss_fn(pred_knowns, knowns)
+                    pred_mask = ckt_t_mask[prop]
+                    pred_prop = ckt_t_out[prop]
+                    pred = pred_prop[pred_mask]
+                    if(len(pred)==0):continue
+                    knowns = ckt_t_data[prop]
+                    loss = self.loss_fn(pred, knowns)
                     sequence_loss_list.append(loss)
-            for sw_err_out in sw_out_list:
-                sw_loss = self.loss_fn(sw_err_out, torch.zeros_like(sw_err_out))
-                sequence_loss_list.append(sw_loss)
-        total_loss = sum(sequence_loss_list)
-        self.model.zero_grad()
+        ctrl_loss = self.loss_fn(ctrl_el_err_out, torch.zeros_like(ctrl_el_err_out))
+        delta_loss = self.loss_fn(delta_err_out, torch.zeros_like(delta_err_out))
+        sequence_loss = sum(sequence_loss_list)
+        total_loss = sequence_loss + ctrl_loss + delta_loss
+        num_optimizer_params = sum(p.numel() for p in self.optimizer.param_groups[0]['params'])
+        num_model_params = sum(p.numel() for p in self.model.parameters())
+        if(num_optimizer_params != num_model_params):
+            self.init_optimizer()
+        #################################
+        # from torchviz import make_dot
+        # # Visualize the computation graph
+        # dot = make_dot(total_loss, params=dict(self.model.named_parameters()))
+        # dot.render("computation_graph")
+        #################################
         total_loss.backward()
-        self.model.zero_known_grads()
         self.optimizer.step()
-        self.model.clamp_params()
+        # self.model.clamp_params()
         return total_loss, system_sequence
     
     def run(self, epochs, stable_threshold:float):
-        self.model.train()
+        loss_prev, system_sequence = self.step_sequence(Modes.Normal)
         params = list(self.model.parameters())
-        loss, pred_list = self.step_sequence()
-        param_stability = Stability(params, stable_threshold)
+        param_stability = ParamStability(params, stable_threshold)
         epoch = 0
         while(epoch < epochs):
-            loss, pred_list = self.step_sequence()
+            if(epoch % 2 == 0):
+                loss, system_sequence = self.step_sequence(Modes.ReinfI)
+            # elif(epoch % 10 == 9):
+            #     loss, system_sequence = self.step_sequence(Modes.ReinfV)
+            else:
+                loss, system_sequence = self.step_sequence(Modes.Normal)
+
+            # params = list(self.model.parameters())
+            # if(len(params)>len(param_stability.param_list)):
+            #     param_stability = ParamStability(params, stable_threshold)
+            #     continue
+            # elif(epoch % 10 == 9):
+            #     state = param_stability.check_stable(params)
+            #     if(state==States.FINE):
+            #         break
             epoch += 1
-            params = list(self.model.parameters())
-            if(epoch % 100 == 99):
-                if(param_stability.is_stable(params)):
-                    print('threshold met')
-                    break
-        return pred_list, loss, epoch
+        return system_sequence, loss, epoch
     
-    def get_lr(self,optimizer):
-        for param_group in optimizer.param_groups:
+    def reinforce(self,system_sequence:dict):
+        '''Manually set an element parameter based on known values and recent 
+        predictions.  Help reduce epochs to reach solution.'''
+        for time in system_sequence:
+            for ckt_t_mod in self.model.system_mod.circuits:
+                ckt_t_mod:CircuitModule
+                for element in ckt_t_mod.A.elements:
+                    static_param:nn.Parameter = element.values.get_param_static(time)
+                    if(static_param==None):
+                        continue
+                    if(static_param.requires_grad == False):
+                        continue
+                    element:ElementCoeff
+                    i=None
+                    if(time in element.element.i):
+                        #get known value
+                        i=element.element.i[time]
+                    else:
+                        #get predicted value
+                        ckt_idx=element.element.circuit.index
+                        el_idx=element.element.index
+                        i=system_sequence[time][ckt_idx][Props.I][el_idx]
+                    v=None
+                    if(time in element.element.v):
+                        #get known value
+                        v=element.element.v[time]
+                    else:
+                        #get predicted value
+                        ckt_idx=element.element.circuit.index
+                        el_idx=element.element.index
+                        v=system_sequence[time][ckt_idx][Props.V][el_idx]
+                    if(element.element.kind == Kinds.R):
+                        element.values.reinforce_param(time,v/i)
+                        
+                for element in ckt_t_mod.b.elements:
+                    element:ElementConstant
+                    if(element.element.kind == Kinds.VG or 
+                       element.element.kind == Kinds.CG):
+                        assert()
+    
+    def get_lr(self):
+        for param_group in self.optimizer.param_groups:
             return param_group['lr']
         
-    def set_lr(self,optimizer,lr):
-        for param_group in optimizer.param_groups:
+    def set_lr(self,lr):
+        for param_group in self.optimizer.param_groups:
             param_group['lr'] = lr

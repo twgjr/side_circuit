@@ -1,15 +1,16 @@
 from circuits import Circuit,Props,System
+from models import DynamicModule
 import torch
 
 class Data():
-    def __init__(self, system:System):
+    def __init__(self, system:System, model:DynamicModule):
+        self.model = model
         self.system = system
         self.sequence = self.init_sequence()
         self.masks = self.init_masks()
     
-    def init_sequence(self) -> list['SystemDataT']:
-        sig_len = self.system.signal_len
-        return [SystemDataT(self.system,t) for t in range(sig_len)]
+    def init_sequence(self) -> dict[float:'SystemDataT']:
+        return {time:SystemDataT(self.system,time) for time in self.model.timeset.times}
     
     def init_masks(self):
         '''returns a list of lists.  Outer list (rows) is circuits.  Inner 
@@ -26,15 +27,18 @@ class Data():
         return circuit_masks
 
 class SystemDataT():
-    def __init__(self, system:System, time:int):
+    def __init__(self, system:System, time:float):
+        assert(isinstance(time,float))
         self.system = system
         self.circuits = self.init_data_list(time)
 
-    def init_data_list(self,time:int) -> list['CircuitDataT']:
+    def init_data_list(self,time:float) -> list['CircuitDataT']:
+        assert(isinstance(time,float))
         return [CircuitDataT(circuit,time) for circuit in self.system.circuits]
     
 class CircuitDataT():
-    def __init__(self, circuit:Circuit, time:int) -> None:
+    def __init__(self, circuit:Circuit, time:float) -> None:
+        assert(isinstance(time,float))
         self.circuit = circuit
         self._data = {Props.I: self.init_tensor(Props.I,time),
                       Props.V: self.init_tensor(Props.V,time),
@@ -43,7 +47,8 @@ class CircuitDataT():
     def __getitem__(self, key):
         return self._data[key]
 
-    def init_tensor(self,prop:Props,time:int):
+    def init_tensor(self,prop:Props,time:float):
+        assert(isinstance(time,float))
         prop_list = []
         for element in self.circuit.elements:
             if(prop == Props.I):
@@ -53,6 +58,6 @@ class CircuitDataT():
                 if(len(element.v) > 0):
                     prop_list.append(element.v[time])
             elif(prop == Props.A):
-                if(element.a != None):
-                    prop_list.append(element.a)
+                if(len(element.a) > 0):
+                    prop_list.append(element.a[time])
         return torch.tensor(prop_list).float()
