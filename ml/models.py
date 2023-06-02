@@ -2,12 +2,19 @@ import torch
 import torch.nn as nn
 from torch.nn import Parameter
 from torch import Tensor
-from circuits import System,Kinds,Circuit,Element,Props
+from circuits import System,Kinds,Circuit,Element,Props,Signal
 from torch.linalg import solve
+from enum import Enum
+
+class Modes(Enum):
+    Normal = 0
+    ReinfI = 1
+    ReinfV = 2
 
 class Coefficients(nn.Module):
-    def __init__(self, circuit:Circuit):
+    def __init__(self, circuit:Circuit,time_set:'TimeSet'):
         super().__init__()
+        self.time_set = time_set
         num_elements = circuit.num_elements()
         num_nodes = circuit.num_nodes()
         M = circuit.M()
@@ -22,284 +29,388 @@ class Coefficients(nn.Module):
     def init_elements(self, circuit:Circuit) -> nn.ModuleList:
         mod_list = []
         for element in circuit.elements:
-            if(element.kind == Kinds.R):
-                mod_list.append(ResistorCoeff(element))
-            elif(element.kind == Kinds.IVS):
-                mod_list.append(VoltageSourceCoeff(element))
-            elif(element.kind == Kinds.VC):
-                mod_list.append(VoltageControlCoeff(element))
-            elif(element.kind == Kinds.SW):
-                mod_list.append(SwitchCoeff(element))
+            el_coeff = ElementCoeff(element,self.time_set)
+            mod_list.append(el_coeff)
         return  nn.ModuleList(mod_list)
     
-    def forward(self, time:int):
+    def forward(self, time:float, time_prev:float, mode:Modes):
         coeff = torch.cat(tensors=(self.kcl,self.kvl), dim=0)
         for element in self.elements:
-            el_out = element(time)
+            element:ElementCoeff
+            el_out = element.forward(time,time_prev,mode)
             coeff = torch.cat(tensors=(coeff,el_out), dim=0)
         return coeff
 
-class ElementModule(nn.Module):
-    def __init__(self, element:Element):
+class ElementCoeff(nn.Module):
+    def __init__(self, element:Element, time_set:'TimeSet'):
         super().__init__()
+        self.time_set = time_set
         self.element = element
         self.num_elements = element.circuit.num_elements()
         self.num_nodes = element.circuit.num_nodes()
-        self.pos = element.index
-        self.is_known:bool = None
-        self.params:Parameter = None
+        self.idx = element.index
+        self.values = TimeSeries(self.time_set)
+        for time,value in element.a.items():
+            self.values.set_param(time,value)
 
-    def zero_known_grads(self):
-        if(self.is_known == True and self.params != None):
-            if(self.params != None and self.params.grad != None):
-                self.params.grad = torch.zeros_like(self.params)
+    def forward(self, time:float, time_prev:float, mode:Modes):
+        z = torch.zeros(self.num_elements)
+        y = torch.zeros(self.num_elements)
+        p = torch.zeros(self.num_nodes)
+
+        if(mode == Modes.ReinfI):
+            if(time in self.element.i or 
+               self.element.can_calc(Props.I,time)):
+                z[self.idx] = 1.0
+                return torch.cat((z,y,p)).unsqueeze(0)
+            
+        if(mode == Modes.ReinfV):
+            if(time in self.element.v or 
+               self.element.can_calc(Props.V,time)):
+                y[self.idx] = 1.0
+                return torch.cat((z,y,p)).unsqueeze(0)
+
+        if(self.element.kind == Kinds.R):
+            z[self.idx] = self.values.forward(0.0)
+            y[self.idx] = -1.0
+        elif(self.element.kind == Kinds.C):
+            dt = time - time_prev
+            z[self.idx] = dt/self.values.forward(0.0)
+            y[self.idx] = -1.0
+        elif(self.element.kind == Kinds.L):
+            dt = time - time_prev
+            z[self.idx] = -1.0
+            y[self.idx] = dt/self.values.forward(0.0)
+        elif(self.element.kind == Kinds.VS or self.element.kind == Kinds.VG 
+             or self.element.kind == Kinds.CC):
+            y[self.idx] = 1.0
+        elif(self.element.kind == Kinds.CS or self.element.kind == Kinds.CG
+             or self.element.kind == Kinds.VC):
+            z[self.idx] = 1.0
+        elif(self.element.kind == Kinds.SW):
+            if(torch.sigmoid(self.values.forward(time)) > 0.5):
+                y[self.idx] = 1.0
+            else:
+                z[self.idx] = 1.0
+        else: assert()
+        return torch.cat((z,y,p)).unsqueeze(0)
 
     def clamp_params(self):
-        if(self.params!=None):
-            min = 1e-15
-            max = 1e15
-            for p in self.parameters():
-                p.data.clamp_(min, max)
-
-    def set_param_vals(self, params: Tensor):
-        if(self.params != None):
-            assert params.shape == self.params.shape
-            for p in self.parameters():
-                p.data = params
-
-class ResistorCoeff(ElementModule):
-    def __init__(self, element:Element):
-        super().__init__(element)
-        init_val = element.a
-        if(init_val == None):
-            init_val = 1.0
-            self.is_known = False
-        else:
-            init_val /= element.circuit.system.r_base
-            self.is_known = True
-        self.params = Parameter(torch.tensor([init_val]))
-
-    def forward(self,time:int):
-        p = torch.zeros(self.num_nodes)
-        z = torch.zeros(self.num_elements)
-        z[self.pos] = -self.params
-        y = torch.zeros(self.num_elements)
-        y[self.pos] = 1.0
-        return torch.cat((z,y,p)).unsqueeze(0)
-    
-class VoltageSourceCoeff(ElementModule):
-    def __init__(self, element):
-        super().__init__(element)
-
-    def forward(self,time:int):
-        p = torch.zeros(self.num_nodes)
-        z = torch.zeros(self.num_elements)
-        y = torch.zeros(self.num_elements)
-        y[self.pos] = 1.0
-        return torch.cat((z,y,p)).unsqueeze(0)
-    
-class VoltageControlCoeff(ElementModule):
-    def __init__(self, element):
-        super().__init__(element)
-
-    def forward(self,time:int):
-        p = torch.zeros(self.num_nodes)
-        z = torch.zeros(self.num_elements)
-        y = torch.zeros(self.num_elements)
-        z[self.pos] = 1.0
-        return torch.cat((z,y,p)).unsqueeze(0)
-    
-class SwitchCoeff(ElementModule):
-    def __init__(self, element:Element):
-        super().__init__(element)
-        sig_len = self.element.circuit.system.signal_len
-        self.params = Parameter(torch.tensor([0.0]*sig_len))
-
-    def forward(self,time:int):
-        p = torch.zeros(self.num_nodes)
-        z = torch.zeros(self.num_elements)
-        y = torch.zeros(self.num_elements)
-        if(torch.sigmoid(self.params[time]) > 0.5):
-            y[self.pos] = 1.0
-        else:
-            z[self.pos] = 1.0
-        return torch.cat((z,y,p)).unsqueeze(0)
+        min = 1e-18
+        max = 1e18
+        for p in self.parameters():
+            p.data.clamp_(min, max)
     
 class Constants(nn.Module):
-    def __init__(self, circuit: Circuit):
-            super().__init__()
-            num_nodes = circuit.num_nodes()
-            num_elements = circuit.num_elements()
-            self.kcl = torch.zeros(size=(num_nodes,1))
-            self.kvl = torch.zeros(size=(num_elements,1))
-            self.elements = self.init_elements(circuit)
+    def __init__(self, circuit: Circuit,time_set:'TimeSet'):
+        super().__init__()
+        self.time_set = time_set
+        num_nodes = circuit.num_nodes()
+        num_elements = circuit.num_elements()
+        self.kcl = torch.zeros(size=(num_nodes,1))
+        self.kvl = torch.zeros(size=(num_elements,1))
+        self.elements = self.init_elements(circuit)
 
     def init_elements(self, circuit:Circuit) -> nn.ModuleList:
         mod_list = []
         for element in circuit.elements:
-            if(element.kind == Kinds.IVS):
-                mod_list.append(VoltageSourceConstant(element))
-            else:
-                mod_list.append(ZeroConstant(element))
+            mod_list.append(ElementConstant(element,self.time_set))
         return  nn.ModuleList(mod_list)
     
-    def forward(self, time:int):
+    def forward(self, time:float, time_prev:float, mode:Modes):
         consts = torch.cat(tensors=(self.kcl,self.kvl), dim=0)
         for element in self.elements:
-            el_out = element(time)
+            element:ElementConstant
+            el_out = element.forward(time,time_prev,mode).unsqueeze(0).unsqueeze(0)
             consts = torch.cat(tensors=(consts,el_out), dim=0)
         return consts
     
-class ZeroConstant(ElementModule):
-    def __init__(self, element:Element):
-        super().__init__(element)
+class ElementConstant(nn.Module):
+    def __init__(self, element:Element,time_set:'TimeSet'):
+        super().__init__()
+        self.time_set = time_set
+        self.element = element
+        self.ckt_idx = element.circuit.index
+        self.idx = element.index
+        self.gain = TimeSeries(time_set)
+        self.init_gain()
+        self.values = TimeSeries(time_set)
+        self.init_values()
 
-    def forward(self,time):
-        return torch.zeros((1,1))
+    def init_gain(self):
+        if(self.element.kind == Kinds.VG or self.element.kind == Kinds.CG):
+            for time in self.element.a:
+                self.gain.set_param(time,self.element.a[time])
     
-class VoltageSourceConstant(ElementModule):
-    def __init__(self, element:Element):
-        super().__init__(element)
-        init_vals = element.v.get_data()
-        if(init_vals == []):
-            init_vals = element.circuit.system.init_signal_data()
-            self.is_known = False
-        else:
-            for v in range(len(init_vals)):
-                init_vals[v] /= element.circuit.system.v_base
-            self.is_known = True
-        self.params = Parameter(torch.tensor(init_vals))
+    def init_values(self):
+        signal = None
+        if(self.element.kind == Kinds.VS):
+            signal = self.element.v
+        elif(self.element.kind == Kinds.CS):
+            signal = self.element.i
+        elif(self.element.kind == Kinds.VG):
+            signal = self.element.parent.v
+        elif(self.element.kind == Kinds.CG):
+            signal = self.element.parent.i
+        if(signal == None): return
+        for time in signal:
+            self.values.set_param(time,signal[time])
 
-    def forward(self,time:int):
-        return self.params[time].unsqueeze(0).unsqueeze(0)
+    def forward(self, time:float, time_prev:float, mode:Modes):
+        if(mode == Modes.ReinfI):
+            if(time in self.element.i):
+                return torch.tensor(self.element.i[time])
+            elif(self.element.can_calc(Props.I,time)):
+                    return torch.tensor(self.element.calc(Props.I,time))
+        if(mode == Modes.ReinfV):
+            if(time in self.element.v):
+                return torch.tensor(self.element.v[time])
+            elif(self.element.can_calc(Props.V,time)):
+                    return torch.tensor(self.element.calc(Props.V,time))
+        if(self.element.kind == Kinds.VS or self.element.kind == Kinds.CS):
+            return self.values.forward(time)
+        if(self.element.kind == Kinds.L or self.element.kind == Kinds.C):
+            return self.values.forward(time_prev) * self.gain.forward(time)
+        else:
+            return torch.tensor(0.0)
 
 class CircuitModule(nn.Module):
-    def __init__(self, circuit: Circuit):
+    def __init__(self, circuit: Circuit,time_set:'TimeSet'):
         super().__init__()
+        self.time_set = time_set
         self.circuit = circuit
-        self.A = Coefficients(circuit)
-        self.b = Constants(circuit)
+        self.A = Coefficients(circuit,self.time_set)
+        self.b = Constants(circuit,self.time_set)
 
-    def get_params(self,time:int) -> list[Tensor]:
-        '''return a list of all element parameters order by position in circuit
-        elements list.'''
-        params_list = []
-        indices = []
-        for m,module in enumerate(self.A.elements):
-            module:ElementModule
-            if(module.params == None):
-                indices.append(m)
-                params_list.append(None)
-            else:
-                params_list.append(module.params[0])
-        for index in indices:
-            module = self.b.elements[index]
-            if(module.params == None):
-                params_list[index] = None
-            else:
-                params_list[index] = module.params[time]
-        return params_list
+    def get_attrs(self, time:float, coeff:bool) -> list[Tensor]:
+        '''return a list of all element attr params ordered by position in 
+        circuit elements list. If coeff == True parameters are from A matrix,
+        else from b vector'''
+        attr_list = []
+        elements = self.A.elements
+        if(coeff == False):
+            elements = self.b.elements
+        for module in elements:
+            module:ElementCoeff
+            attr_list.append(module.values.get_param_static(time))
+        return attr_list
 
-    def forward(self,time:int):
-        A = self.A(time)
-        b = self.b(time)
+    def forward(self, time:float, time_prev:float, mode:Modes):
+        A = self.A.forward(time,time_prev,mode)
+        b = self.b.forward(time,time_prev,mode)
         solution_out:Tensor = solve(A[1:,:-1],b[1:,:])
         split = self.circuit.num_elements()
         i_out = solution_out[:split,:].squeeze()
         v_out = solution_out[split:2*split,:].squeeze()
-        a_out = self.get_params(time)
-        out_map = {Props.I:i_out,Props.V:v_out,Props.A:a_out}
+        a_out = self.get_attrs(time,coeff=True)
+        b_out = self.get_attrs(time,coeff=False)
+        out_map = {Props.I:i_out,Props.V:v_out,Props.A:a_out,Props.B:b_out}
         return out_map
-    
-    def zero_known_grads(self):
-        for module in self.A.elements:
-            module:ElementModule
-            module.zero_known_grads()
-        for module in self.b.elements:
-            module:ElementModule
-            module.zero_known_grads()
 
     def clamp_params(self):
         for module in self.A.elements:
-            module:ElementModule
-            module.clamp_params()
-        for module in self.b.elements:
-            module:ElementModule
-            module.clamp_params()
+            module:ElementCoeff
+            if(module.element.kind == Kinds.R or 
+               module.element.kind == Kinds.L or
+               module.element.kind == Kinds.C):
+                module.clamp_params()
 
-    def set_param_vals(self, params: Tensor):
-        for module in self.A.elements:
-            module:ElementModule
-            module.set_param_vals(params)
-        for module in self.b.elements:
-            module:ElementModule
-            module.set_param_vals(params)
-
-class SwitchError(nn.Module):
-    def __init__(self, parent:Element, child:Element) -> None:
+class ControlledElementError(nn.Module):
+    def __init__(self, element:Element) -> None:
         super().__init__()
-        self.parent = parent
-        self.child = child
-        self.p_prop = self.init_prop(parent)
-        self.p_idx = parent.index
-        self.p_ckt_idx = parent.circuit.index
-        self.c_idx = child.index
-        self.c_ckt_idx = child.circuit.index
-
-    def init_prop(self, element:Element):
-        ret_prop = None
-        if(element.kind == Kinds.VC):
-            ret_prop = Props.V
-        return ret_prop
+        if(element.kind != Kinds.CG and element.kind != Kinds.VG and 
+           element.kind != Kinds.SW):
+            assert()
+        self.element = element
+        self.idx = element.index
+        self.ckt_idx = element.circuit.index
+        self.parent = element.parent
+        self.p_idx = self.parent.index
+        self.p_ckt_idx = self.parent.circuit.index
 
     def forward(self, ckt_list:list[tuple[Tensor]]) -> Tensor:
-        parent_val = ckt_list[self.p_ckt_idx][self.p_prop][self.p_idx]
-        child_param = ckt_list[self.c_ckt_idx][Props.A][self.c_idx]
-        return parent_val - child_param
+        prop = None
+        if(self.element.kind == Kinds.SW):
+            prop = Props.A
+        elif(self.element.kind == Kinds.CG or self.element.kind == Kinds.VG):
+            prop = Props.B
+        else:
+            assert()
+        a = ckt_list[self.ckt_idx][prop][self.idx]
+        
+        if(self.element.kind == Kinds.SW or self.element.kind == Kinds.VG or
+           self.element.kind == Kinds.CG):
+            if(self.parent.kind == Kinds.VC):
+                parent_val = ckt_list[self.p_ckt_idx][Props.V][self.p_idx]
+                return torch.square(parent_val - a)
+            elif(self.parent.kind == Kinds.CC):
+                parent_val = ckt_list[self.p_ckt_idx][Props.I][self.p_idx]
+                return torch.square(parent_val - a)
 
 class SystemModule(nn.Module):
-    def __init__(self, system: System):
+    def __init__(self, system: System,time_set:'TimeSet'):
         super().__init__()
+        self.time_set = time_set
         self.system = system
-        system.update_bases()
+        # system.update_bases()
         self.circuits = self.init_circuit()
-        self.sw_err_list = self.init_sw_error_list()
+        self.ctrl_el_err_list = self.init_ctrl_el_err_list()
+        self.i_base = 1.0
+        self.v_base = 1.0
+        self.r_base = 1.0
+        # self.l_base = 1.0
+        # self.c_base = 1.0
 
-    def init_sw_error_list(self):
-        sw_error_list = []
+    def init_ctrl_el_err_list(self):
+        ctrl_el_error_list = []
         for circuit in self.system.circuits:
             for element in circuit.elements:
-                if(element.has_parent()):
-                    sw_error_list.append(SwitchError(element.parent,element))
-        return nn.ModuleList(sw_error_list)
+                if(element.kind == Kinds.SW or element.kind == Kinds.VG or
+                   element.kind == Kinds.CG):
+                    ctrl_el_error_list.append(ControlledElementError(element))
+        return nn.ModuleList(ctrl_el_error_list)
 
     def init_circuit(self):
         mod_list = []
         for circuit in self.system.circuits:
-            mod_list.append(CircuitModule(circuit))
+            mod_list.append(CircuitModule(circuit,self.time_set))
         return nn.ModuleList(mod_list)
     
-    def forward(self, time:int):
-        ckt_out_list = []
-        sw_err_out_list = []
+    def forward(self, time:float, time_prev:float, mode:Modes):
+        sys_out = []
+        ctrl_el_err_out = torch.tensor(0.0)
         for circuit in self.circuits:
-            circuit_output = circuit(time)
-            ckt_out_list.append(circuit_output)
-        for sw_err in self.sw_err_list:
-            sw_err_out_list.append(sw_err(ckt_out_list))
-        return ckt_out_list, sw_err_out_list
-    
-    def zero_known_grads(self):
-        for module in self.circuits:
-            module:ElementModule
-            module.zero_known_grads()
+            circuit:CircuitModule
+            circuit_output = circuit.forward(time,time_prev,mode)
+            sys_out.append(circuit_output)
+        for ctrl_el_err in self.ctrl_el_err_list:
+            ctrl_el_err:ControlledElementError
+            ctrl_el_err_out += ctrl_el_err.forward(sys_out)
+        return (sys_out, ctrl_el_err_out)
 
     def clamp_params(self):
         for module in self.circuits:
-            module:ElementModule
+            module:ElementCoeff
             module.clamp_params()
 
-    def set_param_vals(self, params: Tensor):
-        for module in self.circuits:
-            module:ElementModule
-            module.set_param_vals(params)
+class TimeDeltaError(nn.Module):
+    '''Let t0, t1, and t2 be times.  There are two time deltas t1-t0, and t2-t1.
+    But the model actually creates a parameter that represents t1 when it is 
+    used as a previous time (i.e. t2-t1_pri and t1-t0_pri).  This module 
+    reconciles t0 with t0_pri and t1 with t1_pri so that they converge to the 
+    same value.'''
+    def __init__(self, element:Element) -> None:
+        super().__init__()
+        self.element = element
+        self.prop = self.init_prop(element)
+        self.idx = element.index
+        self.ckt_idx = element.circuit.index
+
+    def init_prop(self, element:Element):
+        ret_prop = None
+        if(element.kind == Kinds.C):
+            ret_prop = Props.V
+        if(element.kind == Kinds.L):
+            ret_prop = Props.I
+        return ret_prop
+
+    def forward(self, sys_pred_prev:list[tuple[Tensor]],
+                sys_pred:list[tuple[Tensor]]) -> Tensor:
+        prev_val = sys_pred_prev[self.ckt_idx][self.prop][self.idx]
+        prev_val_param = sys_pred[self.ckt_idx][Props.B][self.idx]
+        return torch.square(prev_val_param - prev_val)
+    
+class DynamicModule(nn.Module):
+    def __init__(self, system: System):
+        super().__init__()
+        self.timeset = TimeSet()
+        self.system = system
+        self.system_mod = SystemModule(system,self.timeset)
+        self.time_errors = self.init_time_errors()
+        self.timeset.sort()
+
+    def init_time_errors(self):
+        delta_errors = []
+        for element in self.system.elements:
+            if(element.kind == Kinds.C or element.kind == Kinds.L):
+                delta_errors.append(TimeDeltaError(element))
+        return nn.ModuleList(delta_errors)
+
+    def forward(self, mode:Modes):
+        system_sequence:dict[float:Tensor] = {}
+        delta_err_out = torch.tensor(0.0)
+        ctrl_el_err_out = torch.tensor(0.0)
+        time = 0.0
+        time_prev = time
+        for t,time in enumerate(self.timeset.times):
+            system_t,ctrl_el_err_t = self.system_mod.forward(time,time_prev,mode)
+            ctrl_el_err_out += ctrl_el_err_t
+            system_sequence[time] = system_t
+            for delta_err in self.time_errors:
+                delta_err:TimeDeltaError
+                if(time == time_prev): continue
+                sys = system_sequence[time]
+                sys_prev = system_sequence[time_prev]
+                delta_err_out += delta_err.forward(sys_prev,sys)
+            time_prev = time
+        return (system_sequence, delta_err_out, ctrl_el_err_out)
+
+    def clamp_params(self):
+        self.system_mod.clamp_params()
+
+class TimeSet():
+    def __init__(self):
+        self.times = []
+        self._times_dict = {}
+
+    def add(self, time):
+        self._times_dict[time] = None
+
+    def sort(self):
+        self.times = sorted(self._times_dict.keys())
+
+    def prev_time(self, time_idx):
+        assert(time_idx != 0)
+        return self.times[time_idx-1]
+
+class TimeSeries(nn.Module):
+    def __init__(self, time_set:TimeSet):
+        super().__init__()
+        self._params = nn.ParameterDict()
+        self.time_set = time_set
+
+    def set_param(self, time:float, value:float=None):
+        assert(isinstance(time,float))
+        self.time_set.add(time)
+        key = str(time).replace(".", "_")
+        if(value == None):
+            self._params[key] = Parameter(torch.tensor(1.0))
+        else:
+            self._params[key] = Parameter(torch.tensor(value))
+            param:Parameter = self._params[key]
+            param.requires_grad = False
+
+    def get_param_forward(self,time:float):
+        '''Returns the parameter already at that time, or creates one if missing'''
+        key = str(time).replace(".", "_")
+        if(key in self._params):
+            return self._params[key]
+        else:
+            self._params[key] = Parameter(torch.tensor(1.0))
+            return self._params[key]
+        
+    def get_param_static(self,time:float):
+        '''Returns the parameter without creating one if missing'''
+        key = str(time).replace(".", "_")
+        if(key in self._params):
+            return self._params[key]
+        else:
+            return None
+        
+    def reinforce_param(self, time:float, value:float):
+        assert(isinstance(time,float))
+        key = str(time).replace(".", "_")
+        self._params[key] = Parameter(torch.tensor(value))
+        
+    def forward(self,time:float):
+        return self.get_param_forward(time)
