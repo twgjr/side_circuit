@@ -2,7 +2,7 @@ import networkx as nx
 from enum import Enum
 import torch
 from torch import Tensor
-from math import isclose
+from math import isclose,sqrt
 
 class Kinds(Enum):
     VS = 0
@@ -19,8 +19,8 @@ class Kinds(Enum):
 class Props(Enum):
     I = 0
     V = 1
-    A = 2
-    B = 3
+    DI = 2
+    DV = 3
 
 class System():
     '''Collection of isolated Circuits that are only connected by parent/child
@@ -33,11 +33,9 @@ class System():
         self.elements: list[Element] = []
         self.nodes: list[Node] = []
 
-    def load(self, pred:dict):
-        for time in pred:
-            pred_t = pred[time]
-            for c,circuit in enumerate(self.circuits):
-                circuit.load(pred_t[c],time)
+    def load(self, solution:dict, time:float):
+        for c,circuit in enumerate(self.circuits):
+            circuit.load(solution[c],time)
 
     def num_circuits(self) -> int:
         return len(self.circuits)
@@ -273,7 +271,6 @@ class Circuit():
         self.elements: list[Element] = []
         self.signal_len = 0
 
-    @property
     def index(self) -> int:
         return self.system.circuits.index(self)
     
@@ -379,18 +376,8 @@ class Circuit():
     def load(self, pred_ckt_t:dict[str:Tensor], time:float):
         '''Stores predictions from Trainer in Circuit'''
         for e,element in enumerate(self.elements):
-            element.i_pred[time] = pred_ckt_t[Props.I][e].item()
-            element.v_pred[time] = pred_ckt_t[Props.V][e].item()
-            if(time > 0): continue
-            if(element.kind == Kinds.VC or element.kind == Kinds.CC): continue
-            if(element.kind == Kinds.R or element.kind == Kinds.L or
-                element.kind == Kinds.C or element.kind == Kinds.SW):
-                element.a_pred[time] = pred_ckt_t[Props.A][e].item()
-            elif(element.kind == Kinds.VG or element.kind == Kinds.CG or
-                 element.kind == Kinds.VS or element.kind == Kinds.CS):
-                element.a_pred[time] = pred_ckt_t[Props.B][e].item()
-            else:
-                assert()
+            element.i_sol[time] = pred_ckt_t[Props.I][e].item()
+            element.v_sol[time] = pred_ckt_t[Props.V][e].item()
     
     def kind_list(self, kind:Kinds, with_control:Kinds=None) -> list[bool]:
         '''returns a list of booleans indicating which elements are of kind'''
@@ -472,14 +459,25 @@ class Element():
         self._i:Signal = Signal(self,{})
         self._v:Signal = Signal(self,{})
         self.a:Signal = Signal(self,{})
-        self.i_pred:Signal = Signal(self,{})
-        self.v_pred:Signal = Signal(self,{})
-        self.a_pred:Signal = Signal(self,{})
+        self.i_sol:Signal = Signal(self,{})
+        self.v_sol:Signal = Signal(self,{})
         self._name = name
 
-    @property
-    def index(self) -> list[int]:
+    def index(self) -> int:
         return self.circuit.elements.index(self)
+    
+    def parent_index(self) -> int:
+        if(self.parent == None):
+            return None
+        return self.parent.index()
+    
+    def circuit_index(self) -> int:
+        return self.circuit.index()
+    
+    def parent_circuit_index(self) -> int:
+        if(self.parent == None):
+            return None
+        return self.parent.circuit.index()
     
     @property
     def name(self):
@@ -495,7 +493,7 @@ class Element():
     @property
     def id(self) -> str:
         return str(self.kind.name) \
-            + '_' + str(self.circuit.index) + '_' + str(self.index)
+            + '_' + str(self.circuit.index()) + '_' + str(self.index)
     
     def __repr__(self) -> str:
         return self.name + '_' + self.id
@@ -555,9 +553,9 @@ class Element():
         self._v.prep_for_delete()
         self._v = None
         self._a = None
-        self.i_pred.prep_for_delete()
+        self.i_sol.prep_for_delete()
         self._i_pred = None
-        self.v_pred.prep_for_delete()
+        self.v_sol.prep_for_delete()
         self._v_pred = None
         self._a_pred = None
         self.low.remove_element(self)
@@ -566,29 +564,6 @@ class Element():
         self.high = None
         self.kind = None
         self.circuit = None
-
-    def can_calc(self,prop:Props,time:float):
-        if(prop == Props.I):
-            if(self.kind == Kinds.R):
-                return time in self.v and time in self.a
-        if(prop == Props.V):
-            if(self.kind == Kinds.R):
-                return time in self.i and time in self.a
-        if(prop == Props.A):
-            if(self.kind == Kinds.R):
-                return time in self.v and time in self.i
-        return False
-            
-    def calc(self,prop:Props,time:float):
-        if(prop == Props.I):
-            if(self.kind == Kinds.R):
-                return self.v[time] / self.a[time]
-        if(prop == Props.V):
-            if(self.kind == Kinds.R):
-                return self.i[time] * self.a[time]
-        if(prop == Props.A):
-            if(self.kind == Kinds.R):
-                return self.v[time] / self.i[time]
     
 class Node():
     def __init__(self, circuit: Circuit, elements: list[Element]) -> None:
@@ -633,6 +608,12 @@ class Signal():
         assert isinstance(data,dict)
         self.element = element
         self._data = data
+        self.lower = 0.0
+        self.upper = 0.0
+        self.max = 0.0
+        self.is_periodic = False
+        '''True periodic means to repeat pattern of signal, False means to 
+        continue the last value in the sequence at DC.'''
 
     def values(self):
         return self._data.values()
@@ -653,13 +634,42 @@ class Signal():
     def __len__(self):
         return len(self._data)
     
-    def __getitem__(self, key):
-        assert(isinstance(key,float))
-        return self._data[key]
+    def __getitem__(self, time):
+        assert(isinstance(time,float))
+        if(self.is_periodic == True):
+            if(self.max > 0.0):
+                time = time % self.max
+        if(time < self.lower or self.upper < time):
+            self.set_window(time)
+        if(self.is_periodic == False and self.upper < time):
+            assert(self.lower <= self.upper)
+            return self._data[self.max]
+        if time in self._data:
+            assert(self.lower <= self.upper)
+            return self._data[time]
+        return self.interpolate(time)
+    
+    def interpolate(self,time:float):
+        low_val = self._data[self.lower]
+        high_val = self._data[self.upper]
+        ratio = (time - self.lower) / (self.upper - self.lower)
+        assert(self.lower <= self.upper)
+        return low_val + ratio * (high_val - low_val)
+    
+    def set_window(self,time:float):
+        prev_key = 0.0
+        for time_key in self._data:
+            if(prev_key <= time <= time_key):
+                self.lower = prev_key
+                self.upper = time_key
+                break
+            prev_key = time_key
     
     def __setitem__(self, key, value):
         assert(isinstance(key,float))
         self._data[key] = value
+        if(key > self.max):
+            self.max = key
 
     def __iter__(self):
         return iter(self._data)
@@ -684,34 +694,62 @@ class Signal():
     
     def __add__(self,signal):
         assert(isinstance(signal,Signal))
-        assert(len(self)==len(signal))
+        assert(len(self)==len(signal) or len(self)==1 or len(signal)==1)
         sig_sum = {}
-        for time in self:
-            sig_sum[time] = self[time] + signal[time]
+        if(len(self)==1 and len(signal)>1):
+            for time in self:
+                sig_sum[time] = self[0.0] + signal[time]
+        if(len(self)>1 and len(signal)==1):
+            for time in self:
+                sig_sum[time] = self[time] + signal[0.0]
+        if(len(self)==len(signal)):
+            for time in self:
+                sig_sum[time] = self[time] + signal[time]
         return Signal(None,sig_sum)
 
     def __sub__(self,signal):
         assert(isinstance(signal,Signal))
-        assert(len(self)==len(signal))
+        assert(len(self)==len(signal) or len(self)==1 or len(signal)==1)
         sig_sum = {}
-        for time in self:
-            sig_sum[time] = self[time] - signal[time]
+        if(len(self)==1 and len(signal)>1):
+            for time in self:
+                sig_sum[time] = self[0.0] - signal[time]
+        if(len(self)>1 and len(signal)==1):
+            for time in self:
+                sig_sum[time] = self[time] - signal[0.0]
+        if(len(self)==len(signal)):
+            for time in self:
+                sig_sum[time] = self[time] - signal[time]
         return Signal(None,sig_sum)
     
     def __mul__(self,signal):
         assert(isinstance(signal,Signal))
-        assert(len(self)==len(signal))
+        assert(len(self)==len(signal) or len(self)==1 or len(signal)==1)
         sig_sum = {}
-        for time in self:
-            sig_sum[time] = self[time] * signal[time]
+        if(len(self)==1 and len(signal)>1):
+            for time in self:
+                sig_sum[time] = self[0.0] * signal[time]
+        if(len(self)>1 and len(signal)==1):
+            for time in self:
+                sig_sum[time] = self[time] * signal[0.0]
+        if(len(self)==len(signal)):
+            for time in self:
+                sig_sum[time] = self[time] * signal[time]
         return Signal(None,sig_sum)
     
     def __truediv__(self,signal):
         assert(isinstance(signal,Signal))
-        assert(len(self)==len(signal))
+        assert(len(self)==len(signal) or len(self)==1 or len(signal)==1)
         sig_sum = {}
-        for time in self:
-            sig_sum[time] = self[time] / signal[time]
+        if(len(self)==1 and len(signal)>1):
+            for time in self:
+                sig_sum[time] = self[0.0] / signal[time]
+        if(len(self)>1 and len(signal)==1):
+            for time in self:
+                sig_sum[time] = self[time] / signal[0.0]
+        if(len(self)==len(signal)):
+            for time in self:
+                sig_sum[time] = self[time] / signal[time]
         return Signal(None,sig_sum)
 
     def clear(self):
@@ -726,3 +764,21 @@ class Signal():
         for key,value in self._data.items():
             data_copy[key] = value
         return Signal(element=self.element, data=data_copy)
+    
+    def pulse(self, freq:float, duty:float, amp_p:float, amp_n:float, 
+              fs:float, periodic:bool):
+        self.is_periodic = periodic
+        assert(freq < 2*fs)
+        per = 1/freq
+        dt = 1/fs
+        tx = per*duty
+        self[0.0] = 0
+        self[dt] = amp_p
+        self[tx-dt] = amp_p
+        self[tx+dt] = amp_n
+        self[per+dt] = amp_n
+
+    def rms(self):
+        sum_of_squares = sum([self._data[time] ** 2 for time in self._data])
+        num_elements = len(self._data)
+        return sqrt(sum_of_squares / num_elements)
