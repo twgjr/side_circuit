@@ -170,12 +170,7 @@ class CircuitModel(nn.Module):
         split = self.circuit.num_elements()
         i_out = solution_out[:split,:].squeeze()
         v_out = solution_out[split:2*split,:].squeeze()
-        di_out = None
-        dv_out = None
-        if(ckt_sols_prev != None):
-            di_out = (i_out-ckt_sols_prev[self.index][Props.I])
-            dv_out = (v_out-ckt_sols_prev[self.index][Props.V])
-        return {Props.I:i_out,Props.V:v_out,Props.DI:di_out,Props.DV:dv_out}
+        return {Props.I:i_out,Props.V:v_out}
     
 class ControlError(nn.Module):
     def __init__(self,element:Element):
@@ -269,22 +264,24 @@ class Simulator():
         time = init_step_size
         prev_time = 0.0
         step_size = init_step_size
-        d_init = []
-        for c in range(self.system.num_circuits()):
-            num_elements = self.system.circuits[c].num_elements()
-            d_init.append(torch.zeros(num_elements))
         while(time < stop):
-            di_prev_t = d_init
-            dv_prev_t = d_init
+            di_prev_t = None
+            dv_prev_t = None
             sc_state = StepChange.Unknown
             while(not sc_state == StepChange.Stop):
                 sol_t = self.system_mod.solve(time,step_size,sol_prev_t,Modes.TR)
+                di_t = []
+                dv_t = []
                 for c in range(len(sol_t)):
-                    di_t = sol_t[c][Props.DI]
-                    dv_t = sol_t[c][Props.DV]
-                    cat_t = torch.cat((di_t,dv_t))
+                    di_t.append(sol_t[c][Props.I] - sol_prev_t[c][Props.I])
+                    dv_t.append(sol_t[c][Props.V] - sol_prev_t[c][Props.V])
+                    cat_t = torch.cat((di_t[c],dv_t[c]))
+                    cat_t.data[cat_t == 0] = 1e-18
+                    if(di_prev_t == None or dv_prev_t == None):
+                        break
                     cat_prev_t = torch.cat((di_prev_t[c],dv_prev_t[c]))
-                    sub = torch.sub(cat_t,cat_prev_t)
+                    cat_prev_t.data[cat_prev_t == 0] = 1e-18
+                    sub = torch.sub(cat_t,cat_prev_t)/cat_prev_t
                     min_change = torch.min(sub)
                     max_change = torch.max(sub)
                     if(sc_state == StepChange.Unknown):
@@ -301,13 +298,14 @@ class Simulator():
                             sc_state = StepChange.Stop
                             break
                     elif(sc_state == StepChange.Increasing):
-                        if(min_change < -d_threshold and max_change < d_threshold):
+                        if(min_change < -d_threshold and 
+                            max_change < d_threshold):
                             step_size *= 2
                         else:
                             sc_state = StepChange.Stop
                             break
-                    di_prev_t[c] = di_t
-                    dv_prev_t[c] = dv_t
+                di_prev_t = di_t
+                dv_prev_t = dv_t
                 time = max(prev_time + step_size,min_step_size)
             sc_state = StepChange.Unknown
             prev_time = time

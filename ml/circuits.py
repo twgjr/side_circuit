@@ -19,8 +19,6 @@ class Kinds(Enum):
 class Props(Enum):
     I = 0
     V = 1
-    DI = 2
-    DV = 3
 
 class System():
     '''Collection of isolated Circuits that are only connected by parent/child

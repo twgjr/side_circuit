@@ -1,0 +1,15 @@
+EXPORTS
+    ngCM_Input_Path @1
+    ngGet_Evt_NodeInfo @2
+    ngGet_Vec_Info @3
+    ngSpice_AllEvtNodes @4
+    ngSpice_AllPlots @5
+    ngSpice_AllVecs @6
+    ngSpice_Circ @7
+    ngSpice_Command @8
+    ngSpice_CurPlot @9
+    ngSpice_Init @10
+    ngSpice_Init_Evt @11
+    ngSpice_Init_Sync @12
+    ngSpice_SetBkpt @13
+    ngSpice_running @14
