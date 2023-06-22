@@ -92,9 +92,9 @@ SendInitData = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.POINTER(VecInfoAll), ctypes
 BGThreadRunning = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_bool, ctypes.c_int, ctypes.c_void_p)
 
 class NGSpice():
-    def __init__(self) -> None:
+    def __init__(self, dll_path:str) -> None:
         # DLL Function Prototypes
-        self.ngspice_dll = ctypes.cdll.LoadLibrary(r'.\ngspice_lib\Spice64_dll\dll-vs\ngspice.dll')
+        self.ngspice_dll = ctypes.cdll.LoadLibrary(dll_path)
 
         self.ngSpice_Init = self.ngspice_dll.ngSpice_Init
         self.ngSpice_Init.argtypes = [SendChar, SendStat, ControlledExit, SendData, 
@@ -118,20 +118,19 @@ class NGSpice():
                           self.controlled_exit_callback,self.send_data_callback,
                           self.send_init_data_callback, 
                           self.bg_thread_running_callback, None)
+    def source(self, cir_path:str):
+        src = "source"
+        source_cmd = src + " " + cir_path
+        ngspice.ngSpice_Command(source_cmd.encode('utf-8'))
+
+    def run(self):
+        ngspice.ngSpice_Command(b"run")
+
+    def quit(self):
+        ngspice.ngSpice_Command(b"quit")
 
 if(__name__=='__main__'):
-    # create an ngspice instance
-    ngspice = NGSpice()
-
-    # # Load circuit description file into ngspice
-    src_file = r".\working\rc_step.cir"
-    # src_file = r".\working\vdiv_step.cir"
-    source = "source"
-    source_cmd = source + " " + src_file
-    ngspice.ngSpice_Command(source_cmd.encode('utf-8'))
-
-    # Run simulation
-    ngspice.ngSpice_Command(b"run")
-
-    # Clean up and exit ngspice
-    ngspice.ngSpice_Command(b"quit")
+    ngspice = NGSpice(dll_path=r'.\ngspice_lib\Spice64_dll\dll-vs\ngspice.dll')
+    ngspice.source(cir_path=r".\working\rc_step.cir")
+    ngspice.run()
+    ngspice.quit()
