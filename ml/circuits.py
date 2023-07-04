@@ -20,6 +20,7 @@ class Kind(Enum):
 class Quantity(Enum):
     I = 0
     V = 1
+    P = 2
 
 class SignalClass(Enum):
     PULSE = 0
@@ -36,9 +37,12 @@ class System():
         self.elements: list[Element] = []
         self.nodes: list[Node] = []
 
-    def load(self, solution:dict, time:float):
-        for c,circuit in enumerate(self.circuits):
-            circuit.load(solution[c],time)
+    def load(self, node_potentials:dict[int:float], 
+             element_currents:dict[int:float], time:float):
+        assert len(self.circuits)== 1
+        self.circuits[0].load(node_potentials,element_currents,time)
+        # for c,circuit in enumerate(self.circuits):
+        #     circuit.load(solution[c],time)
 
     def num_circuits(self) -> int:
         return len(self.circuits)
@@ -340,14 +344,23 @@ class Circuit():
             if(element != from_element):
                 return element
 
-    def load(self, pred_ckt_t, time:float):
+    def load(self, node_potentials:dict[int:float], 
+             element_currents:dict[int:float], time:float):
         '''Stores solutions or predictions as a time series'''
-        for e,element in enumerate(self.elements):
-            element.data[Quantity.I][time] = pred_ckt_t[Quantity.I][e].item()
-            element.data[Quantity.V][time] = pred_ckt_t[Quantity.V][e].item()
+        for n in node_potentials:
+            node:Node = self.nodes[n]
+            if(Quantity.P not in node.data):
+                node.data[Quantity.P] = {}
+            node.data[Quantity.P][time] = node_potentials[n]
+        for e in element_currents:
+            element:Element = self.elements[e]
+            if(Quantity.I not in element.data):
+                element.data[Quantity.I] = {}
+            element.data[Quantity.I][time] = element_currents[e]
+        # for e,element in enumerate(self.elements):
+        #     element.data[Quantity.I][time] = pred_ckt_t[Quantity.I][e].item()
+        #     element.data[Quantity.V][time] = pred_ckt_t[Quantity.V][e].item()
     
-
-
 class SignalFunction():
     def __init__(self, kind:SignalClass):
         self.kind = kind
@@ -430,7 +443,7 @@ class Element():
     @property
     def id(self) -> str:
         return str(self.kind.name) \
-            + '_' + str(self.circuit.index()) + '_' + str(self.index)
+            + '_' + str(self.circuit.index()) + '_' + str(self.index())
     
     def __repr__(self) -> str:
         return self.id
@@ -522,6 +535,7 @@ class Node():
         self.system = circuit.system
         self.circuit = circuit
         self.elements = elements
+        self.data:dict[Quantity:dict[float:float]] = {}
 
     def __repr__(self) -> str:
         el_str = ''

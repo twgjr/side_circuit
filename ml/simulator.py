@@ -1,8 +1,7 @@
 from circuits import System,Kind,Circuit,Element,Quantity,Voltage,Resistor
 from ngspice_lib import ngspice_api as ngsp
 from enum import Enum
-
-
+import pprint
 
 class Modes(Enum):
     DC = 0
@@ -12,7 +11,7 @@ class Simulator():
     '''steps through transient simulation of each system solution'''
     def __init__(self, system: System):
         self.system = system
-        self.spice = ngsp.Spice(dll_path=r'.\ngspice_lib\Spice64_dll\dll-vs\ngspice.dll')
+        self.spice = ngsp.Spice(system,dll_path=r'.\ngspice_lib\Spice64_dll\dll-vs\ngspice.dll')
         self.load_system()
 
     def load_system(self):
@@ -64,3 +63,13 @@ if(__name__=="__main__"):
     simulator = Simulator(system)
     simulator.set_tran(tstop=1,tstep=0.1)
     simulator.run()
+    for element in system.elements:
+        # if(Quantity.I in element.data):
+            # pprint.pprint(element.data[Quantity.I])
+        print(f'element{element}')
+        pprint.pprint(element.data)
+    for node in system.nodes:
+        # if(Quantity.P in node.data):
+            # pprint.pprint(node.data[Quantity.P])
+        print(f'node{node}')
+        pprint.pprint(node.data)

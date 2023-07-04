@@ -1,5 +1,7 @@
 import ctypes
 import os
+import re
+from circuits import System
 
 # Define the struct types
 class NgComplex(ctypes.Structure):
@@ -70,8 +72,9 @@ BGThreadRunning = ctypes.CFUNCTYPE(ctypes.c_int, #return value
                         ctypes.c_bool, ctypes.c_int, ctypes.c_void_p)
 
 class Spice():
-    def __init__(self, dll_path:str) -> None:
-        os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+    def __init__(self, system:System, dll_path:str) -> None:
+        os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE" # fix error from duplicate dll
+        self.system = system
         # DLL Function Prototypes
         self.dll = ctypes.cdll.LoadLibrary(dll_path)
 
@@ -101,38 +104,47 @@ class Spice():
     # Implement the callback functions
     @staticmethod
     def send_char(string, lib_id, return_ptr):
-        print(f"Received string from ngspice.dll (ID: {lib_id}): {string.decode()}")
+        print(f"ngspice char: {string.decode()}")
         return 0
 
     @staticmethod
     def send_stat(string, lib_id, return_ptr):
-        print(f"Received status from ngspice.dll (ID: {lib_id}): {string.decode()}")
+        print(f"ngspice stat: {string.decode()}")
         return 0
 
     @staticmethod
     def controlled_exit(exit_status, immediate_unload, exit_on_quit, lib_id, return_ptr):
-        print(f"Received controlled exit signal from ngspice.dll (ID: {lib_id}): Exit Status: {exit_status}")
+        print(f"ngspice exit status: {exit_status}")
         return 0
 
-    @staticmethod
-    def send_data(vec_values_all, count, lib_id, return_ptr):
-        print(f"Received data values from ngspice.dll (ID: {lib_id})")
+    def send_data(self, vec_values_all, count, lib_id, return_ptr):
+        '''ngcpice send_data callback method'''
+        time = None
+        branch_currents = {}
+        node_potentials = {}
         for i in range(count):
             vec_value = vec_values_all.contents.vecsa[i]
-            name = vec_value.contents.name.decode()
+            name:str = vec_value.contents.name.decode()
             real = vec_value.contents.creal
-            imag = vec_value.contents.cimag
-            print(f"Vector Name: {name}, Real: {real}, Imaginary: {imag}")
+            if(name == "time"):
+                time = real
+            elif("#branch" in name):
+                element = re.search(r'\d', name).group()
+                branch_currents[int(element)] = real
+            else:
+                node = re.search(r'\d', name).group()
+                node_potentials[int(node)] = real
+        self.system.load(node_potentials, branch_currents, time)
         return 0
 
     @staticmethod
     def send_init_data(vec_info_all, lib_id, return_ptr):
-        print(f"Received initialization data from ngspice.dll (ID: {lib_id})")
+        print(f"ngspice init data:")
         for i in range(vec_info_all.contents.veccount):
             vec_info = vec_info_all.contents.vecs[i]
             name = vec_info.contents.vecname.decode()
             is_real = vec_info.contents.is_real
-            print(f"Vector Name: {name}, Is Real: {is_real}")
+            print(f"    Vector Name: {name}, Is Real: {is_real}")
         return 0
 
     @staticmethod
