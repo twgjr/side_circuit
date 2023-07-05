@@ -41,8 +41,6 @@ class System():
              element_currents:dict[int:float], time:float):
         assert len(self.circuits)== 1
         self.circuits[0].load(node_potentials,element_currents,time)
-        # for c,circuit in enumerate(self.circuits):
-        #     circuit.load(solution[c],time)
 
     def num_circuits(self) -> int:
         return len(self.circuits)
@@ -309,21 +307,21 @@ class Circuit():
                     break
         return parallels
     
-    def elements_in_series_with(self, reference_element:'Element',
-                                include_ref:bool)->list['Element']:
+    def branch_elements(self, ref_element:'Element',
+                                include_ref:bool=False)->list['Element']:
         series = []
         if(include_ref):
-            series.append(reference_element)
-        for ref_node in [reference_element.low, reference_element.high]:
+            series.append({"element":ref_element,"polarity":1})
+        for ref_node in [ref_element.low, ref_element.high]:
             node = ref_node
-            element = reference_element
+            element = ref_element
             while(len(node.elements) == 2):
-                node,_ = self.next_node_in(element, node)
                 element = self.next_series_element(element, node)
-                if(element == reference_element):
+                if(element == ref_element):
                     return series
                 else:
-                    series.append(element)
+                    node,polarity = self.next_node_in(element, node)
+                    series.append({"element":element,"polarity":polarity})
         return series
     
     def next_node_in(self, element:'Element', from_node:'Node') -> tuple['Node',int]:
@@ -347,6 +345,10 @@ class Circuit():
     def load(self, node_potentials:dict[int:float], 
              element_currents:dict[int:float], time:float):
         '''Stores solutions or predictions as a time series'''
+        gnd:Node = self.nodes[0]
+        if(Quantity.P not in gnd.data):
+            gnd.data[Quantity.P] = {}
+        gnd.data[Quantity.P][time] = 0
         for n in node_potentials:
             node:Node = self.nodes[n]
             if(Quantity.P not in node.data):
@@ -354,12 +356,21 @@ class Circuit():
             node.data[Quantity.P][time] = node_potentials[n]
         for e in element_currents:
             element:Element = self.elements[e]
-            if(Quantity.I not in element.data):
-                element.data[Quantity.I] = {}
-            element.data[Quantity.I][time] = element_currents[e]
-        # for e,element in enumerate(self.elements):
-        #     element.data[Quantity.I][time] = pred_ckt_t[Quantity.I][e].item()
-        #     element.data[Quantity.V][time] = pred_ckt_t[Quantity.V][e].item()
+            branch_current = element_currents[e]
+            branch_elements = self.branch_elements(ref_element=element,
+                                                   include_ref=True)
+            for element_polarity_dict in branch_elements:
+                element = element_polarity_dict["element"]
+                polarity = element_polarity_dict["polarity"]
+                if(Quantity.I not in element.data):
+                    element.data[Quantity.I] = {}
+                element.data[Quantity.I][time] = branch_current*polarity
+        for element in self.elements:
+            high = element.high.data[Quantity.P][time]
+            low = element.low.data[Quantity.P][time]
+            if(Quantity.V not in element.data):
+                element.data[Quantity.V] = {}
+            element.data[Quantity.V][time] = high - low
     
 class SignalFunction():
     def __init__(self, kind:SignalClass):

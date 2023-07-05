@@ -64,12 +64,12 @@ if(__name__=="__main__"):
     simulator.set_tran(tstop=1,tstep=0.1)
     simulator.run()
     for element in system.elements:
-        # if(Quantity.I in element.data):
-            # pprint.pprint(element.data[Quantity.I])
         print(f'element{element}')
-        pprint.pprint(element.data)
+        for qty in element.data:
+            if(len(element.data[qty]) > 0):
+                print(f'has {qty}')
     for node in system.nodes:
-        # if(Quantity.P in node.data):
-            # pprint.pprint(node.data[Quantity.P])
         print(f'node{node}')
-        pprint.pprint(node.data)
+        for qty in node.data:
+            if(len(node.data[qty]) > 0):
+                print(f'has {qty}')
