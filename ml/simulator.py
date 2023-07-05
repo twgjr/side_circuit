@@ -1,4 +1,4 @@
-from circuits import System,Kind,Circuit,Element,Quantity,Voltage,Resistor,Pulse
+from circuits import System,Kind,Circuit,Element,Quantity,Voltage,Resistor,Pulse,Sin
 from ngspice_lib import ngspice_api as ngsp
 from enum import Enum
 import pprint
@@ -55,8 +55,8 @@ if(__name__=="__main__"):
     res_top = circuit.elements[1]
     res_low = circuit.elements[2]
     ivs:Voltage
-    # ivs.dc = 10
-    ivs.sig_func = Pulse(val1=0,val2=1,freq=1e3)
+    # ivs.sig_func = Pulse(val1=0,val2=1,freq=1e3)
+    ivs.sig_func = Sin(dc=0,ampl=1,freq=1e3)
     res_top:Resistor
     res_top.parameter = 9
     res_low:Resistor

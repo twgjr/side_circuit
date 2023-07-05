@@ -381,11 +381,29 @@ class SignalFunction():
         for value in self.__dict__.values():
             args.append(str(value))
         return ' '.join(args)
+    
+class Sin(SignalFunction):
+        def __init__(self, dc:float, ampl:float, freq:float, delay=0.0, 
+                     decay=0.0, phase=0.0):
+            super().__init__(SignalClass.SIN)
+            '''
+            SIN ( VO VA FREQ TD THETA PHASE )
+            V(t) piecewise function:
+                1.  V(t) = V0, if 0≤t<TD
+                2.  V(t) = V0 + VA*e^[-(t-TD)THETA]*sin(2π*FREQ*(t-TD)+PHASE),
+                  if TD≤t<TSTOP.
+            '''
+            self.V0 = dc
+            self.VA = ampl
+            self.FREQ = freq
+            self.TD = delay
+            self.THETA = decay
+            self.PHASE = phase
 
 class Pulse(SignalFunction):
-        def __init__(self, val1, val2, freq, delay=0.0, 
-                     rise_time=None, fall_time=None, duty_ratio=0.5, 
-                     num_pulses=0):
+        def __init__(self, val1:float, val2:float, freq:float, delay=0.0, 
+                     rise_time=None, fall_time:float=None, duty_ratio=0.5, 
+                     num_pulses:int=0):
             super().__init__(SignalClass.PULSE)
             '''Delay determines when the on_value begins, otherise off_value.
             PULSE ( V1 V2 TD TR TF PW PER NP )'''
