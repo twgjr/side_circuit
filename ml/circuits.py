@@ -374,7 +374,7 @@ class Circuit():
     
 class SignalFunction():
     def __init__(self, kind:SignalClass):
-        self.kind = kind
+        self.kind = kind.name
     
     def to_spice(self) -> str:
         args = []
@@ -383,13 +383,14 @@ class SignalFunction():
         return ' '.join(args)
 
 class Pulse(SignalFunction):
-        def __init__(self, off_value, on_value, freq, delay=0.0, rise_time=None,
-              fall_time=None, duty_ratio=0.5, num_pulses=0):
-            super().__init__()
+        def __init__(self, val1, val2, freq, delay=0.0, 
+                     rise_time=None, fall_time=None, duty_ratio=0.5, 
+                     num_pulses=0):
+            super().__init__(SignalClass.PULSE)
             '''Delay determines when the on_value begins, otherise off_value.
             PULSE ( V1 V2 TD TR TF PW PER NP )'''
-            self.V1 = off_value
-            self.V2 = on_value
+            self.V1 = val1
+            self.V2 = val2
             self.TD = delay
             self.TR = rise_time
             self.TF = fall_time
