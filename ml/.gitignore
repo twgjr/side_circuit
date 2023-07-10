@@ -1,5 +1,8 @@
-# Python and Jupyter Notebook .gitignore
+##### Project Specific
+/working/
+/cython/Spice64_dll/
 
+##### Python and Jupyter Notebook
 # Ignore compiled Python bytecode
 *.pyc
 
@@ -11,8 +14,7 @@ env/
 # Ignore Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 
-# Exclude the _working folder at the top level
-/_working/
+
 
 # Ignore Jupyter Notebook kernel connection files
 *.json

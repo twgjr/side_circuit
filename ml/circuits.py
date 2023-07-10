@@ -2,11 +2,12 @@ import networkx as nx
 from enum import Enum
 import torch
 from torch import Tensor
-from math import isclose
+from math import isclose,sqrt
+from abc import abstractmethod
 
-class Kinds(Enum):
-    VS = 0
-    CS = 1
+class Kind(Enum):
+    V = 0
+    I = 1
     R = 2
     VC = 3
     CC = 4
@@ -16,11 +17,14 @@ class Kinds(Enum):
     VG = 8
     CG = 9
 
-class Props(Enum):
+class Quantity(Enum):
     I = 0
     V = 1
-    A = 2
-    B = 3
+    P = 2
+
+class SignalClass(Enum):
+    PULSE = 0
+    SIN = 1
 
 class System():
     '''Collection of isolated Circuits that are only connected by parent/child
@@ -33,11 +37,10 @@ class System():
         self.elements: list[Element] = []
         self.nodes: list[Node] = []
 
-    def load(self, pred:dict):
-        for time in pred:
-            pred_t = pred[time]
-            for c,circuit in enumerate(self.circuits):
-                circuit.load(pred_t[c],time)
+    def load(self, node_potentials:dict[int:float], 
+             element_currents:dict[int:float], time:float):
+        assert len(self.circuits)== 1
+        self.circuits[0].load(node_potentials,element_currents,time)
 
     def num_circuits(self) -> int:
         return len(self.circuits)
@@ -76,18 +79,27 @@ class System():
         if(node.circuit.is_empty()):
             self.remove_circuit(node.circuit)
     
-    def add_element_of(self, kind:Kinds) -> 'Element':
+    def add_element_of(self, kind:Kind):
         circuit = self.add_circuit()
         high_node = self.add_node(circuit,[])
         low_node = self.add_node(circuit,[])
         circuit.nodes.append(high_node)
         circuit.nodes.append(low_node)
-        element = Element(circuit, high_node, low_node, kind)
+        element = self.new_element(kind,circuit,high_node,low_node)
         self.elements.append(element)
         high_node.elements.append(element)
         low_node.elements.append(element)
         circuit.elements.append(element)
         return element
+    
+    def new_element(self, kind:Kind, circuit, high, low):
+        if(kind==Kind.V):
+            return Voltage(circuit, high, low)
+        if(kind==Kind.I):
+            return Current(circuit, high, low)
+        if(kind==Kind.R):
+            return Resistor(circuit, high, low)
+        raise NotImplementedError()
     
     def remove_element(self, element: 'Element'):
         element.circuit.remove_element(element)
@@ -95,22 +107,16 @@ class System():
             self.remove_circuit(element.circuit)
         self.elements.remove(element)
 
-    def add_element_pair(self, parent_kind:Kinds, 
-                        child_kind:Kinds) -> tuple['Element','Element']:
-        assert(parent_kind == Kinds.VC or parent_kind == Kinds.CC)
-        assert(child_kind == Kinds.SW or child_kind == Kinds.VG or
-               child_kind == Kinds.CG)
+    def add_element_pair(self, parent_kind:Kind, 
+                        child_kind:Kind) -> tuple['Element','Element']:
+        assert(parent_kind == Kind.VC or parent_kind == Kind.CC)
+        assert(child_kind == Kind.SW or child_kind == Kind.VG or
+               child_kind == Kind.CG)
         parent = self.add_element_of(parent_kind)
         child = self.add_element_of(child_kind)
         child.parent = parent
         parent.child = child
         return parent, child
-    
-    def name_exists(self, name: str) -> bool:
-        for c in self.circuits:
-            if c.name_exists(name):
-                return True
-        return False
 
     def connect(self, a: 'Node', b: 'Node'):
         '''Merge two nodes together into one. If the nodes are in different
@@ -178,11 +184,11 @@ class System():
         '''one source and one load, with a switch in series. The switch control
         has a separate voltage source  and resistor in parallel.'''
         self.prep_for_delete()
-        child_src = self.add_element_of(Kinds.VS)
-        parent_src = self.add_element_of(Kinds.VS)
-        child_res = self.add_element_of(Kinds.R)
-        parent_res = self.add_element_of(Kinds.R)
-        parent, child = self.add_element_pair(Kinds.VC, Kinds.SW)
+        child_src = self.add_element_of(Kind.V)
+        parent_src = self.add_element_of(Kind.V)
+        child_res = self.add_element_of(Kind.R)
+        parent_res = self.add_element_of(Kind.R)
+        parent, child = self.add_element_pair(Kind.VC, Kind.SW)
         self.connect(child_src.high, child.high)
         self.connect(child.low, child_res.high)
         self.connect(child_src.low, child_res.low)
@@ -192,7 +198,7 @@ class System():
         self.connect(parent_res.low, parent.low)
         return parent.circuit, child.circuit
     
-    def ring(self, source_kind:Kinds, load_kind:Kinds, num_loads:int) -> 'Circuit':
+    def ring(self, source_kind:Kind, load_kind:Kind, num_loads:int) -> 'Circuit':
         '''one source and all loads in series'''
         assert(num_loads > 0)
         self.prep_for_delete()
@@ -207,7 +213,7 @@ class System():
         self.connect(source.low, prev_element.low)
         return source.circuit
 
-    def ladder(self, source_kind:Kinds, load_kind:Kinds, num_loads:int) -> 'Circuit':
+    def ladder(self, source_kind:Kind, load_kind:Kind, num_loads:int) -> 'Circuit':
         '''one source and all loads in parallel'''
         assert(num_loads > 0)
         self.prep_for_delete()
@@ -223,65 +229,25 @@ class System():
             prev_element = new_load
         return source.circuit
     
-    def update_bases(self):
-        i_sigs = []
-        v_sigs = []
-        r_vals = []
-        l_vals = []
-        c_vals = []
-        for circuit in self.circuits:
-            i_sigs += circuit.prop_list(Props.I)
-            v_sigs += circuit.prop_list(Props.V)
-            r_vals += circuit.attr_list(Kinds.R)
-            l_vals += circuit.attr_list(Kinds.L)
-            c_vals += circuit.attr_list(Kinds.C)
-        i_base = self.signals_base(i_sigs)
-        v_base = self.signals_base(v_sigs)
-        r_base = self.values_base(r_vals)
-        l_base = self.values_base(l_vals)
-        c_base = self.values_base(c_vals)
-        return {'i':i_base,'v':v_base,'r':r_base,'l':l_base,'c':c_base}
-    
-    def signals_base(self, signals:list['Signal']) -> float:
-        input_max = 1
-        for signal in signals:
-            if(signal.is_empty()):
-                continue
-            else:
-                for v in range(len(signal)):
-                    val = signal[v]
-                    abs_val = abs(val)
-                    if(abs_val > input_max):
-                        input_max = abs_val
-        return input_max
-        
-    def values_base(self, values:list[float]) -> float:
-        input_max = 1
-        for val in values:
-            if(val == None):
-                continue
-            abs_val = abs(val)
-            if(abs_val > input_max):
-                input_max = abs_val
-        return input_max
+    def rc(self):
+        self.prep_for_delete()
+        v = self.add_element_of(Kind.V)
+        r = self.add_element_of(Kind.R)
+        c = self.add_element_of(Kind.C)
+        self.connect(v.high, r.high)
+        self.connect(r.low, c.high)
+        self.connect(v.low, c.low)
+        return v.circuit
 
 class Circuit():
     '''A Circuit is a subset collection of Nodes and Elements from the System'''
     def __init__(self, system:System) -> None:
         self.system = system
         self.nodes: list[Node] = []
-        self.elements: list[Element] = []
-        self.signal_len = 0
+        self.elements: list = []
 
-    @property
     def index(self) -> int:
         return self.system.circuits.index(self)
-    
-    def name_exists(self, name:str) -> bool:
-        for e in self.elements:
-            if e.name == name:
-                return False
-        return True
     
     def is_empty(self) -> bool:
         return len(self.elements) == 0 and len(self.nodes) == 0
@@ -341,21 +307,21 @@ class Circuit():
                     break
         return parallels
     
-    def elements_in_series_with(self, reference_element:'Element',
-                                include_ref:bool)->list['Element']:
+    def branch_elements(self, ref_element:'Element',
+                                include_ref:bool=False)->list['Element']:
         series = []
         if(include_ref):
-            series.append(reference_element)
-        for ref_node in [reference_element.low, reference_element.high]:
+            series.append({"element":ref_element,"polarity":1})
+        for ref_node in [ref_element.low, ref_element.high]:
             node = ref_node
-            element = reference_element
+            element = ref_element
             while(len(node.elements) == 2):
-                node,_ = self.next_node_in(element, node)
                 element = self.next_series_element(element, node)
-                if(element == reference_element):
+                if(element == ref_element):
                     return series
                 else:
-                    series.append(element)
+                    node,polarity = self.next_node_in(element, node)
+                    series.append({"element":element,"polarity":polarity})
         return series
     
     def next_node_in(self, element:'Element', from_node:'Node') -> tuple['Node',int]:
@@ -376,190 +342,158 @@ class Circuit():
             if(element != from_element):
                 return element
 
-    def load(self, pred_ckt_t:dict[str:Tensor], time:float):
-        '''Stores predictions from Trainer in Circuit'''
-        for e,element in enumerate(self.elements):
-            element.i_pred[time] = pred_ckt_t[Props.I][e].item()
-            element.v_pred[time] = pred_ckt_t[Props.V][e].item()
-            if(time > 0): continue
-            if(element.kind == Kinds.VC or element.kind == Kinds.CC): continue
-            if(element.kind == Kinds.R or element.kind == Kinds.L or
-                element.kind == Kinds.C or element.kind == Kinds.SW):
-                element.a_pred[time] = pred_ckt_t[Props.A][e].item()
-            elif(element.kind == Kinds.VG or element.kind == Kinds.CG or
-                 element.kind == Kinds.VS or element.kind == Kinds.CS):
-                element.a_pred[time] = pred_ckt_t[Props.B][e].item()
-            else:
-                assert()
-    
-    def kind_list(self, kind:Kinds, with_control:Kinds=None) -> list[bool]:
-        '''returns a list of booleans indicating which elements are of kind'''
-        assert(kind != with_control)
-        assert(with_control == Kinds.VC or with_control == Kinds.CC or 
-               with_control == None)
-        kind_list = []
+    def load(self, node_potentials:dict[int:float], 
+             element_currents:dict[int:float], time:float):
+        '''Stores solutions or predictions as a time series'''
+        gnd:Node = self.nodes[0]
+        if(Quantity.P not in gnd.data):
+            gnd.data[Quantity.P] = {}
+        gnd.data[Quantity.P][time] = 0
+        for n in node_potentials:
+            node:Node = self.nodes[n]
+            if(Quantity.P not in node.data):
+                node.data[Quantity.P] = {}
+            node.data[Quantity.P][time] = node_potentials[n]
+        for e in element_currents:
+            element:Element = self.elements[e]
+            branch_current = element_currents[e]
+            branch_elements = self.branch_elements(ref_element=element,
+                                                   include_ref=True)
+            for element_polarity_dict in branch_elements:
+                element = element_polarity_dict["element"]
+                polarity = element_polarity_dict["polarity"]
+                if(Quantity.I not in element.data):
+                    element.data[Quantity.I] = {}
+                element.data[Quantity.I][time] = branch_current*polarity
         for element in self.elements:
-            if(element.kind == kind):
-                if(with_control == None):
-                    kind_list.append(True)
-                elif(element.has_parent_of(with_control)):
-                    kind_list.append(True)
+            high = element.high.data[Quantity.P][time]
+            low = element.low.data[Quantity.P][time]
+            if(Quantity.V not in element.data):
+                element.data[Quantity.V] = {}
+            element.data[Quantity.V][time] = high - low
+    
+class SignalFunction():
+    def __init__(self, kind:SignalClass):
+        self.kind = kind.name
+    
+    def to_spice(self) -> str:
+        args = []
+        for value in self.__dict__.values():
+            args.append(str(value))
+        return ' '.join(args)
+    
+class Sin(SignalFunction):
+        def __init__(self, dc:float, ampl:float, freq:float, delay=0.0, 
+                     decay=0.0, phase=0.0):
+            super().__init__(SignalClass.SIN)
+            '''
+            SIN ( VO VA FREQ TD THETA PHASE )
+            V(t) piecewise function:
+                1.  V(t) = V0, if 0≤t<TD
+                2.  V(t) = V0 + VA*e^[-(t-TD)THETA]*sin(2π*FREQ*(t-TD)+PHASE),
+                  if TD≤t<TSTOP.
+            '''
+            self.V0 = dc
+            self.VA = ampl
+            self.FREQ = freq
+            self.TD = delay
+            self.THETA = decay
+            self.PHASE = phase
+
+class Pulse(SignalFunction):
+        def __init__(self, val1:float, val2:float, freq:float, delay=0.0, 
+                     rise_time=None, fall_time:float=None, duty_ratio=0.5, 
+                     num_pulses:int=0):
+            super().__init__(SignalClass.PULSE)
+            '''Delay determines when the on_value begins, otherise off_value.
+            PULSE ( V1 V2 TD TR TF PW PER NP )'''
+            self.V1 = val1
+            self.V2 = val2
+            self.TD = delay
+            self.TR = rise_time
+            self.TF = fall_time
+            period = 1/freq
+            self.PW = period*duty_ratio
+            self.PER = period
+            self.NP = num_pulses
+            if(rise_time == None):
+                if(fall_time != None):
+                    self.TR = fall_time
                 else:
-                    kind_list.append(False)
-            else:
-                kind_list.append(False)
-        return kind_list
-    
-    def attr_list(self, kind:Kinds) -> list[float]:
-        '''returns a list of attributes of elements of kind'''
-        attrs = []
-        for element in self.elements:
-            if(element.kind == kind):
-                attrs.append(element.a)
-            else:
-                attrs.append(None)
-        return attrs
-    
-    def prop_list(self, prop:Props) -> list['Signal']:
-        '''returns a list of properties matching prop of elements'''
-        props = []
-        for element in self.elements:
-            if(prop == Props.I):
-                props.append(element.i.copy())
-            elif(prop == Props.V):
-                props.append(element.v.copy())
-            else:
-                assert()
-        return props
-    
-    def prop_mask(self, prop:Props) -> list[bool]:
-        '''returns boolean mask of known element properties ordered by element'''
-        assert isinstance(prop,Props)
-        ret_list = []
-        for element in self.elements:
-            if(prop == Props.I):
-                ret_list.append(len(element.i)>0)
-            elif(prop == Props.V):
-                ret_list.append(len(element.v)>0)
-            elif(prop == Props.A):
-                ret_list.append(element.a != None)
-            else:
-                assert()
-        return ret_list
-    
-    def attr_mask(self, kind:Kinds) -> list[bool]:
-        '''returns boolean mask of known element attributes ordered by element'''
-        assert isinstance(kind,Kinds)
-        assert kind != Kinds.CS and kind != Kinds.VS
-        attrs = self.attr_list(kind)
-        ret_list = []
-        for attr in attrs:
-            assert isinstance(attr,float) or attr == None
-            ret_list.append(attr != None)
-        return ret_list
+                    self.TR = self.PER/1000
+            if(fall_time == None):
+                if(rise_time != None):
+                    self.TF = rise_time
+                else:
+                    self.TF = self.PER/1000
 
 class Element():
-    def __init__(self, circuit: Circuit, high:'Node', low:'Node', kind:Kinds, 
-                 name:str=None) -> None:
-        assert(isinstance(kind,Kinds) and isinstance(circuit,Circuit))
-        self.system = circuit.system
+    def __init__(self, circuit: Circuit, high:'Node', low:'Node', 
+                 kind:Kind) -> None:
+        assert(isinstance(kind,Kind) and isinstance(circuit,Circuit))
         self.circuit = circuit
         self.low:Node = low
         self.high:Node = high
         self.parent:Element = None
         self.child:Element = None
         self.kind = kind
-        self._i:Signal = Signal(self,{})
-        self._v:Signal = Signal(self,{})
-        self.a:Signal = Signal(self,{})
-        self.i_pred:Signal = Signal(self,{})
-        self.v_pred:Signal = Signal(self,{})
-        self.a_pred:Signal = Signal(self,{})
-        self._name = name
+        self.data:dict[Quantity:dict[float:float]] = {}
 
-    @property
-    def index(self) -> list[int]:
+    @abstractmethod
+    def behavior(self) -> str:
+        pass
+
+    def to_spice(self)->str:
+        id = self.kind.name + str(self.index())
+        n_low = str(self.low.index)
+        n_high = str(self.high.index)
+        return id+" "+n_high+" "+n_low+" "+self.behavior()
+
+    def add_data(self, prop:Quantity, time:float, value:float):
+        if(prop not in self.data):
+            self.data[prop] = {}
+        self.data[prop][time] = value
+
+    def index(self) -> int:
         return self.circuit.elements.index(self)
     
-    @property
-    def name(self):
-        return self._name
+    def parent_index(self) -> int:
+        if(self.parent == None):
+            return None
+        return self.parent.index()
     
-    @name.setter
-    def name(self, name:str):
-        assert(isinstance(name,str))
-        if(self.circuit.system.name_exists(name)):
-            raise ValueError('name already exists')
-        self._name = name
+    def circuit_index(self) -> int:
+        return self.circuit.index()
+    
+    def parent_circuit_index(self) -> int:
+        if(self.parent == None):
+            return None
+        return self.parent.circuit.index()
     
     @property
     def id(self) -> str:
         return str(self.kind.name) \
-            + '_' + str(self.circuit.index) + '_' + str(self.index)
+            + '_' + str(self.circuit.index()) + '_' + str(self.index())
     
     def __repr__(self) -> str:
-        return self.name + '_' + self.id
-
-    def to_nx(self):
-        kind = ('kind',self.kind)
-        v = ('v',self.v)
-        i = ('i',self.i)
-        attr = None
-        if(self.kind == Kinds.CS or self.kind == Kinds.VS):
-            attr = ('attr',None)
-        else:
-            attr = ('attr',self.a)
-        return (self.low.index, self.high.index, self.key, (kind, i, v, attr))
+        return self.id
 
     def has_parent(self):
         return self.parent != None
     
-    def has_parent_of(self, kind:Kinds):
-        assert kind in [Kinds.VC, Kinds.CC]
+    def has_parent_of(self, kind:Kind):
+        assert kind in [Kind.VC, Kind.CC]
         return self.has_parent() and self.parent.kind == kind
-    
-    @property 
-    def i(self):
-        return self._i
-    
-    @i.setter
-    def i(self, key, value):
-        series = self.circuit.elements_in_series_with(self,False)
-        for element in series:
-            if(not element.i.is_empty()):
-                assert()
-        self._i[key] = value
 
     @property
-    def v(self):
-        return self._v
-    
-    @v.setter
-    def v(self, key, value):
-        assert isinstance(key,float)
-        assert isinstance(value,float)
-        parallels = self.circuit.elements_parallel_to(self,False)
-        for element in parallels:
-            if(not element.v.is_empty()):
-                assert()
-        self._v[key] = value
-
-    @property
-    def key(self):
+    def edge_key(self):
         parallels = self.circuit.elements_parallel_to(self,True)
         return parallels.index(self)
 
     def prep_for_delete(self):
-        self._i.prep_for_delete()
-        self._i = None
-        self._v.prep_for_delete()
-        self._v = None
-        self._a = None
-        self.i_pred.prep_for_delete()
-        self._i_pred = None
-        self.v_pred.prep_for_delete()
-        self._v_pred = None
-        self._a_pred = None
+        self.data.clear()
+        self.child:Element = None
+        self.parent:Element = None
         self.low.remove_element(self)
         self.low = None
         self.high.remove_element(self)
@@ -567,34 +501,71 @@ class Element():
         self.kind = None
         self.circuit = None
 
-    def can_calc(self,prop:Props,time:float):
-        if(prop == Props.I):
-            if(self.kind == Kinds.R):
-                return time in self.v and time in self.a
-        if(prop == Props.V):
-            if(self.kind == Kinds.R):
-                return time in self.i and time in self.a
-        if(prop == Props.A):
-            if(self.kind == Kinds.R):
-                return time in self.v and time in self.i
-        return False
-            
-    def calc(self,prop:Props,time:float):
-        if(prop == Props.I):
-            if(self.kind == Kinds.R):
-                return self.v[time] / self.a[time]
-        if(prop == Props.V):
-            if(self.kind == Kinds.R):
-                return self.i[time] * self.a[time]
-        if(prop == Props.A):
-            if(self.kind == Kinds.R):
-                return self.v[time] / self.i[time]
+class IndependentSource(Element):
+    '''
+    General form:
+    VXXXXXXX N+ N- <<DC> DC/TRAN VALUE> <AC <ACMAG <ACPHASE>>> <periodic signal>
+    IYYYYYYY N+ N- <<DC> DC/TRAN VALUE> <AC <ACMAG <ACPHASE>>> <periodic signal>
+    Examples:
+    VCC 10 0 DC 6
+    VIN 13 2 0.001 AC 1 SIN(0 1 1 MEG )
+    ISRC 23 21 AC 0.333 45.0 SFFM(0 1 10 K 5 1 K )
+    VMEAS 12 9
+    '''
+    def __init__(self, circuit:Circuit, high:'Node', low:'Node', kind:Kind) -> None:
+        assert(kind==Kind.V or kind==Kind.I)
+        super().__init__(circuit, high, low, kind)
+        self.dc = None
+        self.ac_mag = None
+        self.ac_phase = None
+        self.sig_func:SignalFunction = None
+
+    def behavior(self) -> str:
+        args = []
+        if(self.dc != None):
+            args.append("DC")
+            args.append(str(self.dc))
+        if(self.ac_mag != None): 
+            args.append("AC")
+            args.append(str(self.ac_mag))
+        if(self.ac_phase != None):
+            args.append(str(self.ac_phase))
+        if(self.sig_func != None): args.append(self.sig_func.to_spice())
+        return ' '.join(args)
+    
+class Voltage(IndependentSource):
+    def __init__(self, circuit: Circuit, high: 'Node', low: 'Node') -> None:
+        kind = Kind.V
+        super().__init__(circuit, high, low, kind)
+
+class Current(IndependentSource):
+    def __init__(self, circuit: Circuit, high: 'Node', low: 'Node') -> None:
+        kind = Kind.I
+        super().__init__(circuit, high, low, kind)
+    
+class Resistor(Element):
+    '''
+    General form:
+    RXXXXXXX n+ n- <resistance | r => value <ac = val> <m = val>
+    + <scale = val> <temp = val> <dtemp = val> <tc1 = val> <tc2 = val>
+    + <noisy =0|1>
+    '''
+    def __init__(self, circuit:Circuit, high:'Node', low:'Node') -> None:
+        kind = Kind.R
+        super().__init__(circuit, high, low, kind)
+        self.parameter = None
+
+    def behavior(self) -> str:
+        assert(self.parameter != None)
+        assert(self.parameter > 0)
+        return str(self.parameter)
     
 class Node():
     def __init__(self, circuit: Circuit, elements: list[Element]) -> None:
         self.system = circuit.system
         self.circuit = circuit
         self.elements = elements
+        self.data:dict[Quantity:dict[float:float]] = {}
 
     def __repr__(self) -> str:
         el_str = ''
@@ -628,11 +599,18 @@ class Node():
             self.elements.remove(element)
 
 class Signal():
-    def __init__(self, element: Element,data:dict[float:float]) -> None:
-        assert isinstance(element,Element) or element == None
+    '''Signal is for operations and analysis on time valued data.  It can 
+    interpolate between defined points. Used to store predicted or calculated 
+    voltage and current signals.'''
+    def __init__(self, data:dict[float:float]) -> None:
         assert isinstance(data,dict)
-        self.element = element
         self._data = data
+        self.lower = 0.0
+        self.upper = 0.0
+        self.max = 0.0
+        self.is_periodic = False
+        '''True periodic means to repeat pattern of signal, False means to 
+        continue the last value in the sequence at DC.'''
 
     def values(self):
         return self._data.values()
@@ -653,13 +631,42 @@ class Signal():
     def __len__(self):
         return len(self._data)
     
-    def __getitem__(self, key):
-        assert(isinstance(key,float))
-        return self._data[key]
+    def __getitem__(self, time):
+        assert(isinstance(time,float))
+        if(self.is_periodic == True):
+            if(self.max > 0.0):
+                time = time % self.max
+        if(time < self.lower or self.upper < time):
+            self.set_window(time)
+        if(self.is_periodic == False and self.upper < time):
+            assert(self.lower <= self.upper)
+            return self._data[self.max]
+        if time in self._data:
+            assert(self.lower <= self.upper)
+            return self._data[time]
+        return self.interpolate(time)
+    
+    def interpolate(self,time:float):
+        low_val = self._data[self.lower]
+        high_val = self._data[self.upper]
+        ratio = (time - self.lower) / (self.upper - self.lower)
+        assert(self.lower <= self.upper)
+        return low_val + ratio * (high_val - low_val)
+    
+    def set_window(self,time:float):
+        prev_key = 0.0
+        for time_key in self._data:
+            if(prev_key <= time <= time_key):
+                self.lower = prev_key
+                self.upper = time_key
+                break
+            prev_key = time_key
     
     def __setitem__(self, key, value):
         assert(isinstance(key,float))
         self._data[key] = value
+        if(key > self.max):
+            self.max = key
 
     def __iter__(self):
         return iter(self._data)
@@ -684,45 +691,65 @@ class Signal():
     
     def __add__(self,signal):
         assert(isinstance(signal,Signal))
-        assert(len(self)==len(signal))
+        assert(len(self)==len(signal) or len(self)==1 or len(signal)==1)
         sig_sum = {}
-        for time in self:
-            sig_sum[time] = self[time] + signal[time]
+        if(len(self)==1 and len(signal)>1):
+            for time in self:
+                sig_sum[time] = self[0.0] + signal[time]
+        if(len(self)>1 and len(signal)==1):
+            for time in self:
+                sig_sum[time] = self[time] + signal[0.0]
+        if(len(self)==len(signal)):
+            for time in self:
+                sig_sum[time] = self[time] + signal[time]
         return Signal(None,sig_sum)
 
     def __sub__(self,signal):
         assert(isinstance(signal,Signal))
-        assert(len(self)==len(signal))
+        assert(len(self)==len(signal) or len(self)==1 or len(signal)==1)
         sig_sum = {}
-        for time in self:
-            sig_sum[time] = self[time] - signal[time]
+        if(len(self)==1 and len(signal)>1):
+            for time in self:
+                sig_sum[time] = self[0.0] - signal[time]
+        if(len(self)>1 and len(signal)==1):
+            for time in self:
+                sig_sum[time] = self[time] - signal[0.0]
+        if(len(self)==len(signal)):
+            for time in self:
+                sig_sum[time] = self[time] - signal[time]
         return Signal(None,sig_sum)
     
     def __mul__(self,signal):
         assert(isinstance(signal,Signal))
-        assert(len(self)==len(signal))
+        assert(len(self)==len(signal) or len(self)==1 or len(signal)==1)
         sig_sum = {}
-        for time in self:
-            sig_sum[time] = self[time] * signal[time]
+        if(len(self)==1 and len(signal)>1):
+            for time in self:
+                sig_sum[time] = self[0.0] * signal[time]
+        if(len(self)>1 and len(signal)==1):
+            for time in self:
+                sig_sum[time] = self[time] * signal[0.0]
+        if(len(self)==len(signal)):
+            for time in self:
+                sig_sum[time] = self[time] * signal[time]
         return Signal(None,sig_sum)
     
     def __truediv__(self,signal):
         assert(isinstance(signal,Signal))
-        assert(len(self)==len(signal))
+        assert(len(self)==len(signal) or len(self)==1 or len(signal)==1)
         sig_sum = {}
-        for time in self:
-            sig_sum[time] = self[time] / signal[time]
+        if(len(self)==1 and len(signal)>1):
+            for time in self:
+                sig_sum[time] = self[0.0] / signal[time]
+        if(len(self)>1 and len(signal)==1):
+            for time in self:
+                sig_sum[time] = self[time] / signal[0.0]
+        if(len(self)==len(signal)):
+            for time in self:
+                sig_sum[time] = self[time] / signal[time]
         return Signal(None,sig_sum)
 
-    def clear(self):
-        self._data = {}
-
-    def is_empty(self):
-        return len(self._data) == 0
-    
-    def copy(self):
-        assert isinstance(self.element,Element)
-        data_copy = {}
-        for key,value in self._data.items():
-            data_copy[key] = value
-        return Signal(element=self.element, data=data_copy)
+    def rms(self):
+        sum_of_squares = sum([self._data[time] ** 2 for time in self._data])
+        count = len(self._data)
+        return sqrt(sum_of_squares / count)
