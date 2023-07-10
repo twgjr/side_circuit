@@ -1,15 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-
-import 'preventDefault.dart';
 import 'widgets/diagramArea.dart';
 
-void main(){
-  if(kIsWeb) {
-    PreventDefault rightClickMenu = PreventDefault();
-  }
-  runApp(MyApp());
-}
+void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
   @override

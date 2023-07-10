@@ -29,8 +29,7 @@ class _DiagramChildItemState extends State<DiagramChildItem> {
   void _showPopupMenu() async {
     final RenderBox overlay =
     Overlay
-        .of(_diagramAreaContext)!
-        .context
+        .of(_diagramAreaContext).context
         .findRenderObject() as RenderBox;
 
     await showMenu(
@@ -50,7 +49,7 @@ class _DiagramChildItemState extends State<DiagramChildItem> {
             diagramAreaState.deleteItem(_dItem);
             break;
           case "edit":
-            String equation = (_dItem.equations.isEmpty ? "": _dItem.equations[0].formulaString);
+            String equation = "not implemented yet";
             showDialog<String>(
               context: context,
               builder: (BuildContext context) =>
@@ -68,8 +67,7 @@ class _DiagramChildItemState extends State<DiagramChildItem> {
                         child: const Text('Cancel'),
                       ),
                       TextButton(
-                        onPressed: () {
-                          _dItem.equations.clear();
+                        onPressed: () {;
                           _dItem.addEquationString(equation);
                           Navigator.pop(context, 'OK');
                         },
