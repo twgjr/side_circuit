@@ -1,24 +1,17 @@
 import 'dart:math';
-
-import 'package:side_circuit/models/solver.dart';
-
 import 'port.dart';
 import 'link.dart';
-import 'formula.dart';
 import 'result.dart';
-import 'model.dart';
 
 class Diagram {
     DiagramItem? root;
     DiagramItem? proxyRoot;
     Port? pendingConnectPort;
     Link? pendingConnectLink;
-    Model model = Model();
-
 
     Diagram() {
         //by default the root node is always a block
-        root =  DiagramItem.root(this.model);  // real root is empty block
+        root =  DiagramItem.root();  // real root is empty block
         proxyRoot = root; // always start at empty top level
     }
 
@@ -30,27 +23,18 @@ class Diagram {
         if (proxyRoot!.parent != null) {
             setProxyRoot(proxyRoot!.parent!);
         }
-        //root.printTree(root);
     }
 
     void moveDown(DiagramItem dItem){
         setProxyRoot(dItem);
-        //root.printTree(root);
     }
 
     void moveToTop() {
         proxyRoot = root;
-        //root.printTree(root);
     }
 
     void solve() {
-        Solver solver = Solver(this.model);
-        if(solver.solve()) {
-            print("solved");
-            this.model.printSolution();
-        } else {
-            print("not solved");
-        }
+        print("solver not implemented yet");
     }
 
     void endLinkFromLink( Link link ) {
@@ -87,9 +71,7 @@ class DiagramItem {
     DiagramItem?  parent;
     List<DiagramItem> children = [];
     List<Port> ports = [];
-    List<Formula> equations = [];
     List<Result> results = [];
-    Model model;
 
     //Data
     double xPosition = 0;
@@ -97,13 +79,12 @@ class DiagramItem {
     int type = 0;
     int rotation = 0;
 
-    DiagramItem(this.model,this.type, this.parent);
+    DiagramItem(this.type, this.parent);
 
-    DiagramItem.root(this.model);
+    DiagramItem.root();
 
-    DiagramItem.child(this.model,this.parent) {
+    DiagramItem.child(this.parent) {
         this.type = 0;
-        //this.equations.add(Equation.string("test"));
     }
 
     int breadth() {
@@ -132,14 +113,12 @@ class DiagramItem {
     }
 
     void addChild() {
-        DiagramItem child = DiagramItem.child(this.model,this);
+        DiagramItem child = DiagramItem.child(this);
         this.children.add(child);
-        //printTree(getRoot());
     }
 
     void deleteChild(DiagramItem child) {
         this.children.remove(child);
-        //printTree(getRoot());
     }
 
     void addPort(Point center) {
@@ -150,8 +129,7 @@ class DiagramItem {
     }
 
     void addEquationString(String equationString) {
-        Formula  newEquation = Formula.string(this.model,equationString);
-        equations.add(newEquation);
+        print("not implemented yet");
     }
 
     void addResult(String name, num value) {
@@ -167,19 +145,5 @@ class DiagramItem {
             dItem = dItem.parent!;
         }
         return dItem;
-    }
-
-    void printTree(DiagramItem dItem) {
-        //breadth first print children
-        String spacer = "";
-        for ( int ctr = 0 ; ctr < dItem.depth() ; ctr++) {
-            spacer += "->";
-        }
-
-        print("$spacer${dItem.depth()},${dItem.breadth()}");
-
-        for ( DiagramItem child in dItem.children) {
-            printTree(child);
-        }
     }
 }
