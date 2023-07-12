@@ -14,13 +14,13 @@ class DiagramAreaState extends State<DiagramArea> {
 
   void addItem() {
     setState(() {
-      _mainDiagram.proxyRoot!.addChild();
+      _mainDiagram.subCircuit!.addDiagramItem();
     });
   }
 
   void deleteItem(DiagramItem child) {
     setState(() {
-      _mainDiagram.proxyRoot!.deleteChild(child);
+      _mainDiagram.subCircuit!.remove(child);
     });
   }
 
@@ -54,8 +54,8 @@ class DiagramAreaState extends State<DiagramArea> {
       DiagramControls(this),
       Row(
         children: [
-          Text("depth: ${_mainDiagram.proxyRoot!.depth()}"),
-          Text(" breadth: ${_mainDiagram.proxyRoot!.breadth()}"),
+          Text("depth: ${_mainDiagram.subCircuit!.depth()}"),
+          Text(" breadth: ${_mainDiagram.subCircuit!.breadth()}"),
         ],
       ),
       Column(
@@ -63,7 +63,7 @@ class DiagramAreaState extends State<DiagramArea> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.max,
         children: [
-          DiagramChildren(_mainDiagram.proxyRoot!.children, this, context),
+          DiagramChildren(_mainDiagram.subCircuit!.children, this, context),
         ],
       ),
     ]);

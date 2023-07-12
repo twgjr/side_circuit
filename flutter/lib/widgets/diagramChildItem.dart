@@ -20,67 +20,10 @@ class DiagramChildItem extends StatefulWidget {
 class _DiagramChildItemState extends State<DiagramChildItem> {
   final DiagramItem _dItem;
   final DiagramAreaState diagramAreaState;
-
   final BuildContext _diagramAreaContext;
 
   _DiagramChildItemState(this._dItem, this.diagramAreaState,
       this._diagramAreaContext);
-
-  void _showPopupMenu() async {
-    final RenderBox overlay =
-    Overlay
-        .of(_diagramAreaContext).context
-        .findRenderObject() as RenderBox;
-
-    await showMenu(
-      context: context,
-      position: RelativeRect.fromSize(
-          Rect.fromLTWH(_dItem.xPosition, _dItem.yPosition, 50, 100),
-          overlay.size),
-      items: [
-        PopupMenuItem(value: "edit", child: Text("edit")),
-        PopupMenuItem(value: "delete", child: Text("delete")),
-      ],
-      //elevation: 8.0,
-    ).then((value) {
-      if (value != null) {
-        switch (value) {
-          case "delete":
-            diagramAreaState.deleteItem(_dItem);
-            break;
-          case "edit":
-            String equation = "not implemented yet";
-            showDialog<String>(
-              context: context,
-              builder: (BuildContext context) =>
-                  AlertDialog(
-                    title: const Text('Edit List of Equations'),
-                    content: TextFormField(
-                      initialValue: equation,
-                      onChanged: (value) {
-                        equation = value;
-                      },
-                    ),
-                    actions: <Widget>[
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, 'Cancel'),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () {;
-                          _dItem.addEquationString(equation);
-                          Navigator.pop(context, 'OK');
-                        },
-                        child: const Text('OK'),
-                      ),
-                    ],
-                  ),
-            );
-            break;
-        }
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,19 +40,53 @@ class _DiagramChildItemState extends State<DiagramChildItem> {
         onDoubleTap: () {
           diagramAreaState.downLevel(_dItem);
         },
-        onSecondaryTap: () {
-          _showPopupMenu();
+        onSecondaryTapDown: (details) {
+          _showPopupMenu(details.globalPosition);
         },
         child: Container(
           child: Column(
             children: [
               Text("depth:${_dItem.depth()}"),
               Text("breadth:${_dItem.breadth()}"),
-              //Text(_dItem.equations[0].equationString),
+              if (_dItem.terminals.isNotEmpty) // check if terminals list is not empty
+                Column(
+                  children: _dItem.terminals.map((terminal) {
+                    return Text("terminal: (${terminal.x}, ${terminal.y})");
+                  }).toList(),
+                ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  void _showPopupMenu(Offset position) {
+    final RenderBox overlay = Overlay.of(_diagramAreaContext)!.context.findRenderObject() as RenderBox;
+
+    final relativePosition = RelativeRect.fromSize(
+      Rect.fromLTWH(position.dx, position.dy, 0, 0),
+      overlay.size,
+    );
+
+    showMenu(
+      context: context,
+      position: relativePosition,
+      items: [
+        PopupMenuItem(value: "edit", child: Text("Edit")),
+        PopupMenuItem(value: "delete", child: Text("Delete")),
+      ],
+    ).then((value) {
+      if (value != null) {
+        switch (value) {
+          case "delete":
+            diagramAreaState.deleteItem(_dItem);
+            break;
+          case "edit":
+            print("Not implemented yet");
+            break;
+        }
+      }
+    });
   }
 }

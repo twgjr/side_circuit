@@ -1,27 +1,35 @@
+/*
+DIAGRAM adds a layer of abstraction between the circuit and the UI.  It prepares the circuit
+for viewing, editing, and running the underlying simulator from the UI.  A SUBCIRCUIT is a 
+collection of elements and other subcircuits.  At the highest level the root is a SUBCIRCUIT.
+If the root is the only subcircuit then it is the top level contains only elements.
+*/
+
 import 'dart:math';
-import 'port.dart';
-import 'link.dart';
-import 'result.dart';
+import 'circuits.dart';
+
+enum DiagramItemKind{
+  SUBCIRCUIT,
+  ELEMENT,
+}
 
 class Diagram {
     DiagramItem? root;
-    DiagramItem? proxyRoot;
-    Port? pendingConnectPort;
-    Link? pendingConnectLink;
+    DiagramItem? subCircuit;
 
     Diagram() {
         //by default the root node is always a block
         root =  DiagramItem.root();  // real root is empty block
-        proxyRoot = root; // always start at empty top level
+        subCircuit = root; // always start at empty top level
     }
 
     void setProxyRoot(DiagramItem dItem) {
-        proxyRoot = dItem;
+        subCircuit = dItem;
     }
 
     void moveUp(){
-        if (proxyRoot!.parent != null) {
-            setProxyRoot(proxyRoot!.parent!);
+        if (subCircuit!.parent != null) {
+            setProxyRoot(subCircuit!.parent!);
         }
     }
 
@@ -30,61 +38,33 @@ class Diagram {
     }
 
     void moveToTop() {
-        proxyRoot = root;
+        subCircuit = root;
     }
 
     void solve() {
         print("solver not implemented yet");
     }
-
-    void endLinkFromLink( Link link ) {
-        if(pendingConnectPort!=null){
-            pendingConnectPort!.connectedLinks.add(link);
-            link.end = pendingConnectPort;
-            //cleanup the buffer pointers when done connecting
-            pendingConnectPort = null;
-            pendingConnectLink = null;
-        } else {
-            pendingConnectLink = link;
-        }
-    }
-
-    void endLinkFromPort( Port port ) {
-        if(pendingConnectLink != null){
-            port.connectedLinks.add(pendingConnectLink!);
-            pendingConnectLink!.end = port;
-            //cleanup the buffer pointers when done connecting
-            pendingConnectPort = null;
-            pendingConnectLink = null;
-        } else {
-            pendingConnectPort = port;
-        }
-    }
-
-    void disconnectPortfromLink(Link link) {
-        link.disconnectEndPort();
-    }
 }
 
 class DiagramItem {
-    //data model pointers
+  /*
+  DiagramItem can be either a subcircuit or an element.  Elements also have their own kinds 
+  which are defined in circuits.dart under the ElementKind enum
+  */
     DiagramItem?  parent;
     List<DiagramItem> children = [];
-    List<Port> ports = [];
-    List<Result> results = [];
+    DiagramItemKind kind = DiagramItemKind.SUBCIRCUIT;
+    List<Point<double>> terminals = [];
 
-    //Data
     double xPosition = 0;
     double yPosition = 0;
-    int type = 0;
     int rotation = 0;
-
-    DiagramItem(this.type, this.parent);
 
     DiagramItem.root();
 
-    DiagramItem.child(this.parent) {
-        this.type = 0;
+    DiagramItem(this.parent, this.kind, this.xPosition, this.yPosition, this.rotation) {
+    // Add a default terminal at the center of the item
+    terminals.add(Point<double>(0, 0));
     }
 
     int breadth() {
@@ -93,6 +73,11 @@ class DiagramItem {
         } else {
             return 0;
         }
+    }
+
+    void addDiagramItem() {
+        DiagramItem dItem = DiagramItem(this, DiagramItemKind.SUBCIRCUIT, 0, 0, 0);
+        this.children.add(dItem);
     }
 
     int depth() {
@@ -112,31 +97,8 @@ class DiagramItem {
         return count;
     }
 
-    void addChild() {
-        DiagramItem child = DiagramItem.child(this);
-        this.children.add(child);
-    }
-
-    void deleteChild(DiagramItem child) {
+    void remove(DiagramItem child) {
         this.children.remove(child);
-    }
-
-    void addPort(Point center) {
-        Port  newPort = Port();
-        newPort.itemParent = this;
-        newPort.absPoint = center;
-        ports.add(newPort);
-    }
-
-    void addEquationString(String equationString) {
-        print("not implemented yet");
-    }
-
-    void addResult(String name, num value) {
-        Result  newResult = Result();
-        newResult.name = name;
-        newResult.value = value;
-        results.add(newResult);
     }
 
     DiagramItem getRoot(){
