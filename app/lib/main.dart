@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:app/models/circuit/circuit.dart';
 import 'package:app/models/circuit/device.dart';
+import 'package:app/models/circuit/node.dart';
 import 'widgets/circuit_view.dart';
 import 'widgets/diagram_controls.dart';
 
@@ -14,11 +15,11 @@ class MainApp extends StatefulWidget {
 class MainAppState extends State<MainApp> {
   final Circuit circuit = Circuit();
 
-  void addDevice(DeviceKind kind) => setState(() {
-        circuit.addElementOf(kind);
-      });
+  void addDevice(DeviceKind kind) => setState(() => circuit.addDeviceOf(kind));
   void deleteDevice(Device device) =>
       setState(() => circuit.removeDevice(device));
+  void addNode() => setState(() => circuit.newNode());
+  void removeNode(Node node) => setState(() => circuit.removeNode(node));
 
   @override
   Widget build(BuildContext context) {
@@ -28,11 +29,11 @@ class MainAppState extends State<MainApp> {
       home: Scaffold(
         appBar: AppBar(
           title: Text('Side Circuit'),
-          actions: [DiagramControls(addDevice)],
+          actions: [DiagramControls(onAddDevice: addDevice, onAddNode: () {})],
         ),
         body: CircuitView(
-          devices: circuit.elements,
-          deleteDevice: deleteDevice,
+          devices: circuit.devices,
+          onDeleteDevice: deleteDevice,
         ),
       ),
     );

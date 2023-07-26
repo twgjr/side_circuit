@@ -12,34 +12,47 @@ enum Quantity { I, V, P }
 
 class Circuit {
   List<Node> nodes = [];
-  List<Device> elements = [];
+  List<Device> devices = [];
 
   Circuit();
 
-  bool isEmpty() => elements.isEmpty && nodes.isEmpty;
+  bool isEmpty() => devices.isEmpty && nodes.isEmpty;
 
-  void addElement(Device element) => elements.add(element);
-  void addElementOf(DeviceKind kind) {
+  void _addElement(Device element) => devices.add(element);
+  void addDeviceOf(DeviceKind kind) {
     switch (kind) {
       case DeviceKind.V:
-        addElement(IndependentSource(circuit: this, kind: DeviceKind.V));
+        _addElement(IndependentSource(circuit: this, kind: DeviceKind.V));
         break;
       case DeviceKind.I:
-        addElement(IndependentSource(circuit: this, kind: DeviceKind.I));
+        _addElement(IndependentSource(circuit: this, kind: DeviceKind.I));
         break;
       case DeviceKind.R:
-        addElement(Resistor(this));
+        _addElement(Resistor(this));
         break;
       default:
         throw ArgumentError("Invalid element kind: $kind");
     }
   }
 
-  void removeDevice(Device element) => elements.remove(element);
-  void addNode(Node node) => nodes.add(node);
+  void removeDevice(Device element) => devices.remove(element);
+  void removeDeviceAt(int index) => devices.removeAt(index);
+  void _addNode(Node node) => nodes.add(node);
+  void newNode() => _addNode(Node(this));
   void removeNode(Node node) => nodes.remove(node);
+  void removeNodeAt(int index) => nodes.removeAt(index);
   int numNodes() => nodes.length;
-  int numElements() => elements.length;
+  int numDevices() => devices.length;
+
+  int maxIdOf(DeviceKind kind) {
+    int maxId = 0;
+    for (Device device in devices) {
+      if (device.kind == kind && device.id > maxId) {
+        maxId = device.id;
+      }
+    }
+    return maxId;
+  }
 
   void connect(Terminal terminal, Node node) {
     terminal.node = node;

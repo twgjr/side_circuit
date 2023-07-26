@@ -1,15 +1,15 @@
 import 'package:app/models/circuit/device.dart';
 import 'package:flutter/material.dart';
 
-import 'view_item.dart';
+import 'item_view.dart';
 
 class CircuitView extends StatefulWidget {
-  final void Function(Device) deleteDevice;
+  final void Function(Device) onDeleteDevice;
   final List<Device> devices;
 
   CircuitView({
     super.key,
-    required this.deleteDevice,
+    required this.onDeleteDevice,
     required this.devices,
   });
 
@@ -23,9 +23,9 @@ class _CircuitViewState extends State<CircuitView> {
     return Stack(
       children: widget.devices.map(
         (device) {
-          return ViewItem(
+          return ItemView(
             device: device,
-            onDeleteDevice: widget.deleteDevice,
+            onDeleteDevice: widget.onDeleteDevice,
             cktViewCtx: context,
           );
         },

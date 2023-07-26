@@ -1,16 +1,21 @@
 import 'package:app/models/circuit/circuit.dart';
 import 'package:app/models/circuit/terminal.dart';
+import 'dart:math';
 
 enum DeviceKind { V, I, R, VC, CC, SW, L, C, VG, CG }
 
 abstract class Device {
   Circuit circuit;
   final List<Terminal> terminals = [];
-  DeviceKind? kind;
+  DeviceKind kind;
+  int id;
+  double x = 0;
+  double y = 0;
 
-  Device({required this.circuit, this.kind});
+  Device({required this.circuit, required this.kind})
+      : id = circuit.maxIdOf(kind) + 1;
 
-  int index() => circuit.elements.indexOf(this);
+  int index() => circuit.devices.indexOf(this);
 }
 
 class IndependentSource extends Device {
