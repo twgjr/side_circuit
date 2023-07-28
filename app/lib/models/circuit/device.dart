@@ -1,6 +1,5 @@
 import 'package:app/models/circuit/circuit.dart';
 import 'package:app/models/circuit/terminal.dart';
-import 'dart:math';
 
 enum DeviceKind { V, I, R, VC, CC, SW, L, C, VG, CG }
 
@@ -9,8 +8,6 @@ abstract class Device {
   final List<Terminal> terminals = [];
   DeviceKind kind;
   int id;
-  double x = 0;
-  double y = 0;
 
   Device({required this.circuit, required this.kind})
       : id = circuit.maxIdOf(kind) + 1;

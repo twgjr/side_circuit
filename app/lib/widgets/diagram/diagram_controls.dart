@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:app/widgets/device/add_new_device.dart';
 import 'package:app/models/circuit/device.dart';
-import 'package:app/widgets/add_new_device.dart';
 
 class DiagramControls extends StatelessWidget {
   final void Function(DeviceKind) onAddDevice;
@@ -20,7 +20,7 @@ class DiagramControls extends StatelessWidget {
         IconButton(
           icon: Icon(Icons.add_circle_outline),
           tooltip: "add new node",
-          onPressed: () {},
+          onPressed: onAddNode,
         ),
       ],
     );

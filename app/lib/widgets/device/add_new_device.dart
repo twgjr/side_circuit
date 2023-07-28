@@ -3,9 +3,9 @@ import 'package:app/models/circuit/device.dart';
 
 //a stateless widget class and state class for the add element button
 class AddNewDevice extends StatelessWidget {
-  final void Function(DeviceKind) addItem;
+  final void Function(DeviceKind) onAddDevice;
 
-  AddNewDevice(this.addItem);
+  AddNewDevice(this.onAddDevice);
 
   @override
   Widget build(BuildContext context) {
@@ -23,35 +23,35 @@ class AddNewDevice extends StatelessWidget {
                 TextButton(
                   child: Text("Resistor"),
                   onPressed: () {
-                    addItem(DeviceKind.R);
+                    onAddDevice(DeviceKind.R);
                     Navigator.of(context).pop();
                   },
                 ),
                 TextButton(
                   child: Text("Voltage Source"),
                   onPressed: () {
-                    addItem(DeviceKind.V);
+                    onAddDevice(DeviceKind.V);
                     Navigator.of(context).pop();
                   },
                 ),
                 TextButton(
                   child: Text("Current Source"),
                   onPressed: () {
-                    addItem(DeviceKind.I);
+                    onAddDevice(DeviceKind.I);
                     Navigator.of(context).pop();
                   },
                 ),
                 TextButton(
                   child: Text("Capacitor"),
                   onPressed: () {
-                    addItem(DeviceKind.C);
+                    onAddDevice(DeviceKind.C);
                     Navigator.of(context).pop();
                   },
                 ),
                 TextButton(
                   child: Text("Inductor"),
                   onPressed: () {
-                    addItem(DeviceKind.L);
+                    onAddDevice(DeviceKind.L);
                     Navigator.of(context).pop();
                   },
                 ),
