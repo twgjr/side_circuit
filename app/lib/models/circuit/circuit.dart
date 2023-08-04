@@ -44,11 +44,21 @@ class Circuit {
   int numNodes() => nodes.length;
   int numDevices() => devices.length;
 
-  int maxIdOf(DeviceKind kind) {
+  int maxDeviceIdOf(DeviceKind kind) {
     int maxId = 0;
     for (Device device in devices) {
       if (device.kind == kind && device.id > maxId) {
         maxId = device.id;
+      }
+    }
+    return maxId;
+  }
+
+  int maxNodeId() {
+    int maxId = 0;
+    for (Node node in nodes) {
+      if (node.id > maxId) {
+        maxId = node.id;
       }
     }
     return maxId;

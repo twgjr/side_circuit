@@ -14,7 +14,7 @@ abstract class Device {
   Device({
     required this.circuit,
     required this.kind,
-  }) : id = circuit.maxIdOf(kind) + 1;
+  }) : id = circuit.maxDeviceIdOf(kind) + 1;
 
   int index() => circuit.devices.indexOf(this);
 }

@@ -1,7 +1,10 @@
-import 'package:app/models/circuit/node.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class NodeView extends StatelessWidget {
+import 'package:app/models/circuit/node.dart';
+import 'package:app/providers/circuit_provider.dart';
+
+class NodeView extends ConsumerWidget {
   final Node node;
   final BuildContext cktViewCtx;
 
@@ -10,9 +13,9 @@ class NodeView extends StatelessWidget {
     required this.cktViewCtx,
   });
 
-  void _showPopupMenu(Offset position, BuildContext context) {
+  void _showPopupMenu(Offset position, BuildContext context, WidgetRef ref) {
     final RenderBox overlay =
-        Overlay.of(cktViewCtx).context.findRenderObject() as RenderBox;
+        Overlay.of(context).context.findRenderObject() as RenderBox;
 
     final relativePosition = RelativeRect.fromSize(
       Rect.fromLTWH(position.dx, position.dy, 0, 0),
@@ -29,7 +32,7 @@ class NodeView extends StatelessWidget {
       if (value != null) {
         switch (value) {
           case "delete":
-            print('not implemented yet');
+            ref.read(circuitProvider.notifier).removeNode(node);
             break;
         }
       }
@@ -37,17 +40,17 @@ class NodeView extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       onSecondaryTapDown: (details) {
-        _showPopupMenu(details.globalPosition, context);
+        _showPopupMenu(details.globalPosition, context, ref);
       },
       child: Card(
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(
             children: [
-              Text('Node ${node.index}'),
+              Text('Node ${node.id}'),
             ],
           ),
         ),

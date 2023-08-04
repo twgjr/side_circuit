@@ -1,7 +1,10 @@
-import 'package:app/models/circuit/device.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class DeviceView extends StatelessWidget {
+import 'package:app/models/circuit/device.dart';
+import 'package:app/providers/circuit_provider.dart';
+
+class DeviceView extends ConsumerWidget {
   final Device device;
   final BuildContext cktViewCtx;
 
@@ -10,7 +13,7 @@ class DeviceView extends StatelessWidget {
     required this.cktViewCtx,
   });
 
-  void _showPopupMenu(Offset position, BuildContext context) {
+  void _showPopupMenu(Offset position, BuildContext context, WidgetRef ref) {
     final RenderBox overlay =
         Overlay.of(cktViewCtx).context.findRenderObject() as RenderBox;
 
@@ -30,7 +33,7 @@ class DeviceView extends StatelessWidget {
       if (value != null) {
         switch (value) {
           case "delete":
-            print('not implemented yet');
+            ref.read(circuitProvider.notifier).removeDevice(device);
             break;
           case "edit":
             print("Not implemented yet");
@@ -41,10 +44,10 @@ class DeviceView extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       onSecondaryTapDown: (details) {
-        _showPopupMenu(details.globalPosition, context);
+        _showPopupMenu(details.globalPosition, context, ref);
       },
       child: Card(
         child: Padding(

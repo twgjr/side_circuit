@@ -6,8 +6,9 @@ class Node {
   Circuit circuit;
   List<Terminal> terminals = [];
   Visual visual = Visual();
+  int id;
 
-  Node(this.circuit);
+  Node(this.circuit) : id = circuit.maxNodeId() + 1;
 
   int numTerminals() => terminals.length;
   int get index => circuit.nodes.indexOf(this);
