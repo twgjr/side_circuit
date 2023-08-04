@@ -58,4 +58,17 @@ class Circuit {
     terminal.node = node;
     node.addTerminal(terminal);
   }
+
+  Circuit copy() {
+    Circuit newCircuit = Circuit();
+    for (Node node in nodes) {
+      node.circuit = newCircuit;
+      newCircuit._addNode(node);
+    }
+    for (Device device in devices) {
+      device.circuit = newCircuit;
+      newCircuit._addElement(device);
+    }
+    return newCircuit;
+  }
 }

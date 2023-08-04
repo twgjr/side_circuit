@@ -1,9 +1,11 @@
 import 'package:app/models/circuit/circuit.dart';
 import 'package:app/models/circuit/terminal.dart';
+import 'package:app/models/view/visual.dart';
 
 class Node {
   Circuit circuit;
   List<Terminal> terminals = [];
+  Visual visual = Visual();
 
   Node(this.circuit);
 

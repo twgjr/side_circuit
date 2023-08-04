@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:app/models/circuit/device.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-//a stateless widget class and state class for the add element button
-class AddNewDevice extends StatelessWidget {
-  final void Function(DeviceKind) onAddDevice;
+import 'package:app/providers/circuit_providers.dart';
 
-  AddNewDevice(this.onAddDevice);
+class AddNewDevice extends ConsumerWidget {
+  AddNewDevice();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final onAddDevice = ref.read(circuitProvider.notifier).addDeviceOf;
     return IconButton(
       icon: Icon(Icons.add),
       tooltip: "add new device",

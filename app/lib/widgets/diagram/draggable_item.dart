@@ -1,21 +1,16 @@
 import 'dart:math';
-
-import '/models/view/data_obj.dart';
-import '/widgets/device/device_view.dart';
-import '/widgets/node/node_view.dart';
-import 'package:app/models/circuit/device.dart';
-import 'package:app/models/circuit/node.dart';
-
 import 'package:flutter/material.dart';
 
+import '../../models/view/visual.dart';
+
 class DraggableItem extends StatefulWidget {
-  final BuildContext cktViewCtx;
-  final DataObj dataObj;
+  final Widget child;
+  final Visual visual;
 
   DraggableItem({
     super.key,
-    required this.cktViewCtx,
-    required this.dataObj,
+    required this.child,
+    required this.visual,
   });
 
   @override
@@ -28,9 +23,10 @@ class _DraggableItemState extends State<DraggableItem> {
   @override
   Widget build(BuildContext context) {
     print('build draggable item');
+
     return Positioned(
-      left: widget.dataObj.position.x,
-      top: widget.dataObj.position.y,
+      left: widget.visual.position.x,
+      top: widget.visual.position.y,
       child: Draggable(
         dragAnchorStrategy: childDragAnchorStrategy,
         onDragStarted: () {
@@ -43,31 +39,17 @@ class _DraggableItemState extends State<DraggableItem> {
             final RenderBox box = context.findRenderObject() as RenderBox;
             final Offset localOffset = box.globalToLocal(details.offset);
             _visible = true;
-            double new_x = widget.dataObj.position.x + localOffset.dx;
-            double new_y = widget.dataObj.position.y + localOffset.dy;
-            widget.dataObj.position = Point(new_x, new_y);
+            double new_x = widget.visual.position.x + localOffset.dx;
+            double new_y = widget.visual.position.y + localOffset.dy;
+            widget.visual.position = Point(new_x, new_y);
           });
         },
-        feedback: widgetToDisplay(),
+        feedback: widget.child,
         child: Visibility(
           visible: _visible,
-          child: widgetToDisplay(),
+          child: widget.child,
         ),
       ),
     );
-  }
-
-  Widget widgetToDisplay() {
-    print(widget.dataObj.obj.runtimeType);
-    if (widget.dataObj.obj is Device) {
-      return DeviceView(
-        device: widget.dataObj.obj,
-        cktViewCtx: widget.cktViewCtx,
-      );
-    } else if (widget.dataObj.obj is Node) {
-      return NodeView(node: widget.dataObj.obj, cktViewCtx: widget.cktViewCtx);
-    } else {
-      throw Exception('Unknown data type');
-    }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:app/models/circuit/circuit.dart';
 import 'package:app/models/circuit/terminal.dart';
+import 'package:app/models/view/visual.dart';
 
 enum DeviceKind { V, I, R, VC, CC, SW, L, C, VG, CG }
 
@@ -8,9 +9,12 @@ abstract class Device {
   final List<Terminal> terminals = [];
   DeviceKind kind;
   int id;
+  Visual visual = Visual();
 
-  Device({required this.circuit, required this.kind})
-      : id = circuit.maxIdOf(kind) + 1;
+  Device({
+    required this.circuit,
+    required this.kind,
+  }) : id = circuit.maxIdOf(kind) + 1;
 
   int index() => circuit.devices.indexOf(this);
 }

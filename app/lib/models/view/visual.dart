@@ -1,8 +1,7 @@
 import 'dart:math';
 
-class DataObj<T> {
-  T obj;
+class Visual<T> {
   Point<double> position = Point<double>(0, 0);
 
-  DataObj(this.obj);
+  Visual();
 }

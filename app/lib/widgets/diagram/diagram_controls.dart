@@ -1,26 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:app/widgets/device/add_new_device.dart';
-import 'package:app/models/circuit/device.dart';
+import 'package:app/providers/circuit_providers.dart';
 
-class DiagramControls extends StatelessWidget {
-  final void Function(DeviceKind) onAddDevice;
-  final void Function() onAddNode;
-
-  DiagramControls({
-    required this.onAddDevice,
-    required this.onAddNode,
-  });
+class DiagramControls extends ConsumerWidget {
+  DiagramControls();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final circuit = ref.read(circuitProvider.notifier);
     return Row(
       children: [
-        AddNewDevice(onAddDevice),
-        // icon button that adds a new node
+        AddNewDevice(),
         IconButton(
           icon: Icon(Icons.add_circle_outline),
           tooltip: "add new node",
-          onPressed: onAddNode,
+          onPressed: () {
+            circuit.newNode();
+          },
         ),
       ],
     );
