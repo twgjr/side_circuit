@@ -25,8 +25,8 @@ class _DraggableItemState extends State<DraggableItem> {
     print('build draggable item');
 
     return Positioned(
-      left: widget.visual.position.x,
-      top: widget.visual.position.y,
+      left: widget.visual.startPosition.x,
+      top: widget.visual.startPosition.y,
       child: Draggable(
         dragAnchorStrategy: childDragAnchorStrategy,
         onDragStarted: () {
@@ -39,9 +39,9 @@ class _DraggableItemState extends State<DraggableItem> {
             final RenderBox box = context.findRenderObject() as RenderBox;
             final Offset localOffset = box.globalToLocal(details.offset);
             _visible = true;
-            double new_x = widget.visual.position.x + localOffset.dx;
-            double new_y = widget.visual.position.y + localOffset.dy;
-            widget.visual.position = Point(new_x, new_y);
+            double new_x = widget.visual.startPosition.x + localOffset.dx;
+            double new_y = widget.visual.startPosition.y + localOffset.dy;
+            widget.visual.startPosition = Point(new_x, new_y);
           });
         },
         feedback: widget.child,

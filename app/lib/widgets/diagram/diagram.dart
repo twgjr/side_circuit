@@ -7,6 +7,8 @@ import 'package:app/models/circuit/device.dart';
 import 'package:app/widgets/device/device_view.dart';
 import 'package:app/models/circuit/node.dart';
 import 'package:app/widgets/node/node_view.dart';
+import 'package:app/models/circuit/wire.dart';
+import 'package:app/widgets/general/line.dart';
 
 class Diagram extends ConsumerWidget {
   Diagram({super.key});
@@ -24,7 +26,7 @@ class Diagram extends ConsumerWidget {
             visual: device.visual,
             child: DeviceView(
               device: device,
-              cktViewCtx: context,
+              // cktViewCtx: context,
             ),
           ),
         for (Node node in circuitWatch.nodes)
@@ -34,6 +36,11 @@ class Diagram extends ConsumerWidget {
               node: node,
               cktViewCtx: context,
             ),
+          ),
+        for (Wire wire in circuitWatch.wires)
+          Line(
+            start: wire.visual.startPosition,
+            end: wire.visual.startPosition,
           ),
       ],
     );
