@@ -79,8 +79,6 @@ class DeviceView extends ConsumerWidget {
               TerminalView(
                 device: device,
                 terminal: terminal,
-                terminalIndex: device.terminals.indexOf(terminal),
-                terminalCount: device.terminals.length,
                 terminalRadius: 10,
               ),
           ],

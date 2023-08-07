@@ -1,27 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/terminal.dart';
 
-class TerminalView extends ConsumerWidget {
+class TerminalView extends StatelessWidget {
   final Device device;
   final Terminal terminal;
-  final int terminalIndex;
-  final int terminalCount;
   final double terminalRadius;
 
   TerminalView({
     super.key,
     required this.device,
     required this.terminal,
-    required this.terminalIndex,
-    required this.terminalCount,
     required this.terminalRadius,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Positioned(
       left: terminal.visual.startPosition.x,
       top: terminal.visual.startPosition.y,

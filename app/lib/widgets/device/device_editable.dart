@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/terminal.dart';
 import 'package:app/widgets/device/terminal_editable.dart';
+import 'package:app/providers/circuit_provider.dart';
 
 class DeviceEditable extends ConsumerWidget {
   final Device device;
@@ -13,6 +14,9 @@ class DeviceEditable extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final circuitWatch = ref.watch(circuitProvider);
+    final deviceWatch =
+        circuitWatch.devices[circuitWatch.devices.indexOf(device)];
     return GestureDetector(
       onSecondaryTapDown: (details) {},
       child: Card(
@@ -26,12 +30,10 @@ class DeviceEditable extends ConsumerWidget {
                 ],
               ),
             ),
-            for (Terminal terminal in device.terminals)
+            for (Terminal terminal in deviceWatch.terminals)
               TerminalEditable(
                 device: device,
                 terminal: terminal,
-                terminalIndex: device.terminals.indexOf(terminal),
-                terminalCount: device.terminals.length,
                 terminalRadius: 10,
               ),
           ],

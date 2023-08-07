@@ -10,16 +10,12 @@ import 'package:app/providers/circuit_provider.dart';
 class TerminalEditable extends ConsumerWidget {
   final Device device;
   final Terminal terminal;
-  final int terminalIndex;
-  final int terminalCount;
   final double terminalRadius;
 
   TerminalEditable({
     super.key,
     required this.device,
     required this.terminal,
-    required this.terminalIndex,
-    required this.terminalCount,
     required this.terminalRadius,
   });
 
