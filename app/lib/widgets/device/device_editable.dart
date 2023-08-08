@@ -35,7 +35,7 @@ class DeviceEditable extends StatelessWidget {
               for (Terminal terminal in deviceCopy.terminals)
                 TerminalEditable(
                   device: deviceCopy,
-                  terminal: terminal,
+                  terminalCopy: terminal,
                   terminalRadius: 10,
                 ),
             ],

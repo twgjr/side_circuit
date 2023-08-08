@@ -4,23 +4,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/providers/circuit_provider.dart';
 import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/terminal.dart';
-import 'package:app/models/view/visual.dart';
 import 'package:app/widgets/diagram/draggable_item.dart';
 import 'package:app/widgets/general/popup_menu.dart';
 
-class TerminalEditable extends ConsumerWidget {
+class TerminalEditable extends ConsumerStatefulWidget {
   final Device device;
-  final Terminal terminal;
+  final Terminal terminalCopy;
   final double terminalRadius;
-  final Visual tempVisual = Visual();
-  OverlayEntry? menuOverlayEntry;
 
   TerminalEditable({
     super.key,
     required this.device,
-    required this.terminal,
+    required this.terminalCopy,
     required this.terminalRadius,
   });
+
+  @override
+  TerminalEditableState createState() => TerminalEditableState();
+}
+
+class TerminalEditableState extends ConsumerState<TerminalEditable> {
+  OverlayEntry? menuOverlayEntry;
 
   void _showTerminalPopupMenu(
       Offset position, BuildContext context, WidgetRef ref) {
@@ -43,7 +47,9 @@ class TerminalEditable extends ConsumerWidget {
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
               onPressed: () {
-                ref.read(circuitProvider.notifier).removeTerminal(terminal);
+                ref
+                    .read(circuitProvider.notifier)
+                    .removeTerminal(widget.terminalCopy);
                 menuOverlayEntry!.remove();
               },
             ),
@@ -55,16 +61,16 @@ class TerminalEditable extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return DraggableItem(
-      visual: tempVisual,
+      visual: widget.terminalCopy.visual,
       child: GestureDetector(
         onSecondaryTapDown: (details) {
           _showTerminalPopupMenu(details.globalPosition, context, ref);
         },
         child: Container(
-          width: terminalRadius * 2,
-          height: terminalRadius * 2,
+          width: widget.terminalRadius * 2,
+          height: widget.terminalRadius * 2,
           decoration: BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
@@ -74,7 +80,7 @@ class TerminalEditable extends ConsumerWidget {
             ),
           ),
           child: Text(
-            terminal.name,
+            widget.terminalCopy.name,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 10,
