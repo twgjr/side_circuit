@@ -1,42 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/terminal.dart';
 import 'package:app/widgets/device/terminal_editable.dart';
-import 'package:app/providers/circuit_provider.dart';
 
-class DeviceEditable extends ConsumerWidget {
-  final Device device;
-  final BuildContext cktViewCtx;
+class DeviceEditable extends StatelessWidget {
+  final Device deviceCopy;
 
-  DeviceEditable({required this.device, required this.cktViewCtx});
+  DeviceEditable({required this.deviceCopy});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final circuitWatch = ref.watch(circuitProvider);
-    final deviceWatch =
-        circuitWatch.devices[circuitWatch.devices.indexOf(device)];
-    return GestureDetector(
-      onSecondaryTapDown: (details) {},
-      child: Card(
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: [
-                  Text('${device.kind.name}${device.id}'),
-                ],
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(
+            color: Colors.black,
+            width: 1.0,
+          ),
+        ),
+        child: GestureDetector(
+          onSecondaryTapDown: (details) {},
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Center(
+                  child: Text('${deviceCopy.kind.name}${deviceCopy.id}'),
+                ),
               ),
-            ),
-            for (Terminal terminal in deviceWatch.terminals)
-              TerminalEditable(
-                device: device,
-                terminal: terminal,
-                terminalRadius: 10,
-              ),
-          ],
+              for (Terminal terminal in deviceCopy.terminals)
+                TerminalEditable(
+                  device: deviceCopy,
+                  terminal: terminal,
+                  terminalRadius: 10,
+                ),
+            ],
+          ),
         ),
       ),
     );

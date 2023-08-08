@@ -1,18 +1,19 @@
-import 'package:app/providers/overlay_provider.dart';
-import 'package:app/widgets/device/terminal_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:app/providers/circuit_provider.dart';
 import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/terminal.dart';
-import 'package:app/providers/circuit_provider.dart';
-import 'package:app/widgets/device/device_editor.dart';
+import 'package:app/widgets/device/terminal_view.dart';
 
 class DeviceView extends ConsumerWidget {
   final Device device;
+  final void Function(BuildContext context, WidgetRef ref, Device device)
+      onEdit;
 
   DeviceView({
     required this.device,
+    required this.onEdit,
   });
 
   void _showPopupMenu(Offset position, BuildContext context, WidgetRef ref) {
@@ -39,7 +40,7 @@ class DeviceView extends ConsumerWidget {
               ref.read(circuitProvider.notifier).removeDevice(device);
               break;
             case "editor":
-              showDeviceEditor(context, ref);
+              onEdit(context, ref, device);
               break;
             case "add terminal":
               ref.read(circuitProvider.notifier).addTerminal(device);
@@ -48,14 +49,6 @@ class DeviceView extends ConsumerWidget {
         }
       },
     );
-  }
-
-  void showDeviceEditor(BuildContext context, WidgetRef ref) {
-    OverlayEntry overlayEntry = OverlayEntry(
-      builder: (context) => DeviceEditor(device: device),
-    );
-    Overlay.of(context).insert(overlayEntry);
-    ref.read(overlayEntryProvider.notifier).addOverlay(overlayEntry);
   }
 
   @override

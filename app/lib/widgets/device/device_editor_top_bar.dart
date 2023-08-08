@@ -1,23 +1,26 @@
 import 'package:flutter/material.dart';
+
+import 'package:app/models/circuit/device.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:app/providers/overlay_provider.dart';
-
 class DeviceEditorTopBar extends ConsumerWidget {
-  final Function(double) addX;
-  final Function(double) addY;
+  final Device deviceCopy;
+  final void Function(double) onXChanged;
+  final void Function(double) onYChanged;
+  final void Function(WidgetRef, bool) onEditComplete;
 
-  DeviceEditorTopBar({
-    required this.addX,
-    required this.addY,
-  });
+  DeviceEditorTopBar(
+      {required this.deviceCopy,
+      required this.onXChanged,
+      required this.onYChanged,
+      required this.onEditComplete});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       onPanUpdate: (details) {
-        addX(details.delta.dx);
-        addY(details.delta.dy);
+        onXChanged(details.delta.dx);
+        onYChanged(details.delta.dy);
       },
       child: Container(
         decoration: BoxDecoration(
@@ -47,11 +50,17 @@ class DeviceEditorTopBar extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: ElevatedButton(
+                child: Icon(Icons.check_box),
                 onPressed: () {
-                  final overlayEntry = ref.read(overlayEntryProvider).last;
-                  ref
-                      .read(overlayEntryProvider.notifier)
-                      .removeOverlay(overlayEntry);
+                  onEditComplete(ref, true);
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  onEditComplete(ref, false);
                 },
                 child: Icon(Icons.close),
               ),

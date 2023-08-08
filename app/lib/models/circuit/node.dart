@@ -24,4 +24,14 @@ class Node {
       terminals.remove(terminal);
     }
   }
+
+  Node copyWith({Circuit? circuit}) {
+    final node = Node(circuit ?? this.circuit);
+    node.terminals = [];
+    for (Terminal terminal in terminals) {
+      node.terminals.add(terminal.copyWith(node: node));
+    }
+    node.visual = visual.copy();
+    return node;
+  }
 }

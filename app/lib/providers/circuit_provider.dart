@@ -9,49 +9,55 @@ class CircuitNotifier extends StateNotifier<Circuit> {
   CircuitNotifier() : super(Circuit());
 
   void addDeviceOf(DeviceKind kind) {
-    final circuit = state.copy();
+    final circuit = state.copy(deep: false);
     circuit.addDeviceOf(kind);
     state = circuit;
   }
 
   void removeDevice(Device element) {
-    final circuit = state.copy();
+    final circuit = state.copy(deep: false);
     circuit.removeDevice(element);
     state = circuit;
   }
 
+  void replaceDeviceWith(Device newDevice, int atIndex) {
+    final circuit = state.copy(deep: false);
+    circuit.replaceDeviceWith(newDevice, atIndex);
+    state = circuit;
+  }
+
   void newNode() {
-    final circuit = state.copy();
+    final circuit = state.copy(deep: false);
     circuit.newNode();
     state = circuit;
   }
 
   void removeNode(Node node) {
-    final circuit = state.copy();
+    final circuit = state.copy(deep: false);
     circuit.removeNode(node);
     state = circuit;
   }
 
   void addTerminal(Device device) {
-    final circuit = state.copy();
+    final circuit = state.copy(deep: false);
     circuit.addTerminal(device);
     state = circuit;
   }
 
   void removeTerminal(Terminal terminal) {
-    final circuit = state.copy();
+    final circuit = state.copy(deep: false);
     circuit.removeTerminal(terminal);
     state = circuit;
   }
 
   void connect(Terminal terminal, Node node) {
-    final circuit = state.copy();
+    final circuit = state.copy(deep: false);
     circuit.connect(terminal, node);
     state = circuit;
   }
 
   void disconnect(Terminal terminal) {
-    final circuit = state.copy();
+    final circuit = state.copy(deep: false);
     circuit.disconnect(terminal);
     state = circuit;
   }

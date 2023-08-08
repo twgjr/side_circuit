@@ -4,9 +4,9 @@ import 'package:app/models/view/visual.dart';
 
 enum DeviceKind { V, I, R, VC, CC, SW, L, C, VG, CG }
 
-abstract class Device {
+class Device {
   Circuit circuit;
-  final List<Terminal> terminals = [];
+  List<Terminal> terminals;
   DeviceKind kind;
   int id;
   Visual visual = Visual();
@@ -14,9 +14,21 @@ abstract class Device {
   Device({
     required this.circuit,
     required this.kind,
-  }) : id = circuit.maxDeviceIdOf(kind) + 1;
+  })  : id = circuit.maxDeviceIdOf(kind) + 1,
+        terminals = [];
 
   int index() => circuit.devices.indexOf(this);
+
+  Device copyWith({Circuit? circuit}) {
+    final newDevice = Device(circuit: circuit ?? this.circuit, kind: kind);
+    newDevice.id = id;
+    newDevice.terminals = [];
+    for (Terminal terminal in terminals) {
+      newDevice.terminals.add(terminal.copyWith(device: newDevice));
+    }
+    newDevice.visual = visual.copy();
+    return newDevice;
+  }
 }
 
 class IndependentSource extends Device {

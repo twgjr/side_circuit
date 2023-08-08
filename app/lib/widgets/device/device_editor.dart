@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/models/circuit/device.dart';
 import 'package:app/widgets/device/device_editor_top_bar.dart';
 import 'package:app/widgets/device/device_editor_toolbar.dart';
+import 'package:app/widgets/device/device_editable.dart';
 import 'package:app/widgets/device/device_editor_area.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class DeviceEditor extends ConsumerStatefulWidget {
-  final Device device;
+class DeviceEditor extends StatefulWidget {
+  final Device deviceCopy;
+  final void Function(WidgetRef, bool) onEditComplete;
 
-  DeviceEditor({super.key, required this.device});
+  DeviceEditor({
+    super.key,
+    required this.deviceCopy,
+    required this.onEditComplete,
+  });
 
   @override
   DeviceEditorState createState() => DeviceEditorState();
 }
 
-class DeviceEditorState extends ConsumerState<DeviceEditor> {
+class DeviceEditorState extends State<DeviceEditor> {
   double x = 0;
   double y = 0;
   double width = 400;
@@ -35,7 +41,6 @@ class DeviceEditorState extends ConsumerState<DeviceEditor> {
 
   @override
   void initState() {
-    // find the center of the screen x and y
     final RenderBox overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox;
     width = overlay.size.width / 2;
@@ -66,10 +71,17 @@ class DeviceEditorState extends ConsumerState<DeviceEditor> {
           height: height,
           child: Column(
             children: [
-              DeviceEditorTopBar(addX: addX, addY: addY),
-              DeviceEditorToolbar(device: widget.device),
+              DeviceEditorTopBar(
+                deviceCopy: widget.deviceCopy,
+                onXChanged: addX,
+                onYChanged: addY,
+                onEditComplete: widget.onEditComplete,
+              ),
+              DeviceEditorToolbar(deviceCopy: widget.deviceCopy),
               SizedBox(height: 10),
-              DeviceEditorArea(device: widget.device)
+              DeviceEditorArea(
+                child: DeviceEditable(deviceCopy: widget.deviceCopy),
+              )
             ],
           ),
         ),

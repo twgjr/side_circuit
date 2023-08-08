@@ -1,20 +1,12 @@
-/*
-CIRCUITS is a library for creating and analyzing electrical circuits.  It primarily
-follows the same structure as the SPICE circuit simulator.  It can access the ngspice 
-API.
-*/
-
 import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/node.dart';
 import 'package:app/models/circuit/terminal.dart';
-import 'package:app/models/circuit/wire.dart';
 
 enum Quantity { I, V, P }
 
 class Circuit {
   List<Node> nodes = [];
   List<Device> devices = [];
-  List<Wire> wires = [];
 
   Circuit();
 
@@ -77,25 +69,35 @@ class Circuit {
   void connect(Terminal terminal, Node node) {
     terminal.node = node;
     node.addTerminal(terminal);
-    wires.add(Wire(terminal, node));
   }
 
   void disconnect(Terminal terminal) {
     terminal.node?.removeTerminal(terminal);
     terminal.node = null;
-    wires.removeWhere((wire) => wire.terminal == terminal);
   }
 
-  Circuit copy() {
-    Circuit newCircuit = Circuit();
-    for (Node node in nodes) {
-      node.circuit = newCircuit;
-      newCircuit._addNode(node);
-    }
-    for (Device device in devices) {
-      device.circuit = newCircuit;
-      newCircuit._addDevice(device);
+  Circuit copy({required bool deep}) {
+    final newCircuit = Circuit();
+    if (deep) {
+      for (Device device in devices) {
+        final newDevice = device.copyWith(circuit: newCircuit);
+        newCircuit.devices.add(newDevice);
+      }
+      for (Node node in nodes) {
+        final newNode = node.copyWith(circuit: newCircuit);
+        newCircuit.nodes.add(newNode);
+      }
+    } else {
+      newCircuit.devices = devices;
+      newCircuit.nodes = nodes;
     }
     return newCircuit;
+  }
+
+  void replaceDeviceWith(Device newDevice, int atIndex) {
+    for (Terminal terminal in newDevice.terminals) {
+      terminal.node = null;
+    }
+    devices[atIndex] = newDevice;
   }
 }

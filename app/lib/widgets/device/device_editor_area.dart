@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 
-import 'package:app/models/circuit/device.dart';
-import 'package:app/widgets/device/device_editable.dart';
-
 class DeviceEditorArea extends StatelessWidget {
-  final Device device;
-  DeviceEditorArea({super.key, required this.device});
+  final Widget child;
+
+  DeviceEditorArea({required this.child});
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        DeviceEditable(
-          device: device,
-          cktViewCtx: context,
+    return Expanded(
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Theme.of(context).primaryColorDark,
         ),
-      ],
+        child: child,
+      ),
     );
   }
 }

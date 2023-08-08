@@ -10,4 +10,10 @@ class Visual<T> {
   set startPosition(Point<double> value) {
     points[0] = value;
   }
+
+  Visual copy() {
+    final visual = Visual();
+    visual.points = points.map((point) => point).toList();
+    return visual;
+  }
 }

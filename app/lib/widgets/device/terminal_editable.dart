@@ -1,16 +1,19 @@
-import 'package:app/widgets/general/popup_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:app/providers/circuit_provider.dart';
 import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/terminal.dart';
-import 'package:app/providers/overlay_provider.dart';
-import 'package:app/providers/circuit_provider.dart';
+import 'package:app/models/view/visual.dart';
+import 'package:app/widgets/diagram/draggable_item.dart';
+import 'package:app/widgets/general/popup_menu.dart';
 
 class TerminalEditable extends ConsumerWidget {
   final Device device;
   final Terminal terminal;
   final double terminalRadius;
+  final Visual tempVisual = Visual();
+  OverlayEntry? menuOverlayEntry;
 
   TerminalEditable({
     super.key,
@@ -29,7 +32,7 @@ class TerminalEditable extends ConsumerWidget {
       renderBox.size,
     );
 
-    OverlayEntry overlayEntry = OverlayEntry(
+    menuOverlayEntry = OverlayEntry(
       builder: (context) {
         return PopupMenu(
           relativePosition: relativePosition,
@@ -41,22 +44,20 @@ class TerminalEditable extends ConsumerWidget {
               ),
               onPressed: () {
                 ref.read(circuitProvider.notifier).removeTerminal(terminal);
-                ref.read(overlayEntryProvider.notifier).removeLastOverlay();
+                menuOverlayEntry!.remove();
               },
             ),
           ],
         );
       },
     );
-    Overlay.of(context).insert(overlayEntry);
-    ref.read(overlayEntryProvider.notifier).addOverlay(overlayEntry);
+    Overlay.of(context).insert(menuOverlayEntry!);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Positioned(
-      left: terminal.visual.startPosition.x,
-      top: terminal.visual.startPosition.y,
+    return DraggableItem(
+      visual: tempVisual,
       child: GestureDetector(
         onSecondaryTapDown: (details) {
           _showTerminalPopupMenu(details.globalPosition, context, ref);

@@ -5,9 +5,9 @@ import 'package:app/providers/circuit_provider.dart';
 import 'package:app/models/circuit/device.dart';
 
 class DeviceEditorToolbar extends ConsumerWidget {
-  final Device device;
+  final Device deviceCopy;
 
-  DeviceEditorToolbar({required this.device});
+  DeviceEditorToolbar({required this.deviceCopy});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -29,7 +29,7 @@ class DeviceEditorToolbar extends ConsumerWidget {
             child: IconButton(
               tooltip: 'Add Terminal',
               onPressed: () {
-                ref.read(circuitProvider.notifier).addTerminal(device);
+                ref.read(circuitProvider.notifier).addTerminal(deviceCopy);
               },
               icon: Icon(
                 Icons.circle,
