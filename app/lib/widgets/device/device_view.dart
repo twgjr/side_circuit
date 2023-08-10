@@ -71,6 +71,7 @@ class DeviceView extends ConsumerWidget {
         },
         child: Container(
           child: Stack(
+            clipBehavior: Clip.none,
             children: [
               Shape(shape: device.visual.shape),
               Text('${device.kind.name}${device.id}'),

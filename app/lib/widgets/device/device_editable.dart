@@ -14,6 +14,7 @@ class DeviceEditable extends ConsumerWidget {
     final deviceCopy = ref.watch(deviceChangeProvider);
     return Container(
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           Shape(shape: deviceCopy.visual.shape),
           Text('${deviceCopy.kind.name}${deviceCopy.id}'),
