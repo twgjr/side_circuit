@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/providers/circuit_provider.dart';
 import 'package:app/providers/device_providers.dart';
-import 'package:app/providers/overlay_entry_providers.dart';
 import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/terminal.dart';
 import 'package:app/widgets/terminal/terminal_view.dart';
@@ -19,11 +18,7 @@ class DeviceView extends ConsumerWidget {
   void showDeviceEditor(BuildContext context, WidgetRef ref, Device device) {
     ref.read(deviceOpenProvider.notifier).update(device);
     ref.read(deviceChangeProvider.notifier).update(device.copyWith());
-    final providerRead = ref.read(deviceEditOverlayEntryProvider.notifier);
-    final deviceEditorOverlayEntry =
-        OverlayEntry(builder: (context) => DeviceEditor());
-    Overlay.of(context).insert(deviceEditorOverlayEntry);
-    providerRead.update(deviceEditorOverlayEntry);
+    showDialog(context: context, builder: (_) => DeviceEditor());
   }
 
   void _showPopupMenu(Offset position, BuildContext context, WidgetRef ref) {

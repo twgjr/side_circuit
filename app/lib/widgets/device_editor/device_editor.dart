@@ -34,30 +34,38 @@ class DeviceEditorState extends State<DeviceEditor> {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      left: position.dx,
-      top: position.dy,
-      child: Card(
-        clipBehavior: Clip.hardEdge,
-        elevation: 10,
-        shadowColor: Colors.black,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).primaryColorDark,
-            border: Border.all(
-              color: Theme.of(context).primaryColorDark,
-              width: 1.0,
+    return Expanded(
+      child: Container(
+        child: Stack(
+          children: [
+            Positioned(
+              left: position.dx,
+              top: position.dy,
+              child: Card(
+                clipBehavior: Clip.hardEdge,
+                elevation: 10,
+                shadowColor: Colors.black,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColorDark,
+                    border: Border.all(
+                      color: Theme.of(context).primaryColorDark,
+                      width: 1.0,
+                    ),
+                  ),
+                  width: width,
+                  height: height,
+                  child: Column(
+                    children: [
+                      DeviceEditorTopBar(onDrag: addOffset),
+                      DeviceEditorToolbar(),
+                      Expanded(child: Center(child: DeviceEditable())),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
-          width: width,
-          height: height,
-          child: Column(
-            children: [
-              DeviceEditorTopBar(onDrag: addOffset),
-              DeviceEditorToolbar(),
-              Expanded(child: Center(child: DeviceEditable())),
-            ],
-          ),
+          ],
         ),
       ),
     );

@@ -5,7 +5,6 @@ import 'package:app/providers/device_providers.dart';
 import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/terminal.dart';
 import 'package:app/widgets/diagram/draggable_item.dart';
-import 'package:app/widgets/general/popup_menu.dart';
 
 class TerminalEditable extends ConsumerStatefulWidget {
   final Device device;
@@ -24,41 +23,33 @@ class TerminalEditable extends ConsumerStatefulWidget {
 }
 
 class TerminalEditableState extends ConsumerState<TerminalEditable> {
-  OverlayEntry? menuOverlayEntry;
-
-  void _showTerminalPopupMenu(
-      Offset position, BuildContext context, WidgetRef ref) {
-    final RenderBox renderBox =
+  void _showPopupMenu(Offset position, WidgetRef ref) {
+    final RenderBox overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox;
 
     final relativePosition = RelativeRect.fromSize(
       Rect.fromLTWH(position.dx, position.dy, 0, 0),
-      renderBox.size,
+      overlay.size,
     );
 
-    menuOverlayEntry = OverlayEntry(
-      builder: (context) {
-        return PopupMenu(
-          relativePosition: relativePosition,
-          children: [
-            MenuItemButton(
-              child: Text(
-                "Delete",
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
-              onPressed: () {
-                ref
-                    .read(deviceChangeProvider.notifier)
-                    .removeTerminal(widget.terminalCopy);
-                menuOverlayEntry!.remove();
-                print("Delete");
-              },
-            ),
-          ],
-        );
+    showMenu(
+      context: context,
+      position: relativePosition,
+      items: [
+        PopupMenuItem(value: "delete", child: Text("Delete")),
+      ],
+    ).then(
+      (value) {
+        if (value != null) {
+          switch (value) {
+            case "delete":
+              final deviceRead = ref.read(deviceChangeProvider.notifier);
+              deviceRead.removeTerminal(widget.terminalCopy);
+              break;
+          }
+        }
       },
     );
-    Overlay.of(context).insert(menuOverlayEntry!);
   }
 
   @override
@@ -67,7 +58,7 @@ class TerminalEditableState extends ConsumerState<TerminalEditable> {
       visual: widget.terminalCopy.visual,
       child: GestureDetector(
         onSecondaryTapDown: (details) {
-          _showTerminalPopupMenu(details.globalPosition, context, ref);
+          _showPopupMenu(details.globalPosition, ref);
         },
         child: Container(
           width: widget.terminalRadius * 2,
