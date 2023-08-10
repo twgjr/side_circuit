@@ -18,6 +18,14 @@ class Device {
         terminals = [];
 
   int index() => circuit.devices.indexOf(this);
+  void addTerminal(Device device) => terminals.add(Terminal(device, ""));
+  void removeTerminalAt(int index) {
+    final terminal = terminals[index];
+    if (terminal.node != null) {
+      terminal.node?.removeTerminal(terminal);
+    }
+    terminals.removeAt(index);
+  }
 
   Device copyWith({Circuit? circuit}) {
     final newDevice = Device(circuit: circuit ?? this.circuit, kind: kind);

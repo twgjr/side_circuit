@@ -38,18 +38,6 @@ class CircuitNotifier extends StateNotifier<Circuit> {
     state = circuit;
   }
 
-  void addTerminal(Device device) {
-    final circuit = state.copy(deep: false);
-    circuit.addTerminal(device);
-    state = circuit;
-  }
-
-  void removeTerminal(Terminal terminal) {
-    final circuit = state.copy(deep: false);
-    circuit.removeTerminal(terminal);
-    state = circuit;
-  }
-
   void connect(Terminal terminal, Node node) {
     final circuit = state.copy(deep: false);
     circuit.connect(terminal, node);

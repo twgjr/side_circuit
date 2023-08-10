@@ -35,13 +35,13 @@ class Circuit {
   void newNode() => _addNode(Node(this));
   void removeNode(Node node) => nodes.remove(node);
   void removeNodeAt(int index) => nodes.removeAt(index);
-  void addTerminal(Device device) => device.terminals.add(Terminal(device, ""));
-  void removeTerminal(Terminal terminal) {
-    terminal.device.terminals.remove(terminal);
-    if (terminal.node != null) {
-      terminal.node?.removeTerminal(terminal);
-    }
-  }
+  // void addTerminal(Device device) => device.terminals.add(Terminal(device, ""));
+  // void removeTerminal(Terminal terminal) {
+  //   terminal.device.terminals.remove(terminal);
+  //   if (terminal.node != null) {
+  //     terminal.node?.removeTerminal(terminal);
+  //   }
+  // }
 
   int numNodes() => nodes.length;
   int numDevices() => devices.length;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:app/providers/circuit_provider.dart';
+import 'package:app/providers/device_providers.dart';
 import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/terminal.dart';
 import 'package:app/widgets/diagram/draggable_item.dart';
@@ -48,9 +48,10 @@ class TerminalEditableState extends ConsumerState<TerminalEditable> {
               ),
               onPressed: () {
                 ref
-                    .read(circuitProvider.notifier)
+                    .read(deviceChangeProvider.notifier)
                     .removeTerminal(widget.terminalCopy);
                 menuOverlayEntry!.remove();
+                print("Delete");
               },
             ),
           ],
@@ -80,7 +81,9 @@ class TerminalEditableState extends ConsumerState<TerminalEditable> {
             ),
           ),
           child: Text(
-            widget.terminalCopy.name,
+            widget.terminalCopy.device.terminals
+                .indexOf(widget.terminalCopy)
+                .toString(),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 10,

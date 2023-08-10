@@ -52,9 +52,6 @@ class DeviceView extends ConsumerWidget {
             case "editor":
               showDeviceEditor(context, ref, device);
               break;
-            case "add terminal":
-              ref.read(circuitProvider.notifier).addTerminal(device);
-              break;
           }
         }
       },

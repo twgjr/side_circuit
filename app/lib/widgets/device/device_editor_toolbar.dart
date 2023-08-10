@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:app/providers/circuit_provider.dart';
 import 'package:app/providers/device_providers.dart';
 
 class DeviceEditorToolbar extends ConsumerWidget {
@@ -27,9 +26,9 @@ class DeviceEditorToolbar extends ConsumerWidget {
             child: IconButton(
               tooltip: 'Add Terminal',
               onPressed: () {
-                final deviceChangeRead = ref.read(deviceChangeProvider);
-                final circuitRead = ref.read(circuitProvider.notifier);
-                circuitRead..addTerminal(deviceChangeRead);
+                final deviceChangeRead =
+                    ref.read(deviceChangeProvider.notifier);
+                deviceChangeRead.addTerminal();
               },
               icon: Icon(
                 Icons.circle,
