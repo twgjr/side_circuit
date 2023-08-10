@@ -7,8 +7,8 @@ import 'package:app/providers/device_providers.dart';
 import 'package:app/providers/overlay_entry_providers.dart';
 import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/terminal.dart';
-import 'package:app/widgets/device/terminal_view.dart';
-import 'package:app/widgets/device/device_editor.dart';
+import 'package:app/widgets/terminal/terminal_view.dart';
+import 'package:app/widgets/device_editor/device_editor.dart';
 import 'package:app/widgets/general/shape.dart';
 
 class DeviceView extends ConsumerWidget {

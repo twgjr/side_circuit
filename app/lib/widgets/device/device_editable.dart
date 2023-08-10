@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/providers/device_providers.dart';
 import 'package:app/models/circuit/terminal.dart';
-import 'package:app/widgets/device/terminal_editable.dart';
+import 'package:app/widgets/terminal/terminal_editable.dart';
 import 'package:app/widgets/general/shape.dart';
 
 class DeviceEditable extends ConsumerWidget {

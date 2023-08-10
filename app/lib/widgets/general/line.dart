@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
 
 class LinePainter extends CustomPainter {
-  final Point<double> start;
-  final Point<double> end;
+  final Offset start;
+  final Offset end;
 
   LinePainter(this.start, this.end);
 
@@ -13,7 +12,7 @@ class LinePainter extends CustomPainter {
       ..color = Colors.black
       ..strokeWidth = 2.0;
 
-    canvas.drawLine(Offset(start.x, start.y), Offset(end.x, end.y), paint);
+    canvas.drawLine(start, end, paint);
   }
 
   @override
@@ -23,8 +22,8 @@ class LinePainter extends CustomPainter {
 }
 
 class Line extends StatelessWidget {
-  final Point<double> start;
-  final Point<double> end;
+  final Offset start;
+  final Offset end;
 
   Line({required this.start, required this.end});
 

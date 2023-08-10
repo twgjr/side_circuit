@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:app/widgets/device/device_editor_top_bar.dart';
-import 'package:app/widgets/device/device_editor_toolbar.dart';
+import 'package:app/widgets/device_editor/device_editor_top_bar.dart';
+import 'package:app/widgets/device_editor/device_editor_toolbar.dart';
 import 'package:app/widgets/device/device_editable.dart';
 
 class DeviceEditor extends StatefulWidget {
