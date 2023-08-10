@@ -12,20 +12,13 @@ class DeviceEditor extends StatefulWidget {
 }
 
 class DeviceEditorState extends State<DeviceEditor> {
-  double x = 0;
-  double y = 0;
+  Offset position = Offset(0, 0);
   double width = 400;
   double height = 400;
 
-  void addX(double dx) {
+  void addOffset(Offset position) {
     setState(() {
-      x += dx;
-    });
-  }
-
-  void addY(double dy) {
-    setState(() {
-      y += dy;
+      this.position += position;
     });
   }
 
@@ -35,16 +28,15 @@ class DeviceEditorState extends State<DeviceEditor> {
         Overlay.of(context).context.findRenderObject() as RenderBox;
     width = overlay.size.width / 2;
     height = overlay.size.height / 2;
-    x = width / 2;
-    y = height / 2;
+    position = Offset(width / 2, height / 2);
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      left: x,
-      top: y,
+      left: position.dx,
+      top: position.dy,
       child: Card(
         clipBehavior: Clip.hardEdge,
         elevation: 10,
@@ -61,16 +53,9 @@ class DeviceEditorState extends State<DeviceEditor> {
           height: height,
           child: Column(
             children: [
-              DeviceEditorTopBar(
-                onXChanged: addX,
-                onYChanged: addY,
-              ),
+              DeviceEditorTopBar(onDrag: addOffset),
               DeviceEditorToolbar(),
-              Expanded(
-                child: Center(
-                  child: DeviceEditable(),
-                ),
-              ),
+              Expanded(child: Center(child: DeviceEditable())),
             ],
           ),
         ),

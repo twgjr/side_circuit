@@ -6,10 +6,9 @@ import 'package:app/providers/device_providers.dart';
 import 'package:app/providers/overlay_entry_providers.dart';
 
 class DeviceEditorTopBar extends ConsumerWidget {
-  final void Function(double) onXChanged;
-  final void Function(double) onYChanged;
+  final void Function(Offset) onDrag;
 
-  DeviceEditorTopBar({required this.onXChanged, required this.onYChanged});
+  DeviceEditorTopBar({super.key, required this.onDrag});
 
   void closeDeviceEditor(WidgetRef ref, bool save) {
     final circuitRead = ref.read(circuitProvider.notifier);
@@ -28,8 +27,7 @@ class DeviceEditorTopBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       onPanUpdate: (details) {
-        onXChanged(details.delta.dx);
-        onYChanged(details.delta.dy);
+        onDrag(details.delta);
       },
       child: Container(
         decoration: BoxDecoration(
