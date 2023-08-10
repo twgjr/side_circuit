@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/providers/circuit_provider.dart';
-import 'package:app/models/circuit/device.dart';
+import 'package:app/providers/device_providers.dart';
 
 class DeviceEditorToolbar extends ConsumerWidget {
-  final Device deviceCopy;
-
-  DeviceEditorToolbar({required this.deviceCopy});
+  DeviceEditorToolbar({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -29,7 +27,9 @@ class DeviceEditorToolbar extends ConsumerWidget {
             child: IconButton(
               tooltip: 'Add Terminal',
               onPressed: () {
-                ref.read(circuitProvider.notifier).addTerminal(deviceCopy);
+                final deviceChangeRead = ref.read(deviceChangeProvider);
+                final circuitRead = ref.read(circuitProvider.notifier);
+                circuitRead..addTerminal(deviceChangeRead);
               },
               icon: Icon(
                 Icons.circle,

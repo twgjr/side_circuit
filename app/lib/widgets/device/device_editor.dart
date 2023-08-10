@@ -1,21 +1,11 @@
 import 'package:flutter/material.dart';
 
-import 'package:app/models/circuit/device.dart';
 import 'package:app/widgets/device/device_editor_top_bar.dart';
 import 'package:app/widgets/device/device_editor_toolbar.dart';
 import 'package:app/widgets/device/device_editable.dart';
-import 'package:app/widgets/device/device_editor_area.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class DeviceEditor extends StatefulWidget {
-  final Device deviceCopy;
-  final void Function(WidgetRef, bool) onEditComplete;
-
-  DeviceEditor({
-    super.key,
-    required this.deviceCopy,
-    required this.onEditComplete,
-  });
+  DeviceEditor({super.key});
 
   @override
   DeviceEditorState createState() => DeviceEditorState();
@@ -72,16 +62,15 @@ class DeviceEditorState extends State<DeviceEditor> {
           child: Column(
             children: [
               DeviceEditorTopBar(
-                deviceCopy: widget.deviceCopy,
                 onXChanged: addX,
                 onYChanged: addY,
-                onEditComplete: widget.onEditComplete,
               ),
-              DeviceEditorToolbar(deviceCopy: widget.deviceCopy),
-              SizedBox(height: 10),
-              DeviceEditorArea(
-                child: DeviceEditable(deviceCopy: widget.deviceCopy),
-              )
+              DeviceEditorToolbar(),
+              Expanded(
+                child: Center(
+                  child: DeviceEditable(),
+                ),
+              ),
             ],
           ),
         ),

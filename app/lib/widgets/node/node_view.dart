@@ -1,3 +1,4 @@
+import 'package:app/widgets/diagram/draggable_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,12 +7,8 @@ import 'package:app/providers/circuit_provider.dart';
 
 class NodeView extends ConsumerWidget {
   final Node node;
-  final BuildContext cktViewCtx;
 
-  NodeView({
-    required this.node,
-    required this.cktViewCtx,
-  });
+  NodeView({required this.node});
 
   void _showPopupMenu(Offset position, BuildContext context, WidgetRef ref) {
     final RenderBox overlay =
@@ -41,17 +38,20 @@ class NodeView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      onSecondaryTapDown: (details) {
-        _showPopupMenu(details.globalPosition, context, ref);
-      },
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            children: [
-              Text('Node ${node.id}'),
-            ],
+    return DraggableItem(
+      visual: node.visual,
+      child: GestureDetector(
+        onSecondaryTapDown: (details) {
+          _showPopupMenu(details.globalPosition, context, ref);
+        },
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                Text('Node ${node.id}'),
+              ],
+            ),
           ),
         ),
       ),

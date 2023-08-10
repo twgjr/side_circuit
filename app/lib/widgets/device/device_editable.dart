@@ -1,46 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:app/models/circuit/device.dart';
+import 'package:app/providers/device_providers.dart';
 import 'package:app/models/circuit/terminal.dart';
 import 'package:app/widgets/device/terminal_editable.dart';
+import 'package:app/widgets/general/shape.dart';
 
-class DeviceEditable extends StatelessWidget {
-  final Device deviceCopy;
-
-  DeviceEditable({required this.deviceCopy});
+class DeviceEditable extends ConsumerWidget {
+  DeviceEditable({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 100,
-        height: 100,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(
-            color: Colors.black,
-            width: 1.0,
-          ),
-        ),
-        child: GestureDetector(
-          onSecondaryTapDown: (details) {},
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Center(
-                  child: Text('${deviceCopy.kind.name}${deviceCopy.id}'),
-                ),
-              ),
-              for (Terminal terminal in deviceCopy.terminals)
-                TerminalEditable(
-                  device: deviceCopy,
-                  terminalCopy: terminal,
-                  terminalRadius: 10,
-                ),
-            ],
-          ),
-        ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final deviceCopy = ref.watch(deviceChangeProvider);
+    return Container(
+      child: Stack(
+        children: [
+          Shape(shape: deviceCopy.visual.shape),
+          Text('${deviceCopy.kind.name}${deviceCopy.id}'),
+          for (Terminal terminal in deviceCopy.terminals)
+            TerminalEditable(
+              device: deviceCopy,
+              terminalCopy: terminal,
+              terminalRadius: 10,
+            ),
+        ],
       ),
     );
   }

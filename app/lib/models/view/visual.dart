@@ -1,19 +1,19 @@
 import 'dart:math';
 
+import 'package:flutter/material.dart';
+
 class Visual<T> {
-  List<Point<double>> points = [Point<double>(0, 0)];
+  Point<double> position = Point<double>(0, 0);
+  Path shape = Path();
 
-  Visual();
-
-  Point<double> get startPosition => points[0];
-
-  set startPosition(Point<double> value) {
-    points[0] = value;
+  Visual() {
+    shape.addRect(Rect.fromLTWH(0, 0, 100, 100));
   }
 
   Visual copy() {
     final visual = Visual();
-    visual.points = points.map((point) => point).toList();
+    visual.position = this.position;
+    visual.shape = Path.from(this.shape);
     return visual;
   }
 }

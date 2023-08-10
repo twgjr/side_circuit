@@ -18,8 +18,8 @@ class TerminalView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      left: terminal.visual.startPosition.x,
-      top: terminal.visual.startPosition.y,
+      left: terminal.visual.position.x,
+      top: terminal.visual.position.y,
       child: GestureDetector(
         onTap: () {
           print('TerminalView: onTap: terminal=$terminal');
