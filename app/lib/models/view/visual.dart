@@ -1,19 +1,16 @@
 import 'dart:math';
-
-import 'package:flutter/material.dart';
+import 'package:app/models/view/vector_path.dart';
 
 class Visual<T> {
   Point<double> position = Point<double>(0, 0);
-  Path shape = Path();
+  VectorPath shape = VectorPath();
 
-  Visual() {
-    shape.addRect(Rect.fromLTWH(0, 0, 100, 100));
-  }
+  Visual();
 
   Visual copy() {
     final visual = Visual();
-    visual.position = this.position;
-    visual.shape = Path.from(this.shape);
+    visual.shape = shape.copyWith();
+    visual.position = Point<double>(this.position.x, this.position.y);
     return visual;
   }
 }

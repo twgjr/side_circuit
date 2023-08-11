@@ -21,8 +21,15 @@ class TerminalView extends StatelessWidget {
       left: terminal.visual.position.x,
       top: terminal.visual.position.y,
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           print('TerminalView: onTap: terminal=$terminal');
+        },
+        onPanUpdate: (details) {
+          // do nothing except prevent the parent from receiving the event
+        },
+        onSecondaryTapDown: (details) {
+          // open a popup menu
         },
         child: Container(
           width: terminalRadius * 2,

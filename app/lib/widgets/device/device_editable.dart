@@ -16,7 +16,7 @@ class DeviceEditable extends ConsumerWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Shape(shape: deviceCopy.visual.shape),
+          Shape(shape: deviceCopy.visual.shape.getPath()),
           Text('${deviceCopy.kind.name}${deviceCopy.id}'),
           for (Terminal terminal in deviceCopy.terminals)
             TerminalEditable(

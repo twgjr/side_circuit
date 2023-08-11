@@ -65,7 +65,7 @@ class DeviceView extends ConsumerWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              Shape(shape: device.visual.shape),
+              Shape(shape: device.visual.shape.getPath()),
               Text('${device.kind.name}${device.id}'),
               for (Terminal terminal in device.terminals)
                 TerminalView(

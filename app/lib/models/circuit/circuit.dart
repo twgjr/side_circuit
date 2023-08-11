@@ -1,6 +1,7 @@
 import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/node.dart';
 import 'package:app/models/circuit/terminal.dart';
+import 'package:app/library/device_library.dart';
 
 enum Quantity { I, V, P }
 
@@ -18,8 +19,8 @@ class Circuit {
       case DeviceKind.V:
         _addDevice(IndependentSource(circuit: this, kind: DeviceKind.V));
         break;
-      case DeviceKind.I:
-        _addDevice(IndependentSource(circuit: this, kind: DeviceKind.I));
+      case DeviceKind.BLOCK:
+        _addDevice(IndependentSource(circuit: this, kind: DeviceKind.BLOCK));
         break;
       case DeviceKind.R:
         _addDevice(Resistor(this));
@@ -35,13 +36,6 @@ class Circuit {
   void newNode() => _addNode(Node(this));
   void removeNode(Node node) => nodes.remove(node);
   void removeNodeAt(int index) => nodes.removeAt(index);
-  // void addTerminal(Device device) => device.terminals.add(Terminal(device, ""));
-  // void removeTerminal(Terminal terminal) {
-  //   terminal.device.terminals.remove(terminal);
-  //   if (terminal.node != null) {
-  //     terminal.node?.removeTerminal(terminal);
-  //   }
-  // }
 
   int numNodes() => nodes.length;
   int numDevices() => devices.length;

@@ -2,7 +2,7 @@ import 'package:app/models/circuit/circuit.dart';
 import 'package:app/models/circuit/terminal.dart';
 import 'package:app/models/view/visual.dart';
 
-enum DeviceKind { V, I, R, VC, CC, SW, L, C, VG, CG }
+enum DeviceKind { V, I, R, VC, CC, SW, L, C, VG, CG, BLOCK }
 
 class Device {
   Circuit circuit;
@@ -28,7 +28,10 @@ class Device {
   }
 
   Device copyWith({Circuit? circuit}) {
-    final newDevice = Device(circuit: circuit ?? this.circuit, kind: kind);
+    final newDevice = Device(
+      circuit: circuit ?? this.circuit,
+      kind: kind,
+    );
     newDevice.id = id;
     newDevice.terminals = [];
     for (Terminal terminal in terminals) {
@@ -37,15 +40,4 @@ class Device {
     newDevice.visual = visual.copy();
     return newDevice;
   }
-}
-
-class IndependentSource extends Device {
-  IndependentSource({
-    required Circuit circuit,
-    required DeviceKind kind,
-  }) : super(circuit: circuit, kind: kind);
-}
-
-class Resistor extends Device {
-  Resistor(Circuit circuit) : super(circuit: circuit, kind: DeviceKind.R);
 }
