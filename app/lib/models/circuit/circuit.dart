@@ -2,12 +2,14 @@ import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/node.dart';
 import 'package:app/models/circuit/terminal.dart';
 import 'package:app/library/device_library.dart';
+import 'package:app/models/circuit/wire.dart';
 
 enum Quantity { I, V, P }
 
 class Circuit {
   List<Node> nodes = [];
   List<Device> devices = [];
+  List<Wire> wires = [];
 
   Circuit();
 
@@ -36,6 +38,11 @@ class Circuit {
   void newNode() => _addNode(Node(this));
   void removeNode(Node node) => nodes.remove(node);
   void removeNodeAt(int index) => nodes.removeAt(index);
+  void startWireAt(Terminal terminal) {
+    Wire wire = Wire(terminal: terminal);
+    terminal.wire = wire;
+    wires.add(wire);
+  }
 
   int numNodes() => nodes.length;
   int numDevices() => devices.length;
@@ -60,16 +67,6 @@ class Circuit {
     return maxId;
   }
 
-  void connect(Terminal terminal, Node node) {
-    terminal.node = node;
-    node.addTerminal(terminal);
-  }
-
-  void disconnect(Terminal terminal) {
-    terminal.node?.removeTerminal(terminal);
-    terminal.node = null;
-  }
-
   Circuit copy({required bool deep}) {
     final newCircuit = Circuit();
     if (deep) {
@@ -90,7 +87,7 @@ class Circuit {
 
   void replaceDeviceWith(Device newDevice, int atIndex) {
     for (Terminal terminal in newDevice.terminals) {
-      terminal.node = null;
+      terminal.wire = null;
     }
     devices[atIndex] = newDevice;
   }

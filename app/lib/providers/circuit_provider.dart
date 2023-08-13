@@ -38,16 +38,11 @@ class CircuitNotifier extends StateNotifier<Circuit> {
     state = circuit;
   }
 
-  void connect(Terminal terminal, Node node) {
+  void startWireAt(Terminal terminal) {
     final circuit = state.copy(deep: false);
-    circuit.connect(terminal, node);
+    circuit.startWireAt(terminal);
     state = circuit;
-  }
-
-  void disconnect(Terminal terminal) {
-    final circuit = state.copy(deep: false);
-    circuit.disconnect(terminal);
-    state = circuit;
+    print('startWireAt: ${terminal.device.terminals.indexOf(terminal)}');
   }
 }
 

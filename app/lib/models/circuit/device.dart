@@ -21,8 +21,8 @@ class Device {
   void addTerminal(Device device) => terminals.add(Terminal(device, ""));
   void removeTerminalAt(int index) {
     final terminal = terminals[index];
-    if (terminal.node != null) {
-      terminal.node?.removeTerminal(terminal);
+    if (terminal.wire != null) {
+      terminal.wire?.removeTerminal(terminal);
     }
     terminals.removeAt(index);
   }

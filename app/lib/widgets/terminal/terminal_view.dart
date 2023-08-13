@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:app/providers/wire_provider.dart';
 import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/terminal.dart';
 
-class TerminalView extends StatelessWidget {
+class TerminalView extends ConsumerWidget {
   final Device device;
   final Terminal terminal;
   final double terminalRadius;
@@ -16,20 +18,21 @@ class TerminalView extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Positioned(
       left: terminal.visual.position.x,
       top: terminal.visual.position.y,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          print('TerminalView: onTap: terminal=$terminal');
+          final wireRead = ref.read(activeWireProvider.notifier);
+          wireRead.start(terminal, ref);
         },
         onPanUpdate: (details) {
           // do nothing except prevent the parent from receiving the event
         },
         onSecondaryTapDown: (details) {
-          // open a popup menu
+          // _showPopupMenu(details.globalPosition, ref, context);
         },
         child: Container(
           width: terminalRadius * 2,

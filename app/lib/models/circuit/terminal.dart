@@ -1,18 +1,18 @@
 import 'package:app/models/circuit/device.dart';
-import 'package:app/models/circuit/node.dart';
+import 'package:app/models/circuit/wire.dart';
 import 'package:app/models/view/visual.dart';
 
 class Terminal {
   Device device;
   String name;
-  Node? node;
+  Wire? wire;
   Visual visual = Visual();
 
   Terminal(this.device, this.name);
 
-  Terminal copyWith({Device? device, Node? node}) {
+  Terminal copyWith({Device? device, Wire? wire}) {
     final terminal = Terminal(device ?? this.device, name);
-    terminal.node = node ?? this.node;
+    terminal.wire = wire ?? this.wire;
     terminal.visual = visual.copy();
     return terminal;
   }
