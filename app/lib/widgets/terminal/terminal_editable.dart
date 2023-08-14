@@ -2,21 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/providers/device_providers.dart';
-import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/terminal.dart';
 import 'package:app/widgets/diagram/draggable_item.dart';
+import 'package:app/widgets/general/shape.dart';
 
 class TerminalEditable extends ConsumerStatefulWidget {
-  final Device device;
   final Terminal terminalCopy;
-  final double terminalRadius;
 
-  TerminalEditable({
-    super.key,
-    required this.device,
-    required this.terminalCopy,
-    required this.terminalRadius,
-  });
+  TerminalEditable({super.key, required this.terminalCopy});
 
   @override
   TerminalEditableState createState() => TerminalEditableState();
@@ -61,24 +54,13 @@ class TerminalEditableState extends ConsumerState<TerminalEditable> {
           _showPopupMenu(details.globalPosition, ref);
         },
         child: Container(
-          width: widget.terminalRadius * 2,
-          height: widget.terminalRadius * 2,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.black,
-              width: 1.0,
-            ),
-          ),
-          child: Text(
-            widget.terminalCopy.device.terminals
-                .indexOf(widget.terminalCopy)
-                .toString(),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 10,
-            ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Shape(shape: widget.terminalCopy.visual.shape.getPath()),
+              Text(
+                  '${widget.terminalCopy.device.terminals.indexOf(widget.terminalCopy)}'),
+            ],
           ),
         ),
       ),

@@ -5,7 +5,7 @@ class VectorPath {
   Path _path = Path();
   Offset _currentPoint = Offset(0, 0);
 
-  void vectorLineTo(double angle, double length) {
+  void angleLine(double angle, double length) {
     angle = angle * math.pi / 180;
     final dx = math.cos(angle) * length;
     final dy = math.sin(angle) * length;
@@ -13,8 +13,17 @@ class VectorPath {
     _path.lineTo(_currentPoint.dx, _currentPoint.dy);
   }
 
+  void lineTo(double x, double y) {
+    _currentPoint = Offset(x, y);
+    _path.lineTo(x, y);
+  }
+
   void addRect(double width, double height) {
     _path.addRect(Rect.fromLTWH(0, 0, width, height));
+  }
+
+  void addCircle(double diameter) {
+    _path.addOval(Rect.fromCircle(center: Offset(0, 0), radius: diameter / 2));
   }
 
   void end_path() {
@@ -22,9 +31,7 @@ class VectorPath {
     _path = _path.shift(Offset(-bounds.left, -bounds.top));
   }
 
-  Path getPath() {
-    return _path;
-  }
+  Path getPath() => _path;
 
   void reset() {
     _path.reset();

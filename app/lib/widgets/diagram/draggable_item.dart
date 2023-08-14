@@ -1,7 +1,6 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 
-import 'package:app/models/view/visual.dart';
+import 'package:app/models/visual/visual.dart';
 
 class DraggableItem extends StatefulWidget {
   final Widget child;
@@ -17,14 +16,13 @@ class _DraggableItemState extends State<DraggableItem> {
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      left: widget.visual.position.x,
-      top: widget.visual.position.y,
+      left: widget.visual.position.dx,
+      top: widget.visual.position.dy,
       child: GestureDetector(
         onPanUpdate: (details) {
           setState(() {
-            double new_x = widget.visual.position.x + details.delta.dx;
-            double new_y = widget.visual.position.y + details.delta.dy;
-            widget.visual.position = Point(new_x, new_y);
+            Offset new_local = widget.visual.position + details.delta;
+            widget.visual.position = new_local;
           });
         },
         child: widget.child,

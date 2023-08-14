@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:app/models/circuit/wire_segment.dart';
+import 'package:app/models/visual/wire_segment.dart';
+import 'package:app/widgets/general/line.dart';
 
-class WireSegmentView extends ConsumerWidget {
+class WireSegmentView extends StatelessWidget {
   final WireSegment wireSegment;
 
-  WireSegmentView({required this.wireSegment, super.key});
+  WireSegmentView({super.key, required this.wireSegment});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Container();
+  Widget build(BuildContext context) {
+    Offset start = wireSegment.start();
+    Offset end = wireSegment.end();
+    print('WireSegmentView: start=$start, end=$end');
+    return Positioned(
+      left: 0,
+      top: 0,
+      child: Line(
+        start: start,
+        end: end,
+      ),
+    );
   }
 }

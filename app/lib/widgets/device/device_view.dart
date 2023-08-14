@@ -66,13 +66,13 @@ class DeviceView extends ConsumerWidget {
             clipBehavior: Clip.none,
             children: [
               Shape(shape: device.visual.shape.getPath()),
-              Text('${device.kind.name}${device.id}'),
+              Positioned(
+                bottom: -20,
+                left: device.visual.shape.getPath().getBounds().width / 2,
+                child: Text('${device.kind.name}${device.id}'),
+              ),
               for (Terminal terminal in device.terminals)
-                TerminalView(
-                  device: device,
-                  terminalRadius: 10,
-                  terminal: terminal,
-                ),
+                TerminalView(terminal: terminal),
             ],
           ),
         ),

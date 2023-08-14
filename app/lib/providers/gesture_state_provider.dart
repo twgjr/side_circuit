@@ -1,23 +1,24 @@
-// state notifier provider that tracks the state of buttons pressed in the toold bard
-// such as add wire, add device, rotate, flip, etc.  The goal is to have only one state
-// active at a time.  The state will be used to determine what click events do on the
-// when clicking empty diagram space, devices, nodes, and terminals.  The state will
-// also be used to determine what the mouse cursor looks like. The state will also be
-// used to determine what the diagram controls look like.
-//
-//Example: when the add wire
-// button is pressed, the cursor will change to a crosshair, and the diagram controls for
-// adding a wire will change to active color.  The user clicks a terminal to start the wire,
-// then clicks another wire, node, or terminal to end the wire.  The wire is added to the
-// circuit.  The cursor changes back to the default cursor, and the diagram controls for
-// adding a wire change back to the inactive color.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+enum GestureStates {
+  addWire,
+  addDevice,
+  rotate,
+  flip,
+  delete,
+  move,
+  select,
+  pan,
+  zoom,
+}
 
 class GestureStateNotifier extends StateNotifier<GestureState> {
   GestureStateNotifier() : super(GestureState());
 
-  void update(GestureState gestureState) {
-    state = gestureState;
+  void invertGestureState(GestureStates gestureState) {
+    GestureState newState = state.copy();
+    newState.invert(gestureState);
+    state = newState;
   }
 }
 
@@ -48,4 +49,51 @@ class GestureState {
     this.pan = false,
     this.zoom = false,
   });
+
+  GestureState copy() {
+    return GestureState(
+      addWire: this.addWire,
+      addDevice: this.addDevice,
+      rotate: this.rotate,
+      flip: this.flip,
+      delete: this.delete,
+      move: this.move,
+      select: this.select,
+      pan: this.pan,
+      zoom: this.zoom,
+    );
+  }
+
+  // invert the state of the specified gesture state enum
+  void invert(GestureStates gestureState) {
+    switch (gestureState) {
+      case GestureStates.addWire:
+        addWire = !addWire;
+        break;
+      case GestureStates.addDevice:
+        addDevice = !addDevice;
+        break;
+      case GestureStates.rotate:
+        rotate = !rotate;
+        break;
+      case GestureStates.flip:
+        flip = !flip;
+        break;
+      case GestureStates.delete:
+        delete = !delete;
+        break;
+      case GestureStates.move:
+        move = !move;
+        break;
+      case GestureStates.select:
+        select = !select;
+        break;
+      case GestureStates.pan:
+        pan = !pan;
+        break;
+      case GestureStates.zoom:
+        zoom = !zoom;
+        break;
+    }
+  }
 }

@@ -1,6 +1,6 @@
 import 'package:app/models/circuit/circuit.dart';
 import 'package:app/models/circuit/terminal.dart';
-import 'package:app/models/view/visual.dart';
+import 'package:app/models/visual/visual.dart';
 
 enum DeviceKind { V, I, R, VC, CC, SW, L, C, VG, CG, BLOCK }
 

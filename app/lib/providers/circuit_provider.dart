@@ -1,9 +1,11 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/models/circuit/circuit.dart';
 import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/node.dart';
 import 'package:app/models/circuit/terminal.dart';
+import 'package:app/models/visual/wire.dart';
 
 class CircuitNotifier extends StateNotifier<Circuit> {
   CircuitNotifier() : super(Circuit());
@@ -38,11 +40,19 @@ class CircuitNotifier extends StateNotifier<Circuit> {
     state = circuit;
   }
 
-  void startWireAt(Terminal terminal) {
+  Wire startWireAt(Terminal terminal) {
+    final terminalIndex = terminal.device.terminals.indexOf(terminal);
+    final deviceIndex = state.devices.indexOf(terminal.device);
     final circuit = state.copy(deep: false);
-    circuit.startWireAt(terminal);
+    circuit.startWireAt(terminalIndex, deviceIndex);
     state = circuit;
-    print('startWireAt: ${terminal.device.terminals.indexOf(terminal)}');
+    return terminal.wire!;
+  }
+
+  void addVertexToWireAt(Offset position, Wire wire) {
+    final circuit = state.copy(deep: false);
+    circuit.addVertexToWireAt(position, 0, wire);
+    state = circuit;
   }
 }
 

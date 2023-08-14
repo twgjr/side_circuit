@@ -2,7 +2,8 @@ import 'package:app/models/circuit/device.dart';
 import 'package:app/models/circuit/node.dart';
 import 'package:app/models/circuit/terminal.dart';
 import 'package:app/library/device_library.dart';
-import 'package:app/models/circuit/wire.dart';
+import 'package:app/models/visual/wire.dart';
+import 'package:flutter/material.dart';
 
 enum Quantity { I, V, P }
 
@@ -38,10 +39,16 @@ class Circuit {
   void newNode() => _addNode(Node(this));
   void removeNode(Node node) => nodes.remove(node);
   void removeNodeAt(int index) => nodes.removeAt(index);
-  void startWireAt(Terminal terminal) {
+  Wire startWireAt(int terminalIndex, int deviceIndex) {
+    final terminal = devices[deviceIndex].terminals[terminalIndex];
     Wire wire = Wire(terminal: terminal);
     terminal.wire = wire;
     wires.add(wire);
+    return wire;
+  }
+
+  void addVertexToWireAt(Offset offset, double angleIncrement, Wire wire) {
+    wire.addVertexAt(offset, angleIncrement);
   }
 
   int numNodes() => nodes.length;

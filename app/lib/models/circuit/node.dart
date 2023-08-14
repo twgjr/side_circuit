@@ -1,6 +1,6 @@
 import 'package:app/models/circuit/circuit.dart';
-import 'package:app/models/circuit/wire.dart';
-import 'package:app/models/view/visual.dart';
+import 'package:app/models/visual/wire.dart';
+import 'package:app/models/visual/visual.dart';
 
 class Node {
   Circuit circuit;

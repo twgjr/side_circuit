@@ -16,15 +16,15 @@ class Resistor extends Device {
   Resistor(Circuit circuit) : super(circuit: circuit, kind: DeviceKind.R) {
     final shape = visual.shape;
     shape.reset();
-    shape.vectorLineTo(0, 10);
-    shape.vectorLineTo(-60, 10);
-    shape.vectorLineTo(60, 20);
-    shape.vectorLineTo(-60, 20);
-    shape.vectorLineTo(60, 20);
-    shape.vectorLineTo(-60, 20);
-    shape.vectorLineTo(60, 20);
-    shape.vectorLineTo(-60, 10);
-    shape.vectorLineTo(0, 10);
+    shape.angleLine(0, 10);
+    shape.angleLine(-60, 10);
+    shape.angleLine(60, 20);
+    shape.angleLine(-60, 20);
+    shape.angleLine(60, 20);
+    shape.angleLine(-60, 20);
+    shape.angleLine(60, 20);
+    shape.angleLine(-60, 10);
+    shape.angleLine(0, 10);
     shape.end_path();
   }
 }

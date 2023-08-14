@@ -1,3 +1,5 @@
+import 'package:app/models/visual/wire.dart';
+import 'package:app/widgets/wire/wire_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -17,6 +19,7 @@ class Diagram extends ConsumerWidget {
       children: [
         for (Device device in circuitWatch.devices) DeviceView(device: device),
         for (Node node in circuitWatch.nodes) NodeView(node: node),
+        for (Wire wire in circuitWatch.wires) WireView(wire: wire),
       ],
     );
   }

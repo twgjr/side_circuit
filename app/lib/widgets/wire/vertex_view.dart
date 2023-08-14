@@ -1,4 +1,4 @@
-import 'package:app/models/view/vertex.dart';
+import 'package:app/models/visual/vertex.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +9,17 @@ class VertexView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Container();
+    return Positioned(
+      left: vertex.position.dx - 2,
+      top: vertex.position.dy - 2,
+      child: Container(
+        width: 4,
+        height: 4,
+        decoration: BoxDecoration(
+          color: Colors.black,
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
   }
 }

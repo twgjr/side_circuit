@@ -30,11 +30,13 @@ class DiagramControls extends ConsumerWidget {
         // icon button to trigger add wire mode
         IconButton(
           icon: Icon(Icons.linear_scale),
+          color: ref.watch(gestureStateProvider).addWire
+              ? Colors.red
+              : Colors.black,
           tooltip: "add wires",
           onPressed: () {
-            ref
-                .read(gestureStateProvider.notifier)
-                .update(GestureState(addWire: true));
+            final gestureStateRead = ref.read(gestureStateProvider.notifier);
+            gestureStateRead.invertGestureState(GestureStates.addWire);
           },
         ),
       ],

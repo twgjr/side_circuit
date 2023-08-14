@@ -19,11 +19,7 @@ class DeviceEditable extends ConsumerWidget {
           Shape(shape: deviceCopy.visual.shape.getPath()),
           Text('${deviceCopy.kind.name}${deviceCopy.id}'),
           for (Terminal terminal in deviceCopy.terminals)
-            TerminalEditable(
-              device: deviceCopy,
-              terminalCopy: terminal,
-              terminalRadius: 10,
-            ),
+            TerminalEditable(terminalCopy: terminal),
         ],
       ),
     );

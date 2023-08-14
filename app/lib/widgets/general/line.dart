@@ -1,5 +1,21 @@
 import 'package:flutter/material.dart';
 
+class Line extends StatelessWidget {
+  final Offset start;
+  final Offset end;
+
+  Line({required this.start, required this.end});
+
+  @override
+  Widget build(BuildContext context) {
+    final distance = (end - start).distance;
+    return CustomPaint(
+      painter: LinePainter(start, end),
+      size: Size(distance, 1),
+    );
+  }
+}
+
 class LinePainter extends CustomPainter {
   final Offset start;
   final Offset end;
@@ -18,20 +34,5 @@ class LinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
     return true;
-  }
-}
-
-class Line extends StatelessWidget {
-  final Offset start;
-  final Offset end;
-
-  Line({required this.start, required this.end});
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: LinePainter(start, end),
-      size: Size.infinite,
-    );
   }
 }

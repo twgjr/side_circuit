@@ -24,7 +24,6 @@ class ShapePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    print(size);
     final paint = Paint()
       ..color = Colors.black
       ..strokeWidth = 2
