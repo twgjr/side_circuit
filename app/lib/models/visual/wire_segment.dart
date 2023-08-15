@@ -7,7 +7,7 @@ import 'package:app/models/visual/end_point.dart';
 class WireSegment {
   final Wire wire;
   final EndPoint endPoint;
-  final Symbol visual = Symbol();
+  final Symbol symbol = Symbol();
 
   WireSegment({required this.wire, required this.endPoint});
 

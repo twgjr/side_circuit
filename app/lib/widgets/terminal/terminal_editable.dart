@@ -48,7 +48,7 @@ class TerminalEditableState extends ConsumerState<TerminalEditable> {
   @override
   Widget build(BuildContext context) {
     return DraggableItem(
-      visual: widget.terminal.symbol,
+      symbol: widget.terminal.symbol,
       child: GestureDetector(
         onSecondaryTapDown: (details) {
           _showPopupMenu(details.globalPosition, ref);

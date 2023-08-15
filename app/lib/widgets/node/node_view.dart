@@ -39,7 +39,7 @@ class NodeView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return DraggableItem(
-      visual: node.visual,
+      symbol: node.symbol,
       child: GestureDetector(
         onSecondaryTapDown: (details) {
           _showPopupMenu(details.globalPosition, context, ref);

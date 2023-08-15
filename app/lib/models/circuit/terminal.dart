@@ -22,7 +22,7 @@ class Terminal {
   }
 
   Offset get position => symbol.position;
-  Offset globalPosition() => device.visual.position + position;
+  Offset globalPosition() => device.symbol.position + position;
   Offset center() => symbol.center();
-  Offset globalCenter() => device.visual.position + position + center();
+  Offset globalCenter() => device.symbol.position + position + center();
 }

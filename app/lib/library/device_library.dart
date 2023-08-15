@@ -6,15 +6,15 @@ class IndependentSource extends Device {
     required Circuit circuit,
     required DeviceKind kind,
   }) : super(circuit: circuit, kind: kind) {
-    visual.shape.reset();
-    visual.shape.addRect(100, 100);
-    visual.shape.end_path();
+    symbol.shape.reset();
+    symbol.shape.addRect(100, 100);
+    symbol.shape.end_path();
   }
 }
 
 class Resistor extends Device {
   Resistor(Circuit circuit) : super(circuit: circuit, kind: DeviceKind.R) {
-    final shape = visual.shape;
+    final shape = symbol.shape;
     shape.reset();
     shape.angleLine(0, 10);
     shape.angleLine(-60, 10);
@@ -31,8 +31,8 @@ class Resistor extends Device {
 
 class Block extends Device {
   Block(Circuit circuit) : super(circuit: circuit, kind: DeviceKind.R) {
-    visual.shape.reset();
-    visual.shape.addRect(100, 100);
-    visual.shape.end_path();
+    symbol.shape.reset();
+    symbol.shape.addRect(100, 100);
+    symbol.shape.end_path();
   }
 }

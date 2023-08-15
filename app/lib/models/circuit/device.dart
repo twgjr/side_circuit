@@ -9,7 +9,7 @@ class Device {
   List<Terminal> terminals;
   DeviceKind kind;
   int id;
-  Symbol visual = Symbol();
+  Symbol symbol = Symbol();
 
   Device({
     required this.circuit,
@@ -37,7 +37,7 @@ class Device {
     for (Terminal terminal in terminals) {
       newDevice.terminals.add(terminal.copyWith(device: newDevice));
     }
-    newDevice.visual = visual.copy();
+    newDevice.symbol = symbol.copy();
     return newDevice;
   }
 }

@@ -10,11 +10,11 @@ class Symbol {
   Symbol();
 
   Symbol copy() {
-    final visual = Symbol();
-    visual.shape = shape.copyWith();
-    visual.position = Offset(position.dx, position.dy);
-    visual.angle = angle;
-    return visual;
+    final symbol = Symbol();
+    symbol.shape = shape.copyWith();
+    symbol.position = Offset(position.dx, position.dy);
+    symbol.angle = angle;
+    return symbol;
   }
 
   Offset center() {

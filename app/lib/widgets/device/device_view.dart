@@ -56,7 +56,7 @@ class DeviceView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return DraggableItem(
-      visual: device.visual,
+      symbol: device.symbol,
       child: GestureDetector(
         onSecondaryTapDown: (details) {
           _showPopupMenu(details.globalPosition, context, ref);
@@ -65,10 +65,10 @@ class DeviceView extends ConsumerWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              ShapeWidget(shape: device.visual.shape),
+              ShapeWidget(shape: device.symbol.shape),
               Positioned(
                 bottom: -20,
-                left: device.visual.shape.getPath().getBounds().width / 2,
+                left: device.symbol.shape.getPath().getBounds().width / 2,
                 child: Text('${device.kind.name}${device.id}'),
               ),
               for (Terminal terminal in device.terminals)

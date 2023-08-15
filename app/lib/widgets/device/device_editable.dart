@@ -16,7 +16,7 @@ class DeviceEditable extends ConsumerWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          ShapeWidget(shape: device.visual.shape),
+          ShapeWidget(shape: device.symbol.shape),
           Text('${device.kind.name}${device.id}'),
           for (Terminal terminal in device.terminals)
             TerminalEditable(terminal: terminal),
