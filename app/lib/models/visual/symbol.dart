@@ -1,16 +1,19 @@
-import 'package:app/models/visual/vector_path.dart';
 import 'package:flutter/material.dart';
 
-class Visual {
+import 'package:app/widgets/general/shape.dart';
+
+class Symbol {
   Offset position = Offset(0, 0);
-  VectorPath shape = VectorPath();
+  double angle = 0;
+  Shape shape = Shape();
 
-  Visual();
+  Symbol();
 
-  Visual copy() {
-    final visual = Visual();
+  Symbol copy() {
+    final visual = Symbol();
     visual.shape = shape.copyWith();
     visual.position = Offset(position.dx, position.dy);
+    visual.angle = angle;
     return visual;
   }
 

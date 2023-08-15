@@ -1,12 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:app/models/visual/symbol.dart';
 
 class Vertex {
-  Offset position;
-  double angle;
+  Symbol symbol = Symbol();
 
-  Vertex({required this.position, required this.angle});
+  Vertex();
 
   Vertex copy() {
-    return Vertex(position: position, angle: angle);
+    return Vertex()..symbol = symbol.copy();
   }
 }

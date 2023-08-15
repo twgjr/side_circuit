@@ -7,9 +7,9 @@ import 'package:app/widgets/diagram/draggable_item.dart';
 import 'package:app/widgets/general/shape.dart';
 
 class TerminalEditable extends ConsumerStatefulWidget {
-  final Terminal terminalCopy;
+  final Terminal terminal;
 
-  TerminalEditable({super.key, required this.terminalCopy});
+  TerminalEditable({super.key, required this.terminal});
 
   @override
   TerminalEditableState createState() => TerminalEditableState();
@@ -37,7 +37,7 @@ class TerminalEditableState extends ConsumerState<TerminalEditable> {
           switch (value) {
             case "delete":
               final deviceRead = ref.read(deviceChangeProvider.notifier);
-              deviceRead.removeTerminal(widget.terminalCopy);
+              deviceRead.removeTerminal(widget.terminal);
               break;
           }
         }
@@ -48,7 +48,7 @@ class TerminalEditableState extends ConsumerState<TerminalEditable> {
   @override
   Widget build(BuildContext context) {
     return DraggableItem(
-      visual: widget.terminalCopy.visual,
+      visual: widget.terminal.symbol,
       child: GestureDetector(
         onSecondaryTapDown: (details) {
           _showPopupMenu(details.globalPosition, ref);
@@ -57,9 +57,9 @@ class TerminalEditableState extends ConsumerState<TerminalEditable> {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              Shape(shape: widget.terminalCopy.visual.shape.getPath()),
+              ShapeWidget(shape: widget.terminal.symbol.shape),
               Text(
-                  '${widget.terminalCopy.device.terminals.indexOf(widget.terminalCopy)}'),
+                  '${widget.terminal.device.terminals.indexOf(widget.terminal)}'),
             ],
           ),
         ),

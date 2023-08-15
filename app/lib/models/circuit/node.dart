@@ -1,11 +1,11 @@
 import 'package:app/models/circuit/circuit.dart';
 import 'package:app/models/visual/wire.dart';
-import 'package:app/models/visual/visual.dart';
+import 'package:app/models/visual/symbol.dart';
 
 class Node {
   Circuit circuit;
   List<Wire> wires = [];
-  Visual visual = Visual();
+  Symbol visual = Symbol();
   int id;
 
   Node(this.circuit) : id = circuit.maxNodeId() + 1;

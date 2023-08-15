@@ -11,15 +11,15 @@ class DeviceEditable extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final deviceCopy = ref.watch(deviceChangeProvider);
+    final device = ref.watch(deviceChangeProvider);
     return Container(
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Shape(shape: deviceCopy.visual.shape.getPath()),
-          Text('${deviceCopy.kind.name}${deviceCopy.id}'),
-          for (Terminal terminal in deviceCopy.terminals)
-            TerminalEditable(terminalCopy: terminal),
+          ShapeWidget(shape: device.visual.shape),
+          Text('${device.kind.name}${device.id}'),
+          for (Terminal terminal in device.terminals)
+            TerminalEditable(terminal: terminal),
         ],
       ),
     );

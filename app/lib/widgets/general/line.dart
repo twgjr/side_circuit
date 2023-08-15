@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:app/widgets/general/shape.dart';
+
 class Line extends StatelessWidget {
   final Offset start;
   final Offset end;
@@ -8,10 +10,15 @@ class Line extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final distance = (end - start).distance;
-    return CustomPaint(
-      painter: LinePainter(start, end),
-      size: Size(distance, 1),
+    // final distance = (end - start).distance;
+    // return CustomPaint(
+    //   painter: LinePainter(start, end),
+    //   size: Size(distance, 1),
+    // );
+    return ShapeWidget(
+      shape: Shape()
+        ..lineTo(end.dx - start.dx, end.dy - start.dy)
+        ..end_path(),
     );
   }
 }

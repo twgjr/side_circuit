@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'package:app/models/visual/visual.dart';
+import 'package:app/models/visual/symbol.dart';
 
 class DraggableItem extends StatefulWidget {
   final Widget child;
-  final Visual visual;
+  final Symbol visual;
 
   DraggableItem({super.key, required this.child, required this.visual});
 

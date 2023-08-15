@@ -1,3 +1,4 @@
+import 'package:app/models/visual/symbol.dart';
 import 'package:flutter/material.dart';
 
 import 'package:app/models/visual/wire.dart';
@@ -6,6 +7,7 @@ import 'package:app/models/visual/end_point.dart';
 class WireSegment {
   final Wire wire;
   final EndPoint endPoint;
+  final Symbol visual = Symbol();
 
   WireSegment({required this.wire, required this.endPoint});
 

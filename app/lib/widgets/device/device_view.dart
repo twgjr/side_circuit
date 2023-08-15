@@ -65,7 +65,7 @@ class DeviceView extends ConsumerWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              Shape(shape: device.visual.shape.getPath()),
+              ShapeWidget(shape: device.visual.shape),
               Positioned(
                 bottom: -20,
                 left: device.visual.shape.getPath().getBounds().width / 2,

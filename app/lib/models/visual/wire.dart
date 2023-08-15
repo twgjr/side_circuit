@@ -12,9 +12,10 @@ class Wire {
   List<Vertex> vertices = [];
 
   Wire({this.terminal, this.node}) {
-    //temporarilty add a single segment and vertex to the wire to test
-    //the wire drawing
-    final vertex = Vertex(position: Offset(200, 200), angle: 0);
+    final vertex = Vertex()
+      ..symbol.shape.addCircle(5)
+      ..symbol.position = Offset(200, 200)
+      ..symbol.angle = 0;
     vertices.add(vertex);
     segments.add(WireSegment(wire: this, endPoint: EndPoint(vertex: vertex)));
   }
@@ -38,7 +39,11 @@ class Wire {
   }
 
   void addVertexAt(Offset position, double angleIncrement) {
-    final vertex = Vertex(position: position, angle: angleIncrement);
+    // final vertex = Vertex(position: position, angle: angleIncrement);
+    final vertex = Vertex()
+      ..symbol.shape.addCircle(5)
+      ..symbol.position = position
+      ..symbol.angle = angleIncrement;
     vertices.add(vertex);
     if (vertices.length > 1) {
       final end = vertices[vertices.length - 1];

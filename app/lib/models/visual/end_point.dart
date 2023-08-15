@@ -14,7 +14,7 @@ class EndPoint {
 
   Offset get position {
     if (isVertex) {
-      return vertex!.position;
+      return vertex!.symbol.position;
     } else if (isTerminal) {
       return terminal!.globalPosition();
     } else {

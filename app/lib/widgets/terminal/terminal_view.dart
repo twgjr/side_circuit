@@ -33,7 +33,7 @@ class TerminalView extends ConsumerWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              Shape(shape: terminal.visual.shape.getPath()),
+              ShapeWidget(shape: terminal.symbol.shape),
               Text('${terminal.device.terminals.indexOf(terminal)}'),
             ],
           ),
