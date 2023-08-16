@@ -98,4 +98,12 @@ class Circuit {
     }
     devices[atIndex] = newDevice;
   }
+
+  List<Terminal> terminals() {
+    List<Terminal> terminals = [];
+    for (Device device in devices) {
+      terminals.addAll(device.terminals);
+    }
+    return terminals;
+  }
 }

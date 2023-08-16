@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
-class ShapeWidget extends StatefulWidget {
+class ShapeWidget extends StatelessWidget {
   final Shape shape;
   ShapeWidget({super.key, required this.shape});
 
   @override
-  State<StatefulWidget> createState() => ShapeWidgetState();
-}
-
-class ShapeWidgetState extends State<ShapeWidget> {
-  @override
   Widget build(BuildContext context) {
-    final path = widget.shape.getPath();
+    final path = shape.getPath();
     return CustomPaint(
-      painter: ShapePainter(path),
+      painter: ShapePainter(shape: shape),
       child: Container(
         width: path.getBounds().width,
         height: path.getBounds().height,
@@ -26,6 +21,15 @@ class ShapeWidgetState extends State<ShapeWidget> {
 class Shape {
   Path _path = Path();
   Offset _currentPoint = Offset(0, 0);
+  var strokeColor;
+  var strokeWidth;
+  var fillColor;
+
+  Shape({
+    this.strokeColor = Colors.black,
+    this.strokeWidth = 2.0,
+    this.fillColor = Colors.transparent,
+  });
 
   void angleLine(double angle, double length) {
     angle = angle * math.pi / 180;
@@ -67,23 +71,32 @@ class Shape {
   copyWith() {
     final shape = Shape();
     shape._path = Path.from(_path);
+    shape._currentPoint = Offset(_currentPoint.dx, _currentPoint.dy);
+    shape.strokeColor = strokeColor;
+    shape.strokeWidth = strokeWidth;
+    shape.fillColor = fillColor;
     return shape;
   }
 }
 
 class ShapePainter extends CustomPainter {
-  final Path shape;
+  final Shape shape;
 
-  ShapePainter(this.shape);
+  ShapePainter({required this.shape});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.black
-      ..strokeWidth = 2
+    final strokePaint = Paint()
+      ..color = shape.strokeColor
+      ..strokeWidth = shape.strokeWidth
       ..style = PaintingStyle.stroke;
 
-    canvas.drawPath(shape, paint);
+    final fillPaint = Paint()
+      ..color = shape.fillColor
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(shape.getPath(), strokePaint);
+    canvas.drawPath(shape.getPath(), fillPaint);
   }
 
   @override

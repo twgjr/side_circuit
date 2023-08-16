@@ -11,7 +11,8 @@ class Terminal {
   Symbol symbol = Symbol();
 
   Terminal(this.device, this.name) {
-    symbol.shape.addRect(5, 5);
+    symbol.shape.addRect(10, 10);
+    symbol.shape.fillColor = Colors.white;
   }
 
   Terminal copyWith({Device? device, Wire? wire}) {

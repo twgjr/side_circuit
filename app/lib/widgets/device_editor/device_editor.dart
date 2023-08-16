@@ -1,17 +1,21 @@
+import 'package:app/models/circuit/terminal.dart';
+import 'package:app/widgets/terminal/terminal_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:app/providers/device_providers.dart';
 import 'package:app/widgets/device_editor/device_editor_top_bar.dart';
 import 'package:app/widgets/device_editor/device_editor_toolbar.dart';
-import 'package:app/widgets/device/device_editable.dart';
+import 'package:app/widgets/device/device_view.dart';
 
-class DeviceEditor extends StatefulWidget {
+class DeviceEditor extends ConsumerStatefulWidget {
   DeviceEditor({super.key});
 
   @override
   DeviceEditorState createState() => DeviceEditorState();
 }
 
-class DeviceEditorState extends State<DeviceEditor> {
+class DeviceEditorState extends ConsumerState<DeviceEditor> {
   Offset position = Offset(0, 0);
   double width = 400;
   double height = 400;
@@ -34,6 +38,7 @@ class DeviceEditorState extends State<DeviceEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final device = ref.watch(deviceChangeProvider);
     return Flex(
       direction: Axis.horizontal,
       children: [
@@ -62,7 +67,20 @@ class DeviceEditorState extends State<DeviceEditor> {
                         children: [
                           DeviceEditorTopBar(onDrag: addOffset),
                           DeviceEditorToolbar(),
-                          Expanded(child: Center(child: DeviceEditable())),
+                          Expanded(
+                            child: Container(
+                              width: double.infinity,
+                              height: double.infinity,
+                              child: Stack(
+                                children: [
+                                  DeviceView(device: device, editable: true),
+                                  for (Terminal terminal in device.terminals)
+                                    TerminalView(
+                                        terminal: terminal, editable: true),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
