@@ -55,7 +55,6 @@ class DeviceEditorState extends ConsumerState<DeviceEditor> {
                     shadowColor: Colors.black,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColorDark,
                         border: Border.all(
                           color: Theme.of(context).primaryColorDark,
                           width: 1.0,
@@ -70,7 +69,6 @@ class DeviceEditorState extends ConsumerState<DeviceEditor> {
                           Expanded(
                             child: Container(
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).primaryColorLight,
                                   border: Border.all(
                                     color: Colors.black,
                                     width: 2,

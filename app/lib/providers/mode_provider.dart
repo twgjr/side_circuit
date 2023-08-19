@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum ModeStates {
@@ -11,7 +10,6 @@ enum ModeStates {
   select,
   pan,
   zoom,
-  theme,
 }
 
 class ModeStateNotifier extends StateNotifier<ModeState> {
@@ -38,7 +36,6 @@ class ModeState {
   bool select;
   bool pan;
   bool zoom;
-  ThemeMode activeTheme;
 
   ModeState({
     this.addWire = false,
@@ -50,7 +47,6 @@ class ModeState {
     this.select = false,
     this.pan = false,
     this.zoom = false,
-    this.activeTheme = ThemeMode.light,
   });
 
   ModeState copy() {
@@ -64,7 +60,6 @@ class ModeState {
       select: this.select,
       pan: this.pan,
       zoom: this.zoom,
-      activeTheme: this.activeTheme,
     );
   }
 
@@ -97,13 +92,6 @@ class ModeState {
         break;
       case ModeStates.zoom:
         zoom = !zoom;
-        break;
-      case ModeStates.theme:
-        if (activeTheme == ThemeMode.light) {
-          activeTheme = ThemeMode.dark;
-        } else {
-          activeTheme = ThemeMode.light;
-        }
         break;
     }
   }

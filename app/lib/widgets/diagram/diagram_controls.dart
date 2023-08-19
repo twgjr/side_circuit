@@ -8,16 +8,24 @@ import 'package:app/providers/mode_provider.dart';
 class DiagramControls extends ConsumerWidget {
   DiagramControls();
 
+  Color _addWireIconColor(WidgetRef ref) {
+    final modeStateWatch = ref.watch(modeStateProvider);
+    if (modeStateWatch.addWire) {
+      return Colors.red;
+    } else {
+      return Colors.black;
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final circuitRead = ref.read(circuitProvider.notifier);
     final modeStateRead = ref.read(modeStateProvider.notifier);
-    final modeStateWatch = ref.watch(modeStateProvider);
     return Row(
       children: [
         IconButton(
           icon: Icon(Icons.linear_scale),
-          color: (modeStateWatch.addWire) ? Colors.red : Colors.black,
+          color: _addWireIconColor(ref),
           tooltip: "add wires",
           onPressed: () {
             modeStateRead.invertModeState(ModeStates.addWire);
@@ -40,16 +48,6 @@ class DiagramControls extends ConsumerWidget {
           width: 1,
           thickness: 1,
           color: Colors.grey,
-        ),
-        // icon button for toggling the theme mode
-        IconButton(
-          icon: (modeStateWatch.activeTheme == ThemeMode.light)
-              ? Icon(Icons.brightness_4)
-              : Icon(Icons.brightness_4_outlined),
-          tooltip: "toggle theme",
-          onPressed: () {
-            modeStateRead.invertModeState(ModeStates.theme);
-          },
         ),
       ],
     );

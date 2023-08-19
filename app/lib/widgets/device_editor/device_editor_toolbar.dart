@@ -10,10 +10,9 @@ class DeviceEditorToolbar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor,
         border: Border(
           bottom: BorderSide(
-            color: Theme.of(context).primaryColorDark,
+            color: Colors.black,
             width: 1.0,
           ),
         ),

@@ -32,10 +32,9 @@ class DeviceEditorTopBar extends ConsumerWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor,
           border: Border(
             bottom: BorderSide(
-              color: Theme.of(context).primaryColorDark,
+              color: Colors.black,
               width: 1.0,
             ),
           ),

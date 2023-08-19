@@ -2,7 +2,6 @@ import 'package:app/widgets/general/themes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:app/providers/mode_provider.dart';
 import 'package:app/widgets/diagram/diagram.dart';
 import 'package:app/widgets/diagram/diagram_controls.dart';
 
@@ -17,12 +16,9 @@ class MainApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final modeStateWatch = ref.watch(modeStateProvider);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: lightTheme,
-      darkTheme: darkTheme,
-      themeMode: modeStateWatch.activeTheme,
       title: 'Side Circuit',
       home: Scaffold(
         appBar: AppBar(
