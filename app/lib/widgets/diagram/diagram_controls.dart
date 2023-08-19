@@ -3,40 +3,52 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/widgets/device/add_new_device.dart';
 import 'package:app/providers/circuit_provider.dart';
-import 'package:app/providers/gesture_state_provider.dart';
+import 'package:app/providers/mode_provider.dart';
 
 class DiagramControls extends ConsumerWidget {
   DiagramControls();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final circuit = ref.read(circuitProvider.notifier);
+    final circuitRead = ref.read(circuitProvider.notifier);
+    final modeStateRead = ref.read(modeStateProvider.notifier);
+    final modeStateWatch = ref.watch(modeStateProvider);
     return Row(
       children: [
-        AddNewDevice(),
         IconButton(
-          icon: Icon(Icons.add_circle_outline),
-          tooltip: "add new node",
+          icon: Icon(Icons.linear_scale),
+          color: (modeStateWatch.addWire) ? Colors.red : Colors.black,
+          tooltip: "add wires",
           onPressed: () {
-            circuit.newNode();
+            modeStateRead.invertModeState(ModeStates.addWire);
           },
         ),
-        //divider
         VerticalDivider(
           width: 1,
           thickness: 1,
           color: Colors.grey,
         ),
-        // icon button to trigger add wire mode
+        AddNewDevice(),
         IconButton(
-          icon: Icon(Icons.linear_scale),
-          color: ref.watch(gestureStateProvider).addWire
-              ? Colors.red
-              : Colors.black,
-          tooltip: "add wires",
+          icon: Icon(Icons.add_circle_outline),
+          tooltip: "add new node",
           onPressed: () {
-            final gestureStateRead = ref.read(gestureStateProvider.notifier);
-            gestureStateRead.invertGestureState(GestureStates.addWire);
+            circuitRead.newNode();
+          },
+        ),
+        VerticalDivider(
+          width: 1,
+          thickness: 1,
+          color: Colors.grey,
+        ),
+        // icon button for toggling the theme mode
+        IconButton(
+          icon: (modeStateWatch.activeTheme == ThemeMode.light)
+              ? Icon(Icons.brightness_4)
+              : Icon(Icons.brightness_4_outlined),
+          tooltip: "toggle theme",
+          onPressed: () {
+            modeStateRead.invertModeState(ModeStates.theme);
           },
         ),
       ],

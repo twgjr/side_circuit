@@ -14,7 +14,7 @@ class DeviceWidget extends ConsumerWidget {
   final Device device;
   final bool editable;
 
-  DeviceWidget({required this.device, required this.editable});
+  DeviceWidget({super.key, required this.device, required this.editable});
 
   void showDeviceEditor(BuildContext context, WidgetRef ref, Device device) {
     ref.read(deviceOpenProvider.notifier).update(device);
@@ -80,8 +80,6 @@ class DeviceWidget extends ConsumerWidget {
             left: device.symbol.shape.getPath().getBounds().width / 2 - 10,
             child: Text('${device.kind.name}${device.id}'),
           ),
-          // for (Terminal terminal in device.terminals)
-          //   TerminalView(terminal: terminal, editable: editable),
         ],
       ),
     );

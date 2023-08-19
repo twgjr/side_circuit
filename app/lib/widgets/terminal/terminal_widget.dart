@@ -7,7 +7,7 @@ class TerminalWidget extends StatelessWidget {
   final Terminal terminal;
   final bool editable;
 
-  TerminalWidget({required this.terminal, required this.editable});
+  TerminalWidget({super.key, required this.terminal, required this.editable});
 
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,3 @@
-import 'package:app/widgets/diagram/draggable_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -38,9 +37,13 @@ class NodeView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return DraggableItem(
-      symbol: node.symbol,
+    return Positioned(
+      left: node.symbol.position.dx,
+      top: node.symbol.position.dy,
       child: GestureDetector(
+        onPanUpdate: (details) {
+          node.symbol.position += details.delta;
+        },
         onSecondaryTapDown: (details) {
           _showPopupMenu(details.globalPosition, context, ref);
         },

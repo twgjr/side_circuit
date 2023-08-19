@@ -2,18 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/providers/active_wire_provider.dart';
-import 'package:app/providers/gesture_state_provider.dart';
+import 'package:app/providers/mode_provider.dart';
 import 'package:app/providers/device_providers.dart';
 import 'package:app/providers/circuit_provider.dart';
 import 'package:app/models/circuit/terminal.dart';
-import 'package:app/widgets/diagram/draggable_item.dart';
 import 'package:app/widgets/terminal/terminal_widget.dart';
 
 class TerminalView extends ConsumerWidget {
   final Terminal terminal;
   final bool editable;
+  final Offset offset;
 
-  TerminalView({super.key, required this.terminal, required this.editable});
+  TerminalView({
+    super.key,
+    required this.terminal,
+    required this.editable,
+    required this.offset,
+  });
 
   void _showPopupMenu(Offset position, WidgetRef ref, BuildContext context) {
     final RenderBox overlay =
@@ -47,9 +52,15 @@ class TerminalView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (editable) {
-      return DraggableItem(
-        symbol: terminal.symbol,
+      return Positioned(
+        top: terminal.position.dy,
+        left: terminal.position.dx,
         child: GestureDetector(
+          onPanUpdate: (details) {
+            ref
+                .read(deviceChangeProvider.notifier)
+                .dragUpdateTerminal(terminal, details);
+          },
           onSecondaryTapDown: (details) {
             _showPopupMenu(details.globalPosition, ref, context);
           },
@@ -58,11 +69,11 @@ class TerminalView extends ConsumerWidget {
       );
     } else {
       return Positioned(
-        left: terminal.position.dx,
-        top: terminal.position.dy,
+        left: terminal.position.dx + terminal.device.symbol.position.dx,
+        top: terminal.position.dy + terminal.device.symbol.position.dy,
         child: GestureDetector(
           onTap: () {
-            if (ref.read(gestureStateProvider).addWire) {
+            if (ref.read(modeStateProvider).addWire) {
               final circuitRead = ref.read(circuitProvider.notifier);
               final newWire = circuitRead.startWireAt(terminal);
               ref.read(activeWireProvider.notifier).setActiveWire(newWire);

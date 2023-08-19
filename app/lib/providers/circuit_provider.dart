@@ -54,6 +54,18 @@ class CircuitNotifier extends StateNotifier<Circuit> {
     circuit.addVertexToWireAt(position, 0, wire);
     state = circuit;
   }
+
+  void refresh() {
+    final circuit = state.copy(deep: false);
+    state = circuit;
+  }
+
+  void dragUpdateDevice(Device device, DragUpdateDetails details) {
+    final int index = state.devices.indexOf(device);
+    final circuit = state.copy(deep: false);
+    circuit.devices[index].symbol.position += details.delta;
+    state = circuit;
+  }
 }
 
 final circuitProvider = StateNotifierProvider<CircuitNotifier, Circuit>(

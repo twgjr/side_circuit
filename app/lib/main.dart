@@ -1,8 +1,10 @@
+import 'package:app/widgets/general/themes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'widgets/diagram/diagram.dart';
-import 'widgets/diagram/diagram_controls.dart';
+import 'package:app/providers/mode_provider.dart';
+import 'package:app/widgets/diagram/diagram.dart';
+import 'package:app/widgets/diagram/diagram_controls.dart';
 
 void main() => runApp(
       ProviderScope(
@@ -10,21 +12,20 @@ void main() => runApp(
       ),
     );
 
-class MainApp extends StatefulWidget {
-  @override
-  State<StatefulWidget> createState() => _MainApp();
-}
+class MainApp extends ConsumerWidget {
+  MainApp({super.key});
 
-class _MainApp extends State<MainApp> {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final modeStateWatch = ref.watch(modeStateProvider);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true),
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: modeStateWatch.activeTheme,
       title: 'Side Circuit',
       home: Scaffold(
         appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.primary,
           title: Text('Side Circuit'),
           actions: [DiagramControls()],
         ),
