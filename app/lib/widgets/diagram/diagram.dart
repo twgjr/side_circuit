@@ -22,8 +22,7 @@ class Diagram extends ConsumerWidget {
       children: [
         for (Device device in circuitWatch.devices) DeviceView(device: device),
         for (Terminal terminal in circuitWatch.terminals())
-          TerminalView(
-              terminal: terminal, editable: false, offset: Offset.zero),
+          TerminalView(terminal: terminal),
         for (Node node in circuitWatch.nodes) NodeView(node: node),
         for (Wire wire in circuitWatch.wires) WireView(wire: wire),
       ],

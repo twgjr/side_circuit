@@ -61,9 +61,8 @@ class CircuitNotifier extends StateNotifier<Circuit> {
   }
 
   void dragUpdateDevice(Device device, DragUpdateDetails details) {
-    final int index = state.devices.indexOf(device);
     final circuit = state.copy(deep: false);
-    circuit.devices[index].symbol.position += details.delta;
+    circuit.devices[device.index].symbol.position += details.delta;
     state = circuit;
   }
 }

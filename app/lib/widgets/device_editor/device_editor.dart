@@ -5,9 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/providers/device_providers.dart';
 import 'package:app/widgets/device_editor/device_editor_top_bar.dart';
 import 'package:app/widgets/device_editor/device_editor_toolbar.dart';
-import 'package:app/widgets/device/device_view.dart';
-import 'package:app/widgets/terminal/terminal_view.dart';
-import 'package:app/models/circuit/terminal.dart';
 
 class DeviceEditor extends ConsumerStatefulWidget {
   DeviceEditor({super.key});

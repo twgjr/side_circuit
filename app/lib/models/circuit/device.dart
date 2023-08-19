@@ -17,7 +17,7 @@ class Device {
   })  : id = circuit.maxDeviceIdOf(kind) + 1,
         terminals = [];
 
-  int index() => circuit.devices.indexOf(this);
+  int get index => circuit.devices.indexOf(this);
   void addTerminal(Device device) => terminals.add(Terminal(device, ""));
   void removeTerminalAt(int index) {
     final terminal = terminals[index];

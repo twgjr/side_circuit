@@ -10,6 +10,8 @@ class Terminal {
   Wire? wire;
   Symbol symbol = Symbol();
 
+  int get index => device.terminals.indexOf(this);
+
   Terminal(this.device, this.name) {
     symbol.shape.addRect(10, 10);
     symbol.shape.fillColor = Colors.white;

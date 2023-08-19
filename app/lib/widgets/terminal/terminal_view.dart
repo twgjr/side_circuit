@@ -9,16 +9,18 @@ import 'package:app/models/circuit/terminal.dart';
 import 'package:app/widgets/terminal/terminal_widget.dart';
 
 class TerminalView extends ConsumerWidget {
+  final BoxConstraints? editorConstraints;
   final Terminal terminal;
-  final bool editable;
-  final Offset offset;
 
   TerminalView({
     super.key,
     required this.terminal,
-    required this.editable,
-    required this.offset,
+    this.editorConstraints,
   });
+
+  bool isEditable() {
+    return editorConstraints != null;
+  }
 
   void _showPopupMenu(Offset position, WidgetRef ref, BuildContext context) {
     final RenderBox overlay =
@@ -51,10 +53,10 @@ class TerminalView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (editable) {
+    if (isEditable()) {
       return Positioned(
-        top: terminal.position.dy,
-        left: terminal.position.dx,
+        top: terminal.position.dy + editorConstraints!.maxHeight / 2,
+        left: terminal.position.dx + editorConstraints!.maxWidth / 2,
         child: GestureDetector(
           onPanUpdate: (details) {
             ref
@@ -64,7 +66,7 @@ class TerminalView extends ConsumerWidget {
           onSecondaryTapDown: (details) {
             _showPopupMenu(details.globalPosition, ref, context);
           },
-          child: TerminalWidget(terminal: terminal, editable: editable),
+          child: TerminalWidget(terminal: terminal, editable: true),
         ),
       );
     } else {
@@ -78,12 +80,11 @@ class TerminalView extends ConsumerWidget {
               final newWire = circuitRead.startWireAt(terminal);
               ref.read(activeWireProvider.notifier).setActiveWire(newWire);
             }
-            print('tapped terminal');
           },
           onPanUpdate: (details) {
             // do nothing except prevent the parent from receiving the event
           },
-          child: TerminalWidget(terminal: terminal, editable: editable),
+          child: TerminalWidget(terminal: terminal, editable: false),
         ),
       );
     }

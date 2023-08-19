@@ -7,17 +7,17 @@ import 'package:app/widgets/device/device_widget.dart';
 
 class DeviceView extends ConsumerWidget {
   final Device device;
-  final BoxConstraints? constraints;
+  final BoxConstraints? editorConstraints;
 
   DeviceView({
     super.key,
     required this.device,
-    this.constraints,
+    this.editorConstraints,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return _buildDevice(context, ref, constraints);
+    return _buildDevice(context, ref, editorConstraints);
   }
 
   Widget _editableDevice(

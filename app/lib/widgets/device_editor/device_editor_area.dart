@@ -17,14 +17,13 @@ class DeviceEditorArea extends StatelessWidget {
         return Stack(
           children: [
             DeviceView(
-              constraints: constraints,
+              editorConstraints: constraints,
               device: device,
             ),
             for (Terminal terminal in device.terminals)
               TerminalView(
-                offset: Offset.zero,
+                editorConstraints: constraints,
                 terminal: terminal,
-                editable: true,
               ),
           ],
         );

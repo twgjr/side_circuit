@@ -19,7 +19,7 @@ class DeviceEditorTopBar extends ConsumerWidget {
     final deviceOpenRead = ref.read(deviceOpenProvider);
 
     if (save) {
-      circuitRead.replaceDeviceWith(deviceChangeRead, deviceOpenRead.index());
+      circuitRead.replaceDeviceWith(deviceChangeRead, deviceOpenRead.index);
     }
     Navigator.of(context).pop();
   }
