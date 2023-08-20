@@ -35,7 +35,9 @@ class DeviceView extends ConsumerWidget {
       top: device.symbol.position.dy,
       child: GestureDetector(
         onPanUpdate: (details) {
-          ref.read(circuitProvider.notifier).dragUpdateDevice(device, details);
+          ref
+              .read(circuitProvider.notifier)
+              .dragUpdateDevice(device, details.delta);
         },
         child: DeviceWidget(device: device, editable: false),
       ),

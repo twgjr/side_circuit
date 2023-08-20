@@ -1,6 +1,7 @@
 import 'package:app/models/circuit/circuit.dart';
 import 'package:app/models/circuit/terminal.dart';
 import 'package:app/models/visual/symbol.dart';
+import 'package:flutter/material.dart';
 
 enum DeviceKind { V, I, R, VC, CC, SW, L, C, VG, CG, BLOCK }
 
@@ -39,5 +40,9 @@ class Device {
     }
     newDevice.symbol = symbol.copy();
     return newDevice;
+  }
+
+  void updatePosition(Offset delta) {
+    symbol.position += delta;
   }
 }

@@ -74,21 +74,11 @@ class Circuit {
     return maxId;
   }
 
-  Circuit copy({required bool deep}) {
+  Circuit copy() {
     final newCircuit = Circuit();
-    if (deep) {
-      for (Device device in devices) {
-        final newDevice = device.copyWith(circuit: newCircuit);
-        newCircuit.devices.add(newDevice);
-      }
-      for (Node node in nodes) {
-        final newNode = node.copyWith(circuit: newCircuit);
-        newCircuit.nodes.add(newNode);
-      }
-    } else {
-      newCircuit.devices = devices;
-      newCircuit.nodes = nodes;
-    }
+    newCircuit.devices = devices;
+    newCircuit.nodes = nodes;
+    newCircuit.wires = wires;
     return newCircuit;
   }
 
