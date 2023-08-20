@@ -8,29 +8,35 @@ import 'package:app/providers/mode_provider.dart';
 class DiagramControls extends ConsumerWidget {
   DiagramControls();
 
-  Color _addWireIconColor(WidgetRef ref) {
+  IconButton _addWireIcon(WidgetRef ref) {
     final modeStateWatch = ref.watch(modeStateProvider);
+    final modeStateRead = ref.read(modeStateProvider.notifier);
     if (modeStateWatch.addWire) {
-      return Colors.red;
+      return IconButton(
+        icon: Icon(Icons.linear_scale),
+        color: Colors.red,
+        tooltip: "add wires",
+        onPressed: () {
+          modeStateRead.invertModeState(ModeStates.addWire);
+        },
+      );
     } else {
-      return Colors.black;
+      return IconButton(
+        icon: Icon(Icons.linear_scale),
+        tooltip: "add wires",
+        onPressed: () {
+          modeStateRead.invertModeState(ModeStates.addWire);
+        },
+      );
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final circuitRead = ref.read(circuitProvider.notifier);
-    final modeStateRead = ref.read(modeStateProvider.notifier);
     return Row(
       children: [
-        IconButton(
-          icon: Icon(Icons.linear_scale),
-          color: _addWireIconColor(ref),
-          tooltip: "add wires",
-          onPressed: () {
-            modeStateRead.invertModeState(ModeStates.addWire);
-          },
-        ),
+        _addWireIcon(ref),
         VerticalDivider(
           width: 1,
           thickness: 1,

@@ -1,4 +1,3 @@
-import 'package:app/widgets/general/themes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,7 +17,6 @@ class MainApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: lightTheme,
       title: 'Side Circuit',
       home: Scaffold(
         appBar: AppBar(

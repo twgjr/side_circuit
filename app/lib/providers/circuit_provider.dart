@@ -41,10 +41,8 @@ class CircuitNotifier extends StateNotifier<Circuit> {
   }
 
   Wire startWireAt(Terminal terminal) {
-    final terminalIndex = terminal.device.terminals.indexOf(terminal);
-    final deviceIndex = state.devices.indexOf(terminal.device);
     final circuit = state.copy(deep: false);
-    circuit.startWireAt(terminalIndex, deviceIndex);
+    circuit.startWireAt(terminal.index, terminal.device.index);
     state = circuit;
     return terminal.wire!;
   }
