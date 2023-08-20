@@ -24,8 +24,14 @@ class Terminal {
     return terminal;
   }
 
-  Offset get position => symbol.position;
-  Offset globalPosition() => device.symbol.position + position;
-  Offset center() => symbol.center();
-  Offset globalCenter() => device.symbol.position + position + center();
+  Offset diagramPosition() {
+    return symbol.position + device.symbol.position;
+  }
+
+  Offset editorPosition(BoxConstraints constraints) {
+    return Offset(
+      symbol.position.dx + constraints.maxWidth / 2,
+      symbol.position.dy + constraints.maxHeight / 2,
+    );
+  }
 }

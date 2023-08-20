@@ -55,8 +55,8 @@ class TerminalView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (isEditable()) {
       return Positioned(
-        top: terminal.position.dy + editorConstraints!.maxHeight / 2,
-        left: terminal.position.dx + editorConstraints!.maxWidth / 2,
+        top: terminal.editorPosition(editorConstraints!).dy,
+        left: terminal.editorPosition(editorConstraints!).dx,
         child: GestureDetector(
           onPanUpdate: (details) {
             ref
@@ -71,8 +71,8 @@ class TerminalView extends ConsumerWidget {
       );
     } else {
       return Positioned(
-        left: terminal.position.dx + terminal.device.symbol.position.dx,
-        top: terminal.position.dy + terminal.device.symbol.position.dy,
+        left: terminal.diagramPosition().dx,
+        top: terminal.diagramPosition().dy,
         child: GestureDetector(
           onTap: () {
             if (ref.read(modeStateProvider).addWire) {

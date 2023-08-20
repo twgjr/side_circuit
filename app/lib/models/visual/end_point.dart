@@ -16,7 +16,7 @@ class EndPoint {
     if (isVertex) {
       return vertex!.symbol.position;
     } else if (isTerminal) {
-      return terminal!.globalPosition();
+      return terminal!.diagramPosition();
     } else {
       throw Exception('EndPoint has no position');
     }

@@ -20,11 +20,11 @@ class Diagram extends ConsumerWidget {
     final circuitWatch = ref.watch(circuitProvider);
     return Stack(
       children: [
+        for (Wire wire in circuitWatch.wires) WireView(wire: wire),
         for (Device device in circuitWatch.devices) DeviceView(device: device),
         for (Terminal terminal in circuitWatch.terminals())
           TerminalView(terminal: terminal),
         for (Node node in circuitWatch.nodes) NodeView(node: node),
-        for (Wire wire in circuitWatch.wires) WireView(wire: wire),
       ],
     );
   }

@@ -31,6 +31,17 @@ class Shape {
     this.fillColor = Colors.transparent,
   });
 
+  Shape.wireSegment({
+    required Offset end,
+    this.strokeColor = Colors.black,
+    this.strokeWidth = 2.0,
+    this.fillColor = Colors.transparent,
+  }) {
+    reset();
+    lineTo(end);
+    // end_path();
+  }
+
   void angleLine(double angle, double length) {
     angle = angle * math.pi / 180;
     final dx = math.cos(angle) * length;
@@ -39,9 +50,9 @@ class Shape {
     _path.lineTo(_currentPoint.dx, _currentPoint.dy);
   }
 
-  void lineTo(double x, double y) {
-    _currentPoint = Offset(x, y);
-    _path.lineTo(x, y);
+  void lineTo(Offset offset) {
+    _currentPoint = offset;
+    _path.lineTo(offset.dx, offset.dy);
   }
 
   void addRect(double width, double height) {

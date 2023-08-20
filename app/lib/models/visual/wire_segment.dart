@@ -11,19 +11,15 @@ class WireSegment {
 
   WireSegment({required this.wire, required this.endPoint});
 
-  int get _index => wire.segments.indexOf(this);
+  int get index => wire.segments.indexOf(this);
 
-  bool _isFirst() => _index == 0;
+  bool _isFirst() => index == 0;
 
   Offset start() {
     if (_isFirst()) {
-      print(
-          'WireSegment.start: terminal global =${wire.terminal!.globalCenter()}');
-      return wire.terminal!.globalCenter();
+      return wire.terminal!.diagramPosition();
     } else {
-      print(
-          'WireSegment.start: last endpoint =${wire.segments[_index - 1].endPoint.position}');
-      return wire.segments[_index - 1].endPoint.position;
+      return wire.segments[index - 1].endPoint.position;
     }
   }
 
