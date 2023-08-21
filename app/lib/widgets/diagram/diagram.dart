@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:app/providers/active_vertex_provider.dart';
 import 'package:app/providers/circuit_provider.dart';
 import 'package:app/providers/mode_provider.dart';
 import 'package:app/models/circuit/terminal.dart';
@@ -22,25 +23,36 @@ class Diagram extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final circuitWatch = ref.watch(circuitProvider);
     final modeWatch = ref.watch(modeProvider);
+    final activeVertexWatch = ref.watch(activeVertexProvider);
     return GestureDetector(
       onTapDown: (details) {
         if (modeWatch.addWire) {
-          final deviceRead = ref.read(circuitProvider.notifier);
-          // deviceRead.startWire(position: details.globalPosition);
+          final circuitRead = ref.read(circuitProvider.notifier);
+          Vertex last = circuitRead.startWire(position: details.localPosition);
+          ref.read(activeVertexProvider.notifier).set(last);
         }
       },
-      child: Stack(
-        children: [
-          for (Segment wireSegment in circuitWatch.segments())
-            WireSegmentView(wireSegment: wireSegment),
-          for (Vertex vertex in circuitWatch.vertices())
-            VertexView(vertex: vertex),
-          for (Device device in circuitWatch.devices)
-            DeviceView(device: device),
-          for (Terminal terminal in circuitWatch.terminals())
-            TerminalView(terminal: terminal),
-          for (Node node in circuitWatch.nodes()) NodeView(node: node),
-        ],
+      child: MouseRegion(
+        onHover: (event) {
+          if (modeWatch.addWire) {
+            final circuitRead = ref.read(circuitProvider.notifier);
+            circuitRead.dragUpdateVertex(activeVertexWatch, event.delta);
+            print(activeVertexWatch.diagramPosition);
+          }
+        },
+        child: Stack(
+          children: [
+            for (Segment wireSegment in circuitWatch.segments())
+              WireSegmentView(segment: wireSegment),
+            for (Vertex vertex in circuitWatch.vertices())
+              VertexView(vertex: vertex),
+            for (Device device in circuitWatch.devices)
+              DeviceView(device: device),
+            for (Terminal terminal in circuitWatch.terminals())
+              TerminalView(terminal: terminal),
+            for (Node node in circuitWatch.nodes()) NodeView(node: node),
+          ],
+        ),
       ),
     );
   }

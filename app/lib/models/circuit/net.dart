@@ -1,13 +1,16 @@
+import 'package:app/models/circuit/circuit.dart';
 import 'package:app/models/circuit/terminal.dart';
 import 'package:app/models/visual/node.dart';
 import 'package:app/models/visual/vertex.dart';
 import 'package:app/models/visual/wire.dart';
+import 'package:flutter/material.dart';
 
 class Net {
+  Circuit circuit;
   List<Wire> wires = [];
   List<Node> nodes = [];
 
-  Net();
+  Net(this.circuit);
 
   // List<Terminal> terminals() {
   //   List<Terminal> terminals = [];
@@ -24,10 +27,10 @@ class Net {
   //   return terminals;
   // }
 
-  // Wire startWire({Terminal? terminal, Offset? position}) {
-  //   final wire = Wire();
-  //   wires.add(wire);
-  //   wire.start(terminal: terminal, position: position);
-  //   return wire;
-  // }
+  Vertex startWire({Terminal? terminal, required Offset position}) {
+    Wire wire = Wire(this);
+    wire.start(terminal: terminal, position: position);
+    wires.add(wire);
+    return wire.last();
+  }
 }

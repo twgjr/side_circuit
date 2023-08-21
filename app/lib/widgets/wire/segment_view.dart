@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:app/models/visual/segment.dart';
 
 class WireSegmentView extends StatelessWidget {
-  final Segment wireSegment;
+  final Segment segment;
 
-  WireSegmentView({super.key, required this.wireSegment});
+  WireSegmentView({super.key, required this.segment});
 
   @override
   Widget build(BuildContext context) {
-    Offset start = wireSegment.start.diagramPosition;
-    Offset end = wireSegment.end.diagramPosition;
+    Offset start = segment.start.diagramPosition;
+    Offset end = segment.end.diagramPosition;
     return Positioned(
       left: start.dx,
       top: start.dy,

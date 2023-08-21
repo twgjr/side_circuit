@@ -52,8 +52,16 @@ class Circuit {
 
   Circuit copy() {
     final newCircuit = Circuit();
-    newCircuit.devices = devices;
-    newCircuit.nets = nets;
+    newCircuit.devices = [];
+    for (Device device in devices) {
+      device.circuit = newCircuit;
+      newCircuit.devices.add(device);
+    }
+    newCircuit.nets = [];
+    for (Net net in nets) {
+      net.circuit = newCircuit;
+      newCircuit.nets.add(net);
+    }
     return newCircuit;
   }
 
@@ -96,9 +104,9 @@ class Circuit {
     return nodes;
   }
 
-  // Wire startWire({Terminal? terminal, Offset? position}) {
-  //   final net = Net();
-  //   nets.add(net);
-  //   return net.startWire(terminal: terminal, position: position);
-  // }
+  Vertex startWire({Terminal? terminal, required Offset position}) {
+    final net = Net(this);
+    nets.add(net);
+    return net.startWire(terminal: terminal, position: position);
+  }
 }

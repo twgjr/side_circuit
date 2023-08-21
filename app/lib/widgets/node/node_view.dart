@@ -11,8 +11,8 @@ class NodeView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Positioned(
-      left: node.diagramPosition().dx,
-      top: node.diagramPosition().dy,
+      left: node.diagramPosition.dx,
+      top: node.diagramPosition.dy,
       child: Card(
         child: Padding(
           padding: const EdgeInsets.all(8.0),

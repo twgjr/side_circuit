@@ -1,8 +1,9 @@
-import 'package:app/models/circuit/terminal.dart';
-import 'package:app/models/visual/wire.dart';
+import 'package:app/models/visual/vertex.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:app/models/circuit/terminal.dart';
+import 'package:app/models/visual/wire.dart';
 import 'package:app/models/circuit/circuit.dart';
 import 'package:app/models/circuit/device.dart';
 
@@ -33,12 +34,18 @@ class CircuitNotifier extends StateNotifier<Circuit> {
     state = circuit;
   }
 
-  // Wire startWire({Terminal? terminal, Offset? position}) {
-  //   final circuit = state.copy();
-  //   Wire wire = circuit.startWire(terminal: terminal, position: position);
-  //   state = circuit;
-  //   return wire;
-  // }
+  Vertex startWire({Terminal? terminal, required Offset position}) {
+    final circuit = state.copy();
+    Vertex last = circuit.startWire(terminal: terminal, position: position);
+    state = circuit;
+    return last;
+  }
+
+  void dragUpdateVertex(Vertex vertex, Offset delta) {
+    final circuit = state.copy();
+    vertex.updatePosition(delta);
+    state = circuit;
+  }
 }
 
 final circuitProvider = StateNotifierProvider<CircuitNotifier, Circuit>(

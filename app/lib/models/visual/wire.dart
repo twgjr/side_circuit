@@ -1,13 +1,16 @@
+import 'package:app/models/circuit/net.dart';
+import 'package:app/models/circuit/terminal.dart';
 import 'package:flutter/material.dart';
 
 import 'package:app/models/visual/segment.dart';
 import 'package:app/models/visual/vertex.dart';
 
 class Wire {
+  Net net;
   List<Segment> segments = [];
   List<Vertex> vertices = [];
 
-  Wire();
+  Wire(this.net);
 
   Vertex first() {
     return vertices.first;
@@ -17,13 +20,13 @@ class Wire {
     return vertices.last;
   }
 
-  void start({Vertex? vertex, Offset? position}) {
-    if (vertex != null) {
-      vertices.add(vertex);
-    } else if (position != null) {
-      vertices.add(Vertex(position: position));
+  void start({Terminal? terminal, required Offset position}) {
+    if (terminal != null) {
+      vertices.add(Vertex(wire: this, terminal: terminal));
     } else {
-      vertices.add(Vertex());
+      vertices.add(Vertex(wire: this, position: position));
     }
+    vertices.add(Vertex(wire: this, position: position));
+    segments.add(Segment(start: first(), end: last()));
   }
 }
