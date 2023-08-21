@@ -1,5 +1,5 @@
-import 'package:app/models/visual/vertex.dart';
-import 'package:app/models/visual/diagram_symbol.dart';
+import 'package:app/models/vertex.dart';
+import 'package:app/models/diagram_symbol.dart';
 import 'package:app/widgets/general/shape.dart';
 import 'package:flutter/material.dart';
 

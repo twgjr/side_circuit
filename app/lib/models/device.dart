@@ -1,6 +1,6 @@
-import 'package:app/models/circuit/circuit.dart';
-import 'package:app/models/circuit/terminal.dart';
-import 'package:app/models/visual/diagram_symbol.dart';
+import 'package:app/models/circuit.dart';
+import 'package:app/models/terminal.dart';
+import 'package:app/models/diagram_symbol.dart';
 import 'package:app/widgets/general/shape.dart';
 import 'package:flutter/material.dart';
 

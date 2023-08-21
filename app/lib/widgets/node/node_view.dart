@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:app/models/visual/node.dart';
+import 'package:app/models/node.dart';
 
 class NodeView extends ConsumerWidget {
   final Node node;

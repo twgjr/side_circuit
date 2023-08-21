@@ -1,7 +1,7 @@
 import 'package:app/widgets/general/shape.dart';
 import 'package:flutter/material.dart';
 
-import 'package:app/models/visual/segment.dart';
+import 'package:app/models/segment.dart';
 
 class WireSegmentView extends StatelessWidget {
   final Segment segment;

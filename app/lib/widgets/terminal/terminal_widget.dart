@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:app/models/circuit/terminal.dart';
+import 'package:app/models/terminal.dart';
 import 'package:app/widgets/general/shape.dart';
 
 class TerminalWidget extends StatelessWidget {

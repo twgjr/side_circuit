@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:app/models/circuit/circuit.dart';
-import 'package:app/models/circuit/device.dart';
-import 'package:app/models/circuit/terminal.dart';
+import 'package:app/models/circuit.dart';
+import 'package:app/models/device.dart';
+import 'package:app/models/terminal.dart';
 
 class DeviceChangeNotifier extends StateNotifier<Device> {
   DeviceChangeNotifier()

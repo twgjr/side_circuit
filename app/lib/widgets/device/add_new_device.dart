@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:app/models/circuit/device.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/providers/circuit_provider.dart';
+import 'package:app/models/device.dart';
 
 class AddNewDevice extends ConsumerWidget {
   AddNewDevice();

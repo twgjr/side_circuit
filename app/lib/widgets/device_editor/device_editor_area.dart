@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:app/models/circuit/device.dart';
-import 'package:app/models/circuit/terminal.dart';
+import 'package:app/models/device.dart';
+import 'package:app/models/terminal.dart';
 import 'package:app/widgets/device/device_view.dart';
 import 'package:app/widgets/terminal/terminal_view.dart';
 

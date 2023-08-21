@@ -1,10 +1,10 @@
-import 'package:app/models/visual/vertex.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:app/models/circuit/terminal.dart';
-import 'package:app/models/circuit/circuit.dart';
-import 'package:app/models/circuit/device.dart';
+import 'package:app/models/terminal.dart';
+import 'package:app/models/circuit.dart';
+import 'package:app/models/device.dart';
+import 'package:app/models/vertex.dart';
 
 class CircuitNotifier extends StateNotifier<Circuit> {
   CircuitNotifier() : super(Circuit());

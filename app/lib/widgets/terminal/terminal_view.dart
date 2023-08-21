@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/providers/mode_provider.dart';
 import 'package:app/providers/device_providers.dart';
 import 'package:app/providers/circuit_provider.dart';
-import 'package:app/models/circuit/terminal.dart';
+import 'package:app/models/terminal.dart';
 import 'package:app/widgets/terminal/terminal_widget.dart';
 
 class TerminalView extends ConsumerWidget {

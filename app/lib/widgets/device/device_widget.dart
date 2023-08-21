@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/providers/circuit_provider.dart';
 import 'package:app/providers/device_providers.dart';
-import 'package:app/models/circuit/device.dart';
+import 'package:app/models/device.dart';
 import 'package:app/widgets/device_editor/device_editor.dart';
 import 'package:app/widgets/general/shape.dart';
 

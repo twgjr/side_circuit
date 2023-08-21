@@ -1,11 +1,11 @@
-import 'package:app/models/circuit/device.dart';
-import 'package:app/models/visual/node.dart';
-import 'package:app/models/circuit/terminal.dart';
+import 'package:app/models/device.dart';
+import 'package:app/models/node.dart';
+import 'package:app/models/terminal.dart';
 import 'package:app/library/device_library.dart';
-import 'package:app/models/visual/vertex.dart';
-import 'package:app/models/circuit/net.dart';
-import 'package:app/models/visual/wire.dart';
-import 'package:app/models/visual/segment.dart';
+import 'package:app/models/vertex.dart';
+import 'package:app/models/net.dart';
+import 'package:app/models/wire.dart';
+import 'package:app/models/segment.dart';
 import 'package:flutter/material.dart';
 
 enum Quantity { I, V, P }

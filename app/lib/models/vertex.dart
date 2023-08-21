@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'package:app/models/visual/node.dart';
-import 'package:app/models/circuit/terminal.dart';
-import 'package:app/models/visual/diagram_symbol.dart';
-import 'package:app/models/visual/wire.dart';
+import 'package:app/models/node.dart';
+import 'package:app/models/terminal.dart';
+import 'package:app/models/diagram_symbol.dart';
+import 'package:app/models/wire.dart';
 import 'package:app/widgets/general/shape.dart';
 
 class Vertex {

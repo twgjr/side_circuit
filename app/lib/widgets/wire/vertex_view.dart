@@ -1,4 +1,4 @@
-import 'package:app/models/visual/vertex.dart';
+import 'package:app/models/vertex.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
