@@ -1,6 +1,7 @@
 import 'package:app/models/circuit/circuit.dart';
 import 'package:app/models/circuit/terminal.dart';
-import 'package:app/models/visual/symbol.dart';
+import 'package:app/models/visual/diagram_symbol.dart';
+import 'package:app/widgets/general/shape.dart';
 import 'package:flutter/material.dart';
 
 enum DeviceKind { V, I, R, VC, CC, SW, L, C, VG, CG, BLOCK }
@@ -10,7 +11,7 @@ class Device {
   List<Terminal> terminals;
   DeviceKind kind;
   int id;
-  Symbol symbol = Symbol();
+  DiagramSymbol _symbol = DiagramSymbol();
 
   Device({
     required this.circuit,
@@ -19,14 +20,8 @@ class Device {
         terminals = [];
 
   int get index => circuit.devices.indexOf(this);
-  void addTerminal(Device device) => terminals.add(Terminal(device, ""));
-  void removeTerminalAt(int index) {
-    final terminal = terminals[index];
-    if (terminal.wire != null) {
-      terminal.wire?.removeTerminal(terminal);
-    }
-    terminals.removeAt(index);
-  }
+  void addTerminal(Device device) => terminals.add(Terminal(device));
+  void removeTerminalAt(int index) => terminals.removeAt(index);
 
   Device copyWith({Circuit? circuit}) {
     final newDevice = Device(
@@ -38,11 +33,26 @@ class Device {
     for (Terminal terminal in terminals) {
       newDevice.terminals.add(terminal.copyWith(device: newDevice));
     }
-    newDevice.symbol = symbol.copy();
+    newDevice._symbol = _symbol.copy();
     return newDevice;
   }
 
   void updatePosition(Offset delta) {
-    symbol.position += delta;
+    _symbol.position += delta;
+  }
+
+  Offset get diagramPosition {
+    return _symbol.position;
+  }
+
+  Offset editorPosition(BoxConstraints constraints) {
+    return Offset(
+      constraints.maxWidth / 2,
+      constraints.maxHeight / 2,
+    );
+  }
+
+  Shape get shape {
+    return _symbol.shape;
   }
 }

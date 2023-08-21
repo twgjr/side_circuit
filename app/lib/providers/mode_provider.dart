@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum ModeStates {
+enum ModeState {
   addWire,
   addDevice,
   rotate,
@@ -12,21 +12,21 @@ enum ModeStates {
   zoom,
 }
 
-class ModeStateNotifier extends StateNotifier<ModeState> {
-  ModeStateNotifier() : super(ModeState());
+class ModeNotifier extends StateNotifier<Mode> {
+  ModeNotifier() : super(Mode());
 
-  void invertModeState(ModeStates gestureState) {
-    ModeState newState = state.copy();
+  void invertModeState(ModeState gestureState) {
+    Mode newState = state.copy();
     newState.invert(gestureState);
     state = newState;
   }
 }
 
-final modeStateProvider = StateNotifierProvider<ModeStateNotifier, ModeState>(
-  (ref) => ModeStateNotifier(),
+final modeProvider = StateNotifierProvider<ModeNotifier, Mode>(
+  (ref) => ModeNotifier(),
 );
 
-class ModeState {
+class Mode {
   bool addWire;
   bool addDevice;
   bool rotate;
@@ -37,7 +37,7 @@ class ModeState {
   bool pan;
   bool zoom;
 
-  ModeState({
+  Mode({
     this.addWire = false,
     this.addDevice = false,
     this.rotate = false,
@@ -49,8 +49,8 @@ class ModeState {
     this.zoom = false,
   });
 
-  ModeState copy() {
-    return ModeState(
+  Mode copy() {
+    return Mode(
       addWire: this.addWire,
       addDevice: this.addDevice,
       rotate: this.rotate,
@@ -64,33 +64,33 @@ class ModeState {
   }
 
   // invert the state of the specified gesture state enum
-  void invert(ModeStates gestureState) {
+  void invert(ModeState gestureState) {
     switch (gestureState) {
-      case ModeStates.addWire:
+      case ModeState.addWire:
         addWire = !addWire;
         break;
-      case ModeStates.addDevice:
+      case ModeState.addDevice:
         addDevice = !addDevice;
         break;
-      case ModeStates.rotate:
+      case ModeState.rotate:
         rotate = !rotate;
         break;
-      case ModeStates.flip:
+      case ModeState.flip:
         flip = !flip;
         break;
-      case ModeStates.delete:
+      case ModeState.delete:
         delete = !delete;
         break;
-      case ModeStates.move:
+      case ModeState.move:
         move = !move;
         break;
-      case ModeStates.select:
+      case ModeState.select:
         select = !select;
         break;
-      case ModeStates.pan:
+      case ModeState.pan:
         pan = !pan;
         break;
-      case ModeStates.zoom:
+      case ModeState.zoom:
         zoom = !zoom;
         break;
     }

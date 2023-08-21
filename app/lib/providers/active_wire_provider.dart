@@ -1,15 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:app/models/visual/wire.dart';
+import 'package:app/models/circuit/net.dart';
 
-class ActiveWireNotifier extends StateNotifier<Wire> {
-  ActiveWireNotifier() : super(Wire(terminal: null, node: null));
-
-  void setActiveWire(Wire wire) {
-    state = wire;
-  }
+class ActiveWireNotifier extends StateNotifier<Net> {
+  ActiveWireNotifier() : super(Net());
 }
 
-final activeWireProvider = StateNotifierProvider<ActiveWireNotifier, Wire>(
+final activeWireProvider = StateNotifierProvider<ActiveWireNotifier, Net>(
   (ref) => ActiveWireNotifier(),
 );

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:app/providers/active_wire_provider.dart';
 import 'package:app/providers/mode_provider.dart';
 import 'package:app/providers/device_providers.dart';
 import 'package:app/providers/circuit_provider.dart';
@@ -71,14 +70,14 @@ class TerminalView extends ConsumerWidget {
       );
     } else {
       return Positioned(
-        left: terminal.diagramPosition().dx,
-        top: terminal.diagramPosition().dy,
+        left: terminal.diagramPosition.dx,
+        top: terminal.diagramPosition.dy,
         child: GestureDetector(
           onTap: () {
-            if (ref.read(modeStateProvider).addWire) {
+            if (ref.read(modeProvider).addWire) {
               final circuitRead = ref.read(circuitProvider.notifier);
-              final newWire = circuitRead.startWireAt(terminal);
-              ref.read(activeWireProvider.notifier).setActiveWire(newWire);
+              // circuitRead.startWire(terminal);
+              // ref.read(activeNetProvider.notifier).setActiveNet(newWire);
             }
           },
           onPanUpdate: (details) {

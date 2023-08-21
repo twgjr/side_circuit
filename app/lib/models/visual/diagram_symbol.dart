@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 
 import 'package:app/widgets/general/shape.dart';
 
-class Symbol {
+class DiagramSymbol {
   Offset position = Offset(0, 0);
   double angle = 0;
   Shape shape = Shape();
 
-  Symbol();
+  DiagramSymbol();
 
-  Symbol copy() {
-    final symbol = Symbol();
+  DiagramSymbol copy() {
+    final symbol = DiagramSymbol();
     symbol.shape = shape.copyWith();
     symbol.position = Offset(position.dx, position.dy);
     symbol.angle = angle;

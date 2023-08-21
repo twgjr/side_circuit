@@ -1,11 +1,10 @@
+import 'package:app/models/circuit/terminal.dart';
+import 'package:app/models/visual/wire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/models/circuit/circuit.dart';
 import 'package:app/models/circuit/device.dart';
-import 'package:app/models/circuit/node.dart';
-import 'package:app/models/circuit/terminal.dart';
-import 'package:app/models/visual/wire.dart';
 
 class CircuitNotifier extends StateNotifier<Circuit> {
   CircuitNotifier() : super(Circuit());
@@ -28,41 +27,18 @@ class CircuitNotifier extends StateNotifier<Circuit> {
     state = circuit;
   }
 
-  void newNode() {
-    final circuit = state.copy();
-    circuit.newNode();
-    state = circuit;
-  }
-
-  void removeNode(Node node) {
-    final circuit = state.copy();
-    circuit.removeNode(node);
-    state = circuit;
-  }
-
-  Wire startWireAt(Terminal terminal) {
-    final circuit = state.copy();
-    circuit.startWireAt(terminal.index, terminal.device.index);
-    state = circuit;
-    return terminal.wire!;
-  }
-
-  void addVertexToWireAt(Offset position, Wire wire) {
-    final circuit = state.copy();
-    circuit.addVertexToWireAt(position, 0, wire);
-    state = circuit;
-  }
-
-  void refresh() {
-    final circuit = state.copy();
-    state = circuit;
-  }
-
   void dragUpdateDevice(Device device, Offset delta) {
     final circuit = state.copy();
     circuit.devices[device.index].updatePosition(delta);
     state = circuit;
   }
+
+  // Wire startWire({Terminal? terminal, Offset? position}) {
+  //   final circuit = state.copy();
+  //   Wire wire = circuit.startWire(terminal: terminal, position: position);
+  //   state = circuit;
+  //   return wire;
+  // }
 }
 
 final circuitProvider = StateNotifierProvider<CircuitNotifier, Circuit>(

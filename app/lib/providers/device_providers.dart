@@ -20,7 +20,7 @@ class DeviceChangeNotifier extends StateNotifier<Device> {
 
   void dragUpdateTerminal(Terminal terminal, DragUpdateDetails details) {
     final device = state.copyWith();
-    device.terminals[terminal.index].symbol.position += details.delta;
+    device.terminals[terminal.index].updatePosition(details.delta);
     state = device;
   }
 

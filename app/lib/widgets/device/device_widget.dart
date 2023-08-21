@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-// import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/providers/circuit_provider.dart';
 import 'package:app/providers/device_providers.dart';
 import 'package:app/models/circuit/device.dart';
-// import 'package:app/models/circuit/terminal.dart';
 import 'package:app/widgets/device_editor/device_editor.dart';
-// import 'package:app/widgets/terminal/terminal_view.dart';
 import 'package:app/widgets/general/shape.dart';
 
 class DeviceWidget extends ConsumerWidget {
@@ -56,14 +53,14 @@ class DeviceWidget extends ConsumerWidget {
 
   Widget selectShapeWidget(bool editable, WidgetRef ref, BuildContext context) {
     if (editable) {
-      return ShapeWidget(shape: device.symbol.shape);
+      return ShapeWidget(shape: device.shape);
     } else {
       return GestureDetector(
         behavior: HitTestBehavior.deferToChild,
         onSecondaryTapDown: (details) {
           _showPopupMenu(details.globalPosition, context, ref);
         },
-        child: ShapeWidget(shape: device.symbol.shape),
+        child: ShapeWidget(shape: device.shape),
       );
     }
   }
@@ -77,7 +74,7 @@ class DeviceWidget extends ConsumerWidget {
           selectShapeWidget(editable, ref, context),
           Positioned(
             bottom: -20,
-            left: device.symbol.shape.getPath().getBounds().width / 2 - 10,
+            left: device.shape.getPath().getBounds().width / 2 - 10,
             child: Text('${device.kind.name}${device.id}'),
           ),
         ],

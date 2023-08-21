@@ -20,19 +20,19 @@ class DeviceView extends ConsumerWidget {
     return _buildDevice(context, ref, editorConstraints);
   }
 
-  Widget _editableDevice(
+  Widget _editorDevice(
       BuildContext context, WidgetRef ref, BoxConstraints constraints) {
     return Positioned(
-      left: constraints.maxWidth / 2,
-      top: constraints.maxHeight / 2,
+      left: device.editorPosition(constraints).dx,
+      top: device.editorPosition(constraints).dy,
       child: DeviceWidget(device: device, editable: true),
     );
   }
 
-  Widget _staticDevice(BuildContext context, WidgetRef ref) {
+  Widget _diagramDevice(BuildContext context, WidgetRef ref) {
     return Positioned(
-      left: device.symbol.position.dx,
-      top: device.symbol.position.dy,
+      left: device.diagramPosition.dx,
+      top: device.diagramPosition.dy,
       child: GestureDetector(
         onPanUpdate: (details) {
           ref
@@ -47,9 +47,9 @@ class DeviceView extends ConsumerWidget {
   Widget _buildDevice(
       BuildContext context, WidgetRef ref, BoxConstraints? constraints) {
     if (constraints != null) {
-      return _editableDevice(context, ref, constraints);
+      return _editorDevice(context, ref, constraints);
     } else {
-      return _staticDevice(context, ref);
+      return _diagramDevice(context, ref);
     }
   }
 }

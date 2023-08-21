@@ -14,7 +14,7 @@ class TerminalWidget extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        ShapeWidget(shape: terminal.symbol.shape),
+        ShapeWidget(shape: terminal.shape),
         Text('${terminal.device.terminals.indexOf(terminal)}'),
       ],
     );
