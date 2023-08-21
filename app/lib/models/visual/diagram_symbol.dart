@@ -18,18 +18,18 @@ class DiagramSymbol {
   }
 
   Offset center() {
-    final Rect bounds = shape.getPath().getBounds();
+    final Rect bounds = shape.bounds();
     return Offset(
         -bounds.left - bounds.width / 2, -bounds.top - bounds.height / 2);
   }
 
   double width() {
-    final Rect bounds = shape.getPath().getBounds();
+    final Rect bounds = shape.bounds();
     return bounds.width;
   }
 
   double height() {
-    final Rect bounds = shape.getPath().getBounds();
+    final Rect bounds = shape.bounds();
     return bounds.height;
   }
 }

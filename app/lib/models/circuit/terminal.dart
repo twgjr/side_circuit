@@ -32,8 +32,12 @@ class Terminal {
     if (constraints != null) {
       return Offset(
         // center in box
-        _symbol.position.dx + constraints.maxWidth / 2,
-        _symbol.position.dy + constraints.maxHeight / 2,
+        _symbol.position.dx +
+            constraints.maxWidth / 2 -
+            device.shape.center().dx,
+        _symbol.position.dy +
+            constraints.maxHeight / 2 -
+            device.shape.center().dy,
       );
     } else if (diagram == true) {
       return _symbol.position + device.position();

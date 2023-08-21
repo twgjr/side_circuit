@@ -74,7 +74,7 @@ class DeviceWidget extends ConsumerWidget {
           selectShapeWidget(editable, ref, context),
           Positioned(
             bottom: -20,
-            left: device.shape.getPath().getBounds().width / 2 - 10,
+            left: device.shape.bounds().width / 2 - 10,
             child: Text('${device.kind.name}${device.id}'),
           ),
         ],

@@ -31,8 +31,8 @@ class Resistor extends Device {
     Terminal t1 = Terminal(this);
     t1.setPosition(shape.currentPoint);
     Offset offset = shape.end_path();
-    t0.updatePosition(offset - t0.shape.getPath().getBounds().center);
-    t1.updatePosition(offset - t1.shape.getPath().getBounds().center);
+    t0.updatePosition(offset - t0.shape.center());
+    t1.updatePosition(offset - t1.shape.center());
     terminals.add(t0);
     terminals.add(t1);
   }

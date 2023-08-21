@@ -45,8 +45,8 @@ class Device {
     if (constraints != null) {
       return Offset(
         // center in box
-        constraints.maxWidth / 2,
-        constraints.maxHeight / 2,
+        constraints.maxWidth / 2 - shape.center().dx,
+        constraints.maxHeight / 2 - shape.center().dy,
       );
     } else {
       return _symbol.position; // relative to device

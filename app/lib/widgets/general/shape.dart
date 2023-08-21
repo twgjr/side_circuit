@@ -7,18 +7,17 @@ class ShapeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final path = shape.getPath();
     return CustomPaint(
-      painter: ShapePainter(shape: shape),
+      painter: shape,
       child: Container(
-        width: path.getBounds().width,
-        height: path.getBounds().height,
+        width: shape.bounds().width,
+        height: shape.bounds().height,
       ),
     );
   }
 }
 
-class Shape {
+class Shape extends CustomPainter {
   Path _path = Path();
   Offset currentPoint = Offset(0, 0);
   var strokeColor;
@@ -40,6 +39,10 @@ class Shape {
     reset();
     lineTo(end);
   }
+
+  Offset center() => _path.getBounds().center;
+
+  Rect bounds() => _path.getBounds();
 
   void angleLine(double angle, double length) {
     angle = angle * math.pi / 180;
@@ -69,8 +72,6 @@ class Shape {
     return offset;
   }
 
-  Path getPath() => _path;
-
   void reset() {
     _path.reset();
     currentPoint = Offset(0, 0);
@@ -89,26 +90,20 @@ class Shape {
     shape.fillColor = fillColor;
     return shape;
   }
-}
-
-class ShapePainter extends CustomPainter {
-  final Shape shape;
-
-  ShapePainter({required this.shape});
 
   @override
   void paint(Canvas canvas, Size size) {
     final strokePaint = Paint()
-      ..color = shape.strokeColor
-      ..strokeWidth = shape.strokeWidth
+      ..color = strokeColor
+      ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
     final fillPaint = Paint()
-      ..color = shape.fillColor
+      ..color = fillColor
       ..style = PaintingStyle.fill;
 
-    canvas.drawPath(shape.getPath(), strokePaint);
-    canvas.drawPath(shape.getPath(), fillPaint);
+    canvas.drawPath(_path, strokePaint);
+    canvas.drawPath(_path, fillPaint);
   }
 
   @override
