@@ -9,7 +9,7 @@ class Node {
 
   Node();
 
-  Offset get diagramPosition {
+  Offset position() {
     return _symbol.position;
   }
 

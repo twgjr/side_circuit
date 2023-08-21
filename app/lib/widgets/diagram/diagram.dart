@@ -38,7 +38,6 @@ class Diagram extends ConsumerWidget {
             final circuitRead = ref.read(circuitProvider.notifier);
             circuitRead.dragUpdateVertex(
                 activeVertexWatch, event.localPosition);
-            print(activeVertexWatch.diagramPosition);
           }
         },
         child: Stack(

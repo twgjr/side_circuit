@@ -54,11 +54,8 @@ class Shape {
     _path.lineTo(offset.dx, offset.dy);
   }
 
-  void addRect(double width, double height, bool centered) {
+  void addRect(double width, double height) {
     _path.addRect(Rect.fromLTWH(0, 0, width, height));
-    if (centered) {
-      _path = _path.shift(Offset(-width / 2, -height / 2));
-    }
   }
 
   void addCircle(double diameter) {

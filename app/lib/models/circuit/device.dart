@@ -41,15 +41,16 @@ class Device {
     _symbol.position += delta;
   }
 
-  Offset get diagramPosition {
-    return _symbol.position;
-  }
-
-  Offset editorPosition(BoxConstraints constraints) {
-    return Offset(
-      constraints.maxWidth / 2,
-      constraints.maxHeight / 2,
-    );
+  Offset position({BoxConstraints? constraints}) {
+    if (constraints != null) {
+      return Offset(
+        // center in box
+        constraints.maxWidth / 2,
+        constraints.maxHeight / 2,
+      );
+    } else {
+      return _symbol.position; // relative to device
+    }
   }
 
   Shape get shape {

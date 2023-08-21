@@ -13,7 +13,7 @@ class Terminal {
   int get index => device.terminals.indexOf(this);
 
   Terminal(this.device) {
-    _symbol.shape.addRect(10, 10, true);
+    _symbol.shape.addRect(10, 10);
     _symbol.shape.fillColor = Colors.white;
   }
 
@@ -24,23 +24,22 @@ class Terminal {
     return terminal;
   }
 
-  Offset get diagramPosition {
-    return _symbol.position + device.diagramPosition;
-  }
-
-  void set position(Offset position) {
+  void setPosition(Offset position) {
     _symbol.position = position;
   }
 
-  Offset get relativePosition {
-    return _symbol.position;
-  }
-
-  Offset editorPosition(BoxConstraints constraints) {
-    return Offset(
-      _symbol.position.dx + constraints.maxWidth / 2,
-      _symbol.position.dy + constraints.maxHeight / 2,
-    );
+  Offset position({bool? diagram, BoxConstraints? constraints}) {
+    if (constraints != null) {
+      return Offset(
+        // center in box
+        _symbol.position.dx + constraints.maxWidth / 2,
+        _symbol.position.dy + constraints.maxHeight / 2,
+      );
+    } else if (diagram == true) {
+      return _symbol.position + device.position();
+    } else {
+      return _symbol.position; // relative to device
+    }
   }
 
   void updatePosition(Offset delta) {

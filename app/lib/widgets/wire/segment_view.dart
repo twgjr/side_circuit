@@ -10,8 +10,8 @@ class WireSegmentView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Offset start = segment.start.diagramPosition;
-    Offset end = segment.end.diagramPosition;
+    Offset start = segment.start.position();
+    Offset end = segment.end.position();
     return Positioned(
       left: start.dx,
       top: start.dy,

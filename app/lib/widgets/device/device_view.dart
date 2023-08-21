@@ -23,16 +23,16 @@ class DeviceView extends ConsumerWidget {
   Widget _editorDevice(
       BuildContext context, WidgetRef ref, BoxConstraints constraints) {
     return Positioned(
-      left: device.editorPosition(constraints).dx,
-      top: device.editorPosition(constraints).dy,
+      left: device.position(constraints: constraints).dx,
+      top: device.position(constraints: constraints).dy,
       child: DeviceWidget(device: device, editable: true),
     );
   }
 
   Widget _diagramDevice(BuildContext context, WidgetRef ref) {
     return Positioned(
-      left: device.diagramPosition.dx,
-      top: device.diagramPosition.dy,
+      left: device.position().dx,
+      top: device.position().dy,
       child: GestureDetector(
         onPanUpdate: (details) {
           ref

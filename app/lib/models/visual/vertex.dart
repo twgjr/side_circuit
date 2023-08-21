@@ -22,11 +22,11 @@ class Vertex {
     return Vertex(wire: wire, terminal: terminal, node: node);
   }
 
-  Offset get diagramPosition {
+  Offset position() {
     if (terminal != null) {
-      return terminal!.diagramPosition;
+      return terminal!.position(diagram: true);
     } else if (node != null) {
-      return node!.diagramPosition;
+      return node!.position();
     } else {
       return _symbol.position;
     }
