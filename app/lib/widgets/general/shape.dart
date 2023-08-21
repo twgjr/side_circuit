@@ -20,7 +20,7 @@ class ShapeWidget extends StatelessWidget {
 
 class Shape {
   Path _path = Path();
-  Offset _currentPoint = Offset(0, 0);
+  Offset currentPoint = Offset(0, 0);
   var strokeColor;
   var strokeWidth;
   var fillColor;
@@ -39,40 +39,44 @@ class Shape {
   }) {
     reset();
     lineTo(end);
-    // end_path();
   }
 
   void angleLine(double angle, double length) {
     angle = angle * math.pi / 180;
     final dx = math.cos(angle) * length;
     final dy = math.sin(angle) * length;
-    _currentPoint = Offset(_currentPoint.dx + dx, _currentPoint.dy + dy);
-    _path.lineTo(_currentPoint.dx, _currentPoint.dy);
+    currentPoint = Offset(currentPoint.dx + dx, currentPoint.dy + dy);
+    _path.lineTo(currentPoint.dx, currentPoint.dy);
   }
 
   void lineTo(Offset offset) {
-    _currentPoint = offset;
+    currentPoint = offset;
     _path.lineTo(offset.dx, offset.dy);
   }
 
-  void addRect(double width, double height) {
+  void addRect(double width, double height, bool centered) {
     _path.addRect(Rect.fromLTWH(0, 0, width, height));
+    if (centered) {
+      _path = _path.shift(Offset(-width / 2, -height / 2));
+    }
   }
 
   void addCircle(double diameter) {
     _path.addOval(Rect.fromCircle(center: Offset(0, 0), radius: diameter / 2));
   }
 
-  void end_path() {
+  Offset end_path() {
     final Rect bounds = _path.getBounds();
-    _path = _path.shift(Offset(-bounds.left, -bounds.top));
+    Offset offset = Offset(-bounds.left, -bounds.top);
+    _path = _path.shift(offset);
+    return offset;
   }
 
   Path getPath() => _path;
 
   void reset() {
     _path.reset();
-    _currentPoint = Offset(0, 0);
+    currentPoint = Offset(0, 0);
   }
 
   void pathFrom(Path path) {
@@ -82,7 +86,7 @@ class Shape {
   copyWith() {
     final shape = Shape();
     shape._path = Path.from(_path);
-    shape._currentPoint = Offset(_currentPoint.dx, _currentPoint.dy);
+    shape.currentPoint = Offset(currentPoint.dx, currentPoint.dy);
     shape.strokeColor = strokeColor;
     shape.strokeWidth = strokeWidth;
     shape.fillColor = fillColor;

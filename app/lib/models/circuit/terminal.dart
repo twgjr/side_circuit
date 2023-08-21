@@ -13,7 +13,7 @@ class Terminal {
   int get index => device.terminals.indexOf(this);
 
   Terminal(this.device) {
-    _symbol.shape.addRect(10, 10);
+    _symbol.shape.addRect(10, 10, true);
     _symbol.shape.fillColor = Colors.white;
   }
 
@@ -26,6 +26,14 @@ class Terminal {
 
   Offset get diagramPosition {
     return _symbol.position + device.diagramPosition;
+  }
+
+  void set position(Offset position) {
+    _symbol.position = position;
+  }
+
+  Offset get relativePosition {
+    return _symbol.position;
   }
 
   Offset editorPosition(BoxConstraints constraints) {

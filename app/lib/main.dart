@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:app/widgets/diagram/diagram.dart';
 import 'package:app/widgets/diagram/diagram_controls.dart';
+import 'package:app/hotkeys.dart';
 
 void main() => runApp(
       ProviderScope(
@@ -18,12 +19,14 @@ class MainApp extends ConsumerWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Side Circuit',
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text('Side Circuit'),
-          actions: [DiagramControls()],
+      home: HotKeys(
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text('Side Circuit'),
+            actions: [DiagramControls()],
+          ),
+          body: Diagram(),
         ),
-        body: Diagram(),
       ),
     );
   }

@@ -36,7 +36,8 @@ class Diagram extends ConsumerWidget {
         onHover: (event) {
           if (modeWatch.addWire) {
             final circuitRead = ref.read(circuitProvider.notifier);
-            circuitRead.dragUpdateVertex(activeVertexWatch, event.delta);
+            circuitRead.dragUpdateVertex(
+                activeVertexWatch, event.localPosition);
             print(activeVertexWatch.diagramPosition);
           }
         },

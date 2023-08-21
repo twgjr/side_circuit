@@ -41,9 +41,9 @@ class CircuitNotifier extends StateNotifier<Circuit> {
     return last;
   }
 
-  void dragUpdateVertex(Vertex vertex, Offset delta) {
+  void dragUpdateVertex(Vertex vertex, Offset position) {
     final circuit = state.copy();
-    vertex.updatePosition(delta);
+    vertex.updatePosition(position);
     state = circuit;
   }
 }

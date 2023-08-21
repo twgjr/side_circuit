@@ -32,8 +32,8 @@ class Vertex {
     }
   }
 
-  void updatePosition(Offset delta) {
-    _symbol.position += delta;
+  void updatePosition(Offset position) {
+    _symbol.position = position;
   }
 
   Shape get shape {
