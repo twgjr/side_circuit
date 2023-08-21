@@ -44,6 +44,9 @@ class Shape extends CustomPainter {
 
   Rect bounds() => _path.getBounds();
 
+  double width() => _path.getBounds().width;
+  double height() => _path.getBounds().height;
+
   void angleLine(double angle, double length) {
     angle = angle * math.pi / 180;
     final dx = math.cos(angle) * length;

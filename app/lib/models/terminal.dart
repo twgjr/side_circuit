@@ -28,7 +28,7 @@ class Terminal {
     _symbol.position = position;
   }
 
-  Offset position({bool? diagram, BoxConstraints? constraints}) {
+  Offset position({bool? diagram, BoxConstraints? constraints, bool? center}) {
     if (constraints != null) {
       return Offset(
         // center in box
@@ -41,6 +41,8 @@ class Terminal {
       );
     } else if (diagram == true) {
       return _symbol.position + device.position();
+    } else if (center == true) {
+      return _symbol.position + device.shape.center();
     } else {
       return _symbol.position; // relative to device
     }
