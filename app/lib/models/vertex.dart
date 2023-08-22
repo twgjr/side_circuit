@@ -24,7 +24,7 @@ class Vertex {
 
   Offset position() {
     if (terminal != null) {
-      return terminal!.position(diagram: true);
+      return terminal!.position(diagram: true, center: true);
     } else if (node != null) {
       return node!.position();
     } else {

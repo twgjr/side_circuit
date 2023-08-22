@@ -23,6 +23,7 @@ class Wire {
   void start({Terminal? terminal, required Offset position}) {
     if (terminal != null) {
       vertices.add(Vertex(wire: this, terminal: terminal));
+      terminal.vertex = vertices.last;
     } else {
       vertices.add(Vertex(wire: this, position: position));
     }

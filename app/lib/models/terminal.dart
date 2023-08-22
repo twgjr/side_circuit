@@ -29,23 +29,21 @@ class Terminal {
   }
 
   Offset position({bool? diagram, BoxConstraints? constraints, bool? center}) {
+    Offset position = _symbol.position; // relative to device
     if (constraints != null) {
       return Offset(
         // center in box
-        _symbol.position.dx +
-            constraints.maxWidth / 2 -
-            device.shape.center().dx,
-        _symbol.position.dy +
-            constraints.maxHeight / 2 -
-            device.shape.center().dy,
+        position.dx + constraints.maxWidth / 2 - device.shape.center().dx,
+        position.dy + constraints.maxHeight / 2 - device.shape.center().dy,
       );
-    } else if (diagram == true) {
-      return _symbol.position + device.position();
-    } else if (center == true) {
-      return _symbol.position + device.shape.center();
-    } else {
-      return _symbol.position; // relative to device
     }
+    if (diagram == true) {
+      position += device.position();
+    }
+    if (center == true) {
+      position += shape.center();
+    }
+    return position;
   }
 
   void updatePosition(Offset delta) {

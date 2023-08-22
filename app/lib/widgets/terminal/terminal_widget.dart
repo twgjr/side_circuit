@@ -9,16 +9,24 @@ class TerminalWidget extends StatelessWidget {
 
   TerminalWidget({super.key, required this.terminal, required this.editable});
 
+  Shape _selectShape() {
+    if (terminal.vertex != null) {
+      terminal.shape.fillColor = Colors.black;
+      return terminal.shape;
+    } else {
+      terminal.shape.fillColor = Colors.white;
+      return terminal.shape;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        ShapeWidget(shape: terminal.shape),
+        ShapeWidget(shape: _selectShape()),
         Positioned(
           top: terminal.position(center: true).dy,
-          // left: terminal.position(center: true).dx,
-          // left: terminal.position().dx,
           child: Text('${terminal.device.terminals.indexOf(terminal)}'),
         ),
       ],
