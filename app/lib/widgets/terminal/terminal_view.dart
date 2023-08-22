@@ -1,3 +1,5 @@
+import 'package:app/models/vertex.dart';
+import 'package:app/providers/active_vertex_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -76,10 +78,11 @@ class TerminalView extends ConsumerWidget {
           onTapDown: (details) {
             if (ref.read(modeProvider).addWire) {
               final circuitRead = ref.read(circuitProvider.notifier);
-              circuitRead.startWire(
+              Vertex last = circuitRead.startWire(
                 terminal: terminal,
-                position: details.globalPosition,
+                position: terminal.position(diagram: true, center: true),
               );
+              ref.read(activeVertexProvider.notifier).set(last);
             }
           },
           onPanUpdate: (details) {
