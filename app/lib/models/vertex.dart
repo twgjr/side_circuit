@@ -22,7 +22,9 @@ class Vertex {
 
   Offset position() {
     if (terminal != null) {
-      return terminal!.position();
+      return terminal!.position() +
+          terminal!.device.position() +
+          terminal!.shape.center();
     } else if (node != null) {
       return node!.position();
     } else {

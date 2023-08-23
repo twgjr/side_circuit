@@ -1,7 +1,5 @@
-import 'package:app/models/terminal.dart';
 import 'package:app/models/node.dart';
 import 'package:app/models/wire.dart';
-import 'package:flutter/material.dart';
 
 class Net {
   List<Wire> wires = [];
@@ -9,10 +7,7 @@ class Net {
 
   Net();
 
-  Wire startWire({Terminal? terminal, Offset? position}) {
-    Wire wire = Wire();
-    wire.start(terminal: terminal, position: position);
+  void addWire(Wire wire) {
     wires.add(wire);
-    return wire;
   }
 }

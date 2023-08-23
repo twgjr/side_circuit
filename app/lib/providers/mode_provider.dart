@@ -1,7 +1,9 @@
+import 'package:app/models/wire.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum ModeState {
   addWire,
+  activeWire,
 }
 
 class ModeNotifier extends StateNotifier<Mode> {
@@ -16,6 +18,12 @@ class ModeNotifier extends StateNotifier<Mode> {
   void reset() {
     state = Mode();
   }
+
+  void setActiveWire(Wire wire) {
+    Mode newState = state.copy();
+    newState.setActiveWire(wire);
+    state = newState;
+  }
 }
 
 final modeProvider = StateNotifierProvider<ModeNotifier, Mode>(
@@ -24,22 +32,35 @@ final modeProvider = StateNotifierProvider<ModeNotifier, Mode>(
 
 class Mode {
   bool addWire;
+  Wire? activeWire;
 
   Mode({
     this.addWire = false,
+    this.activeWire,
   });
 
   Mode copy() {
     return Mode(
       addWire: this.addWire,
+      activeWire: this.activeWire,
     );
   }
 
-  void invert(ModeState gestureState) {
-    switch (gestureState) {
+  void invert(ModeState modestate) {
+    switch (modestate) {
       case ModeState.addWire:
         addWire = !addWire;
         break;
+      case ModeState.activeWire:
+        break;
     }
+  }
+
+  void setActiveWire(Wire wire) {
+    activeWire = wire;
+  }
+
+  void clearActiveWire() {
+    activeWire = null;
   }
 }

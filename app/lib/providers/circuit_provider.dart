@@ -34,22 +34,22 @@ class CircuitNotifier extends StateNotifier<Circuit> {
     state = circuit;
   }
 
-  Wire startWire({Terminal? terminal, Offset? position}) {
+  void dragUpdateVertex(Vertex vertex, Offset position) {
     final circuit = state.copy();
-    Wire wire = circuit.startWire(terminal: terminal, position: position);
+    vertex.updatePosition(position);
+    state = circuit;
+  }
+
+  Wire startWireAt({Terminal? terminal}) {
+    final circuit = state.copy();
+    Wire wire = circuit.startWireAt(terminal: terminal);
     state = circuit;
     return wire;
   }
 
-  void endWire(Wire wire, {Terminal? terminal}) {
+  void endWireAt({required Wire wire, Terminal? terminal}) {
     final circuit = state.copy();
-    circuit.endWire(wire, terminal: terminal);
-    state = circuit;
-  }
-
-  void dragUpdateVertex(Vertex vertex, Offset position) {
-    final circuit = state.copy();
-    vertex.updatePosition(position);
+    circuit.endWireAt(wire: wire, terminal: terminal);
     state = circuit;
   }
 }

@@ -10,8 +10,8 @@ class VertexWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Positioned(
-      left: vertex.position().dx - 2,
-      top: vertex.position().dy - 2,
+      left: vertex.position().dx,
+      top: vertex.position().dy,
       child: Container(
         width: 4,
         height: 4,

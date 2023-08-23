@@ -6,7 +6,6 @@ import 'package:app/models/vertex.dart';
 import 'package:app/models/net.dart';
 import 'package:app/models/wire.dart';
 import 'package:app/models/segment.dart';
-import 'package:flutter/material.dart';
 
 enum Quantity { I, V, P }
 
@@ -22,13 +21,13 @@ class Circuit {
   void addDeviceOf(DeviceKind kind) {
     switch (kind) {
       case DeviceKind.V:
-        _addDevice(IndependentSource(kind: DeviceKind.V));
+        _addDevice(IndependentSource(this, DeviceKind.V));
         break;
       case DeviceKind.BLOCK:
-        _addDevice(IndependentSource(kind: DeviceKind.BLOCK));
+        _addDevice(IndependentSource(this, DeviceKind.BLOCK));
         break;
       case DeviceKind.R:
-        _addDevice(Resistor());
+        _addDevice(Resistor(this));
         break;
       default:
         throw ArgumentError("Invalid device kind: $kind");
@@ -102,14 +101,32 @@ class Circuit {
     return nodes;
   }
 
-  Wire startWire({Terminal? terminal, Offset? position}) {
-    final net = Net();
-    nets.add(net);
-    return net.startWire(terminal: terminal, position: position);
+  void connect({required Wire wire, Terminal? terminal}) {
+    if (terminal != null) {
+      wire.connect(terminal: terminal);
+    } else {
+      throw Exception('Must provide wire and terminal');
+    }
   }
 
-  void endWire(Wire wire, {Terminal? terminal}) {
-    // assert(nets.contains(wire.net)); // assumes shallow circuit copies
-    wire.end(terminal: terminal);
+  Wire startWireAt({Terminal? terminal}) {
+    if (terminal != null) {
+      final wire = Wire();
+      wire.startAt(terminal: terminal);
+      final net = Net();
+      net.addWire(wire);
+      nets.add(net);
+      return wire;
+    } else {
+      throw Exception('Must provide terminal');
+    }
+  }
+
+  void endWireAt({required Wire wire, Terminal? terminal}) {
+    if (terminal != null) {
+      wire.endAt(terminal: terminal);
+    } else {
+      throw Exception('Must provide terminal');
+    }
   }
 }

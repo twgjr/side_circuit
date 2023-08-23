@@ -1,5 +1,4 @@
 import 'package:app/models/terminal.dart';
-import 'package:flutter/material.dart';
 
 import 'package:app/models/segment.dart';
 import 'package:app/models/vertex.dart';
@@ -18,29 +17,70 @@ class Wire {
     return vertices.last;
   }
 
-  void start({Terminal? terminal, Offset? position}) {
+  void connect({Terminal? terminal}) {
     if (terminal != null) {
-      vertices.add(Vertex(terminal: terminal));
-      terminal.vertex = vertices.last;
-    } else if (position != null) {
-      vertices.add(Vertex(position: position));
+      if (vertices.isEmpty) {
+        //start wire with terminal
+        vertices.add(Vertex(terminal: terminal));
+        terminal.vertex = vertices.last;
+      } else {
+        //end wire with terminal
+        vertices.last.terminal = terminal;
+        terminal.vertex = vertices.last;
+      }
     } else {
-      throw Exception('Must provide terminal or position');
+      throw Exception('Must provide terminal');
     }
-    vertices.add(Vertex(position: position));
-    segments.add(Segment(start: head(), end: tail()));
   }
 
-  void end({Terminal? terminal, Offset? position}) {
+  void startAt({Terminal? terminal}) {
     if (terminal != null) {
       vertices.add(Vertex(terminal: terminal));
       terminal.vertex = vertices.last;
-    } else if (position != null) {
-      vertices.add(Vertex(position: position));
+      vertices.add(
+          Vertex(position: terminal.position() + terminal.device.position()));
+      segments.add(Segment(start: head(), end: tail()));
     } else {
-      throw Exception('Must provide terminal or position');
+      throw Exception('Must provide terminal');
     }
   }
+
+  void endAt({Terminal? terminal}) {
+    if (terminal != null) {
+      vertices.last.terminal = terminal;
+      terminal.vertex = vertices.last;
+    } else {
+      throw Exception('Must provide terminal');
+    }
+  }
+
+  // void start({Terminal? terminal}) {
+  //   if (terminal != null) {
+  //     vertices.add(Vertex(terminal: terminal));
+  //     terminal.vertex = vertices.last;
+  //     vertices.add(
+  //         Vertex(position: terminal.position() + terminal.device.position()));
+  //     segments.add(Segment(start: head(), end: tail()));
+  //   }
+  // }
+
+  // void end({Terminal? terminal}) {
+  //   if (terminal != null) {
+  //     vertices.last.terminal = terminal;
+  //     terminal.vertex = vertices.last;
+  //   } else {
+  //     throw Exception('Must provide terminal');
+  //   }
+  // }
+
+  // void setTail(Terminal? terminal, Offset position) {
+  //   if (terminal != null) {
+  //     vertices.last.terminal = terminal;
+  //     terminal.vertex = vertices.last;
+  //   } else {
+  //     throw Exception('Must provide terminal');
+  //   }
+  // }
 
   Wire copy() {
     final newWire = Wire();
@@ -53,16 +93,5 @@ class Wire {
       newWire.vertices.add(vertex);
     }
     return newWire;
-  }
-
-  void setTail({Terminal? terminal, Offset? position}) {
-    if (terminal != null) {
-      vertices.last.terminal = terminal;
-      terminal.vertex = vertices.last;
-    } else if (position != null) {
-      vertices.last.updatePosition(position);
-    } else {
-      throw Exception('Must provide terminal or position');
-    }
   }
 }

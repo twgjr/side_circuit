@@ -1,5 +1,4 @@
 import 'package:app/models/wire.dart';
-import 'package:app/providers/active_wire_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -25,15 +24,19 @@ class DiagramTerminalWidget extends ConsumerWidget {
       top: terminal.position(offset: offset).dy,
       child: GestureDetector(
         onTapDown: (details) {
-          if (ref.read(modeProvider).addWire) {
-            Wire activeWireRead = ref.read(activeWireProvider);
-            if (activeWireRead.tail() != terminal.vertex) {
+          final modeRead = ref.read(modeProvider.notifier);
+          final modeWatch = ref.watch(modeProvider);
+          if (modeWatch.addWire) {
+            if (modeWatch.activeWire == null && terminal.vertex == null) {
               final circuitRead = ref.read(circuitProvider.notifier);
-              circuitRead.endWire(activeWireRead, terminal: terminal);
-            } else {
+              Wire wire = circuitRead.startWireAt(terminal: terminal);
+              modeRead.setActiveWire(wire);
+            }
+            if (modeWatch.activeWire != null && terminal.vertex == null) {
               final circuitRead = ref.read(circuitProvider.notifier);
-              Wire wire = circuitRead.startWire(terminal: terminal);
-              ref.read(activeWireProvider.notifier).update(wire);
+              final wire = modeWatch.activeWire!;
+              circuitRead.endWireAt(wire: wire, terminal: terminal);
+              modeRead.reset();
             }
           }
         },

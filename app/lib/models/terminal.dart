@@ -6,16 +6,17 @@ import 'package:app/models/device.dart';
 import 'package:app/models/diagram_symbol.dart';
 
 class Terminal {
+  Device device;
   Vertex? vertex;
   DiagramSymbol _symbol = DiagramSymbol();
 
-  Terminal() {
+  Terminal(Device this.device) {
     _symbol.shape.addRect(10, 10);
     _symbol.shape.fillColor = Colors.white;
   }
 
   Terminal copyWith({Device? device, Vertex? wire}) {
-    final terminal = Terminal();
+    final terminal = Terminal(device ?? this.device);
     terminal.vertex = wire ?? this.vertex;
     terminal._symbol = _symbol.copy();
     return terminal;

@@ -4,7 +4,6 @@ import 'package:app/widgets/device/diagram_device_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:app/providers/active_wire_provider.dart';
 import 'package:app/providers/circuit_provider.dart';
 import 'package:app/providers/mode_provider.dart';
 import 'package:app/models/terminal.dart';
@@ -29,8 +28,8 @@ class Diagram extends ConsumerWidget {
         for (Vertex vertex in wire.vertices) {
           children.add(VertexWidget(vertex: vertex));
         }
-        for (Segment wireSegment in wire.segments) {
-          children.add(SegmentWidget(segment: wireSegment));
+        for (Segment segment in wire.segments) {
+          children.add(SegmentWidget(segment: segment));
         }
       }
     }
@@ -50,21 +49,25 @@ class Diagram extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final modeWatch = ref.watch(modeProvider);
-    final activeWireWatch = ref.watch(activeWireProvider);
+    final circuitRead = ref.read(circuitProvider.notifier);
     return GestureDetector(
       onTapDown: (details) {
         if (modeWatch.addWire) {
-          final circuitRead = ref.read(circuitProvider.notifier);
-          Wire wire = circuitRead.startWire(position: details.localPosition);
-          ref.read(activeWireProvider.notifier).update(wire);
+          if (modeWatch.activeWire != null) {
+            // circuitRead.dragUpdateVertex(
+            //     modeWatch.activeWire!.tail(), details.localPosition);
+          }
         }
       },
       child: MouseRegion(
         onHover: (event) {
           if (modeWatch.addWire) {
-            final circuitRead = ref.read(circuitProvider.notifier);
-            circuitRead.dragUpdateVertex(
-                activeWireWatch.tail(), event.localPosition);
+            print(modeWatch.addWire);
+            if (modeWatch.activeWire != null) {
+              circuitRead.dragUpdateVertex(
+                  modeWatch.activeWire!.tail(), event.localPosition);
+              print(event.localPosition);
+            }
           }
         },
         child: Stack(children: _stackChildren(ref)),
