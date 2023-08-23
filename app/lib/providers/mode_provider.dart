@@ -1,4 +1,5 @@
 import 'package:app/models/wire.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum ModeState {
@@ -22,6 +23,12 @@ class ModeNotifier extends StateNotifier<Mode> {
   void setActiveWire(Wire wire) {
     Mode newState = state.copy();
     newState.setActiveWire(wire);
+    state = newState;
+  }
+
+  void placeVertexAndContinue(Offset position) {
+    Mode newState = state.copy();
+    newState.activeWire!.placeAndContinue(position);
     state = newState;
   }
 }

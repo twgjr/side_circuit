@@ -48,14 +48,14 @@ class Diagram extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final modeRead = ref.read(modeProvider.notifier);
     final modeWatch = ref.watch(modeProvider);
     final circuitRead = ref.read(circuitProvider.notifier);
     return GestureDetector(
       onTapDown: (details) {
         if (modeWatch.addWire) {
           if (modeWatch.activeWire != null) {
-            // circuitRead.dragUpdateVertex(
-            //     modeWatch.activeWire!.tail(), details.localPosition);
+            modeRead.placeVertexAndContinue(details.localPosition);
           }
         }
       },

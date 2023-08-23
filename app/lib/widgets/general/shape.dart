@@ -40,6 +40,17 @@ class Shape extends CustomPainter {
     lineTo(end);
   }
 
+  Shape.vertex({
+    this.strokeColor = Colors.black,
+    this.strokeWidth = 2.0,
+    this.fillColor = Colors.black,
+    double diameter = 2.0,
+  }) {
+    reset();
+    addCircle(diameter);
+    // end_path();
+  }
+
   Offset center() => _path.getBounds().center;
 
   Rect bounds() => _path.getBounds();

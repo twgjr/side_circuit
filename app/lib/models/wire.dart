@@ -2,6 +2,7 @@ import 'package:app/models/terminal.dart';
 
 import 'package:app/models/segment.dart';
 import 'package:app/models/vertex.dart';
+import 'package:flutter/material.dart';
 
 class Wire {
   List<Segment> segments = [];
@@ -37,8 +38,10 @@ class Wire {
     if (terminal != null) {
       vertices.add(Vertex(terminal: terminal));
       terminal.vertex = vertices.last;
-      vertices.add(
-          Vertex(position: terminal.position() + terminal.device.position()));
+      vertices.add(Vertex(
+          position: terminal.position() +
+              terminal.device.position() +
+              terminal.shape.center()));
       segments.add(Segment(start: head(), end: tail()));
     } else {
       throw Exception('Must provide terminal');
@@ -54,33 +57,12 @@ class Wire {
     }
   }
 
-  // void start({Terminal? terminal}) {
-  //   if (terminal != null) {
-  //     vertices.add(Vertex(terminal: terminal));
-  //     terminal.vertex = vertices.last;
-  //     vertices.add(
-  //         Vertex(position: terminal.position() + terminal.device.position()));
-  //     segments.add(Segment(start: head(), end: tail()));
-  //   }
-  // }
-
-  // void end({Terminal? terminal}) {
-  //   if (terminal != null) {
-  //     vertices.last.terminal = terminal;
-  //     terminal.vertex = vertices.last;
-  //   } else {
-  //     throw Exception('Must provide terminal');
-  //   }
-  // }
-
-  // void setTail(Terminal? terminal, Offset position) {
-  //   if (terminal != null) {
-  //     vertices.last.terminal = terminal;
-  //     terminal.vertex = vertices.last;
-  //   } else {
-  //     throw Exception('Must provide terminal');
-  //   }
-  // }
+  void placeAndContinue(Offset position) {
+    Vertex oldTail = vertices.last;
+    vertices.last.updatePosition(position);
+    vertices.add(Vertex(position: position));
+    segments.add(Segment(start: oldTail, end: tail()));
+  }
 
   Wire copy() {
     final newWire = Wire();

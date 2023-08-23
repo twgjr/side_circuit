@@ -13,6 +13,7 @@ class Vertex {
   Vertex({this.terminal, this.node, Offset? position}) {
     if (position != null) {
       _symbol.position = position;
+      _symbol.shape = Shape.vertex();
     }
   }
 
@@ -24,11 +25,12 @@ class Vertex {
     if (terminal != null) {
       return terminal!.position() +
           terminal!.device.position() +
-          terminal!.shape.center();
+          terminal!.shape.center() -
+          _symbol.shape.center();
     } else if (node != null) {
-      return node!.position();
+      return node!.position() - _symbol.shape.center();
     } else {
-      return _symbol.position;
+      return _symbol.position - _symbol.shape.center();
     }
   }
 
