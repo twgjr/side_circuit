@@ -22,13 +22,13 @@ class Circuit {
   void addDeviceOf(DeviceKind kind) {
     switch (kind) {
       case DeviceKind.V:
-        _addDevice(IndependentSource(circuit: this, kind: DeviceKind.V));
+        _addDevice(IndependentSource(kind: DeviceKind.V));
         break;
       case DeviceKind.BLOCK:
-        _addDevice(IndependentSource(circuit: this, kind: DeviceKind.BLOCK));
+        _addDevice(IndependentSource(kind: DeviceKind.BLOCK));
         break;
       case DeviceKind.R:
-        _addDevice(Resistor(this));
+        _addDevice(Resistor());
         break;
       default:
         throw ArgumentError("Invalid device kind: $kind");
@@ -54,12 +54,10 @@ class Circuit {
     final newCircuit = Circuit();
     newCircuit.devices = [];
     for (Device device in devices) {
-      device.circuit = newCircuit;
       newCircuit.devices.add(device);
     }
     newCircuit.nets = [];
     for (Net net in nets) {
-      net.circuit = newCircuit;
       newCircuit.nets.add(net);
     }
     return newCircuit;
@@ -104,9 +102,14 @@ class Circuit {
     return nodes;
   }
 
-  Vertex startWire({Terminal? terminal, required Offset position}) {
-    final net = Net(this);
+  Wire startWire({Terminal? terminal, Offset? position}) {
+    final net = Net();
     nets.add(net);
     return net.startWire(terminal: terminal, position: position);
+  }
+
+  void endWire(Wire wire, {Terminal? terminal}) {
+    // assert(nets.contains(wire.net)); // assumes shallow circuit copies
+    wire.end(terminal: terminal);
   }
 }

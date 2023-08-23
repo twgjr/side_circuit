@@ -7,15 +7,15 @@ import 'package:app/models/device.dart';
 import 'package:app/widgets/device_editor/device_editor.dart';
 import 'package:app/widgets/general/shape.dart';
 
-class DeviceWidget extends ConsumerWidget {
+class DeviceBaseWidget extends ConsumerWidget {
   final Device device;
   final bool editable;
 
-  DeviceWidget({super.key, required this.device, required this.editable});
+  DeviceBaseWidget({super.key, required this.device, required this.editable});
 
   void showDeviceEditor(BuildContext context, WidgetRef ref, Device device) {
     ref.read(deviceOpenProvider.notifier).update(device);
-    ref.read(deviceChangeProvider.notifier).update(device.copyWith());
+    ref.read(deviceChangeProvider.notifier).update(device.copy());
     showDialog(context: context, builder: (_) => DeviceEditor());
   }
 

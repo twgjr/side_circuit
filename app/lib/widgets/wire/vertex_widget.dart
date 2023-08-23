@@ -2,10 +2,10 @@ import 'package:app/models/vertex.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class VertexView extends ConsumerWidget {
+class VertexWidget extends ConsumerWidget {
   final Vertex vertex;
 
-  VertexView({required this.vertex, super.key});
+  VertexWidget({required this.vertex, super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

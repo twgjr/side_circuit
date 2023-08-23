@@ -25,10 +25,10 @@ class TerminalWidget extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         ShapeWidget(shape: _selectShape()),
-        Positioned(
-          top: terminal.position(center: true).dy,
-          child: Text('${terminal.device.terminals.indexOf(terminal)}'),
-        ),
+        // Positioned(
+        //   top: terminal.position().dy,
+        //   child: Text('${terminal.device.terminals.indexOf(terminal)}'),
+        // ),
       ],
     );
   }

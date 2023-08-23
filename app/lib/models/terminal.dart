@@ -6,47 +6,36 @@ import 'package:app/models/device.dart';
 import 'package:app/models/diagram_symbol.dart';
 
 class Terminal {
-  Device device;
   Vertex? vertex;
   DiagramSymbol _symbol = DiagramSymbol();
 
-  int get index => device.terminals.indexOf(this);
-
-  Terminal(this.device) {
+  Terminal() {
     _symbol.shape.addRect(10, 10);
     _symbol.shape.fillColor = Colors.white;
   }
 
   Terminal copyWith({Device? device, Vertex? wire}) {
-    final terminal = Terminal(device ?? this.device);
+    final terminal = Terminal();
     terminal.vertex = wire ?? this.vertex;
     terminal._symbol = _symbol.copy();
     return terminal;
+  }
+
+  Offset position({bool offsetOverride = false, Offset? offset}) {
+    if (offset == null) {
+      return _symbol.position;
+    } else if (offsetOverride) {
+      return offset;
+    } else {
+      return _symbol.position + offset;
+    }
   }
 
   void setPosition(Offset position) {
     _symbol.position = position;
   }
 
-  Offset position({bool? diagram, BoxConstraints? constraints, bool? center}) {
-    Offset position = _symbol.position; // relative to device
-    if (constraints != null) {
-      return Offset(
-        // center in box
-        position.dx + constraints.maxWidth / 2 - device.shape.center().dx,
-        position.dy + constraints.maxHeight / 2 - device.shape.center().dy,
-      );
-    }
-    if (diagram == true) {
-      position += device.position();
-    }
-    if (center == true) {
-      position += shape.center();
-    }
-    return position;
-  }
-
-  void updatePosition(Offset delta) {
+  void addPosition(Offset delta) {
     _symbol.position += delta;
   }
 

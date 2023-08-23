@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 
 import 'package:app/models/segment.dart';
 
-class WireSegmentView extends StatelessWidget {
+class SegmentWidget extends StatelessWidget {
   final Segment segment;
 
-  WireSegmentView({super.key, required this.segment});
+  SegmentWidget({super.key, required this.segment});
 
   @override
   Widget build(BuildContext context) {
