@@ -1,7 +1,7 @@
+import 'package:app/widgets/symbol/symbol_widget.dart';
 import 'package:flutter/material.dart';
 
 import 'package:app/models/terminal.dart';
-import 'package:app/widgets/general/shape.dart';
 
 class TerminalWidget extends StatelessWidget {
   final Terminal terminal;
@@ -9,13 +9,13 @@ class TerminalWidget extends StatelessWidget {
 
   TerminalWidget({super.key, required this.terminal, required this.editable});
 
-  Shape _selectShape() {
+  SymbolWidget _selectWidget() {
     if (terminal.vertex != null) {
-      terminal.shape.fillColor = Colors.black;
-      return terminal.shape;
+      terminal.symbol.fillColor = Colors.black;
+      return SymbolWidget(terminal.symbol);
     } else {
-      terminal.shape.fillColor = Colors.white;
-      return terminal.shape;
+      terminal.symbol.fillColor = Colors.white;
+      return SymbolWidget(terminal.symbol);
     }
   }
 
@@ -24,11 +24,7 @@ class TerminalWidget extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        ShapeWidget(shape: _selectShape()),
-        // Positioned(
-        //   top: terminal.position().dy,
-        //   child: Text('${terminal.device.terminals.indexOf(terminal)}'),
-        // ),
+        _selectWidget(),
       ],
     );
   }

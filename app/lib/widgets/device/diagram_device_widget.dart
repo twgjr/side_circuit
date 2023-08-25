@@ -1,3 +1,4 @@
+import 'package:app/providers/mode_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -17,6 +18,7 @@ class DiagramDeviceWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final modeWatch = ref.watch(modeProvider);
     return Positioned(
       left: device.position().dx,
       top: device.position().dy,
@@ -26,7 +28,12 @@ class DiagramDeviceWidget extends ConsumerWidget {
               .read(circuitProvider.notifier)
               .dragUpdateDevice(device, details.delta);
         },
-        child: DeviceBaseWidget(device: device, editable: false),
+        onTap: () {
+          if (modeWatch.delete) {
+            ref.read(circuitProvider.notifier).removeDevice(device);
+          }
+        },
+        child: DeviceWidget(device: device, editable: false),
       ),
     );
   }

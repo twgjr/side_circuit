@@ -20,11 +20,13 @@ class HotKeysState extends ConsumerState<HotKeys> {
       shortcuts: {
         LogicalKeySet(LogicalKeyboardKey.escape): EscapeIntent(ref),
         LogicalKeySet(LogicalKeyboardKey.keyW): WIntent(ref),
+        LogicalKeySet(LogicalKeyboardKey.delete): DelIntent(ref),
       },
       child: Actions(
         actions: {
           EscapeIntent: EscapeAction(),
           WIntent: WAction(),
+          DelIntent: DelAction(),
         },
         child: Focus(child: widget.child, autofocus: true),
       ),
@@ -53,5 +55,17 @@ class WAction extends Action<WIntent> {
   @override
   void invoke(covariant WIntent intent) {
     intent.ref.read(modeProvider.notifier).invertModeState(ModeState.addWire);
+  }
+}
+
+class DelIntent extends Intent {
+  final WidgetRef ref;
+  const DelIntent(WidgetRef this.ref);
+}
+
+class DelAction extends Action<DelIntent> {
+  @override
+  void invoke(covariant DelIntent intent) {
+    intent.ref.read(modeProvider.notifier).invertModeState(ModeState.delete);
   }
 }

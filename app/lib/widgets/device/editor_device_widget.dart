@@ -19,7 +19,7 @@ class EditorDeviceWidget extends ConsumerWidget {
     return Positioned(
       left: device.position(offset: offset, offsetOverride: true).dx,
       top: device.position(offset: offset, offsetOverride: true).dy,
-      child: DeviceBaseWidget(device: device, editable: true),
+      child: DeviceWidget(device: device, editable: true),
     );
   }
 }

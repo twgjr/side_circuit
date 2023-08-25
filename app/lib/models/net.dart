@@ -10,4 +10,9 @@ class Net {
   void addWire(Wire wire) {
     wires.add(wire);
   }
+
+  void deleteWire(Wire wire) {
+    wire.disconnect();
+    wires.remove(wire);
+  }
 }

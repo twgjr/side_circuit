@@ -1,36 +1,20 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
-class ShapeWidget extends StatelessWidget {
-  final Shape shape;
-  ShapeWidget({super.key, required this.shape});
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: shape,
-      child: Container(
-        width: shape.bounds().width,
-        height: shape.bounds().height,
-      ),
-    );
-  }
-}
-
-class Shape extends CustomPainter {
+class ShapePainter extends CustomPainter {
   Path _path = Path();
   Offset currentPoint = Offset(0, 0);
   var strokeColor;
   var strokeWidth;
   var fillColor;
 
-  Shape({
+  ShapePainter({
     this.strokeColor = Colors.black,
     this.strokeWidth = 2.0,
     this.fillColor = Colors.transparent,
   });
 
-  Shape.wireSegment({
+  ShapePainter.segment({
     required Offset end,
     this.strokeColor = Colors.black,
     this.strokeWidth = 2.0,
@@ -40,7 +24,7 @@ class Shape extends CustomPainter {
     lineTo(end);
   }
 
-  Shape.vertex({
+  ShapePainter.vertex({
     this.strokeColor = Colors.transparent,
     this.strokeWidth = 2.0,
     this.fillColor = Colors.transparent,
@@ -48,6 +32,16 @@ class Shape extends CustomPainter {
   }) {
     reset();
     addCircle(diameter);
+  }
+
+  ShapePainter.terminal({
+    this.strokeColor = Colors.black,
+    this.strokeWidth = 2.0,
+    this.fillColor = Colors.white,
+    double diameter = 10.0,
+  }) {
+    reset();
+    addRect(diameter, diameter);
   }
 
   Offset center() => _path.getBounds().center;
@@ -78,7 +72,7 @@ class Shape extends CustomPainter {
     _path.addOval(Rect.fromCircle(center: Offset(0, 0), radius: diameter / 2));
   }
 
-  Offset end_path() {
+  Offset shiftPath() {
     final Rect bounds = _path.getBounds();
     Offset offset = Offset(-bounds.left, -bounds.top);
     _path = _path.shift(offset);
@@ -95,7 +89,7 @@ class Shape extends CustomPainter {
   }
 
   copyWith() {
-    final shape = Shape();
+    final shape = ShapePainter();
     shape._path = Path.from(_path);
     shape.currentPoint = Offset(currentPoint.dx, currentPoint.dy);
     shape.strokeColor = strokeColor;

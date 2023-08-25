@@ -1,3 +1,4 @@
+import 'package:app/models/net.dart';
 import 'package:app/models/terminal.dart';
 
 import 'package:app/models/segment.dart';
@@ -5,10 +6,11 @@ import 'package:app/models/vertex.dart';
 import 'package:flutter/material.dart';
 
 class Wire {
+  Net net;
   List<Segment> segments = [];
   List<Vertex> vertices = [];
 
-  Wire();
+  Wire(this.net);
 
   Vertex head() {
     return vertices.first;
@@ -41,8 +43,8 @@ class Wire {
       vertices.add(Vertex(
           position: terminal.position() +
               terminal.device.position() +
-              terminal.shape.center()));
-      segments.add(Segment(start: head(), end: tail()));
+              terminal.symbol.center()));
+      segments.add(Segment(wire: this, start: head(), end: tail()));
     } else {
       throw Exception('Must provide terminal');
     }
@@ -61,11 +63,24 @@ class Wire {
     Vertex oldTail = vertices.last;
     vertices.last.updatePosition(position);
     vertices.add(Vertex(position: position));
-    segments.add(Segment(start: oldTail, end: tail()));
+    segments.add(Segment(wire: this, start: oldTail, end: tail()));
+  }
+
+  void disconnect() {
+    if (vertices.isNotEmpty) {
+      if (head().terminal != null) {
+        vertices.last.terminal!.vertex = null;
+        vertices.last.terminal = null;
+      }
+      if (tail().terminal != null) {
+        vertices.first.terminal!.vertex = null;
+        vertices.first.terminal = null;
+      }
+    }
   }
 
   Wire copy() {
-    final newWire = Wire();
+    final newWire = Wire(this.net);
     newWire.segments = [];
     for (Segment segment in segments) {
       newWire.segments.add(segment);

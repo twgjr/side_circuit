@@ -1,19 +1,31 @@
 import 'package:flutter/material.dart';
 
-import 'package:app/widgets/general/shape.dart';
+import 'package:app/widgets/symbol/shape_painter.dart';
 
 class DiagramSymbol {
   Offset position = Offset(0, 0);
-  double angle = 0;
-  Shape shape = Shape();
+  double rotation = 0;
+  ShapePainter shape = ShapePainter();
 
   DiagramSymbol();
+
+  DiagramSymbol.segment({required Offset end}) {
+    shape = ShapePainter.segment(end: end);
+  }
+
+  DiagramSymbol.vertex() {
+    shape = ShapePainter.vertex();
+  }
+
+  DiagramSymbol.terminal() {
+    shape = ShapePainter.terminal();
+  }
 
   DiagramSymbol copy() {
     final symbol = DiagramSymbol();
     symbol.shape = shape.copyWith();
     symbol.position = Offset(position.dx, position.dy);
-    symbol.angle = angle;
+    symbol.rotation = rotation;
     return symbol;
   }
 
@@ -31,5 +43,9 @@ class DiagramSymbol {
   double height() {
     final Rect bounds = shape.bounds();
     return bounds.height;
+  }
+
+  void set fillColor(Color color) {
+    shape.fillColor = color;
   }
 }

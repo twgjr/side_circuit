@@ -1,3 +1,4 @@
+import 'package:app/models/segment.dart';
 import 'package:app/models/wire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -50,6 +51,12 @@ class CircuitNotifier extends StateNotifier<Circuit> {
   void endWireAt({required Wire wire, Terminal? terminal}) {
     final circuit = state.copy();
     circuit.endWireAt(wire: wire, terminal: terminal);
+    state = circuit;
+  }
+
+  void removeWireContaining(Segment segment) {
+    final circuit = state.copy();
+    segment.wire.net.deleteWire(segment.wire);
     state = circuit;
   }
 }

@@ -30,11 +30,35 @@ class DiagramControls extends ConsumerWidget {
     }
   }
 
+  Widget _deleteIcon(WidgetRef ref) {
+    final modeStateWatch = ref.watch(modeProvider);
+    final modeStateRead = ref.read(modeProvider.notifier);
+    if (modeStateWatch.delete) {
+      return IconButton(
+        icon: Icon(Icons.delete),
+        color: Colors.red,
+        tooltip: "delete",
+        onPressed: () {
+          modeStateRead.invertModeState(ModeState.delete);
+        },
+      );
+    } else {
+      return IconButton(
+        icon: Icon(Icons.delete),
+        tooltip: "delete",
+        onPressed: () {
+          modeStateRead.invertModeState(ModeState.delete);
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Row(
       children: [
         _addWireIcon(ref),
+        _deleteIcon(ref),
         VerticalDivider(
           width: 1,
           thickness: 1,

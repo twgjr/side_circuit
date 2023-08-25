@@ -1,19 +1,14 @@
 import 'package:app/models/vertex.dart';
 import 'package:app/models/diagram_symbol.dart';
-import 'package:app/widgets/general/shape.dart';
 import 'package:flutter/material.dart';
 
 class Node {
   List<Vertex> vertices = [];
-  DiagramSymbol _symbol = DiagramSymbol();
+  DiagramSymbol symbol = DiagramSymbol();
 
   Node();
 
   Offset position() {
-    return _symbol.position;
-  }
-
-  Shape get shape {
-    return _symbol.shape;
+    return symbol.position;
   }
 }

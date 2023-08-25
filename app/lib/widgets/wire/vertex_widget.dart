@@ -1,5 +1,5 @@
 import 'package:app/models/vertex.dart';
-import 'package:app/widgets/general/shape.dart';
+import 'package:app/widgets/symbol/symbol_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,7 +13,7 @@ class VertexWidget extends ConsumerWidget {
     return Positioned(
       left: vertex.position().dx,
       top: vertex.position().dy,
-      child: ShapeWidget(shape: vertex.shape),
+      child: SymbolWidget(vertex.symbol),
     );
   }
 }

@@ -111,9 +111,9 @@ class Circuit {
 
   Wire startWireAt({Terminal? terminal}) {
     if (terminal != null) {
-      final wire = Wire();
-      wire.startAt(terminal: terminal);
       final net = Net();
+      final wire = Wire(net);
+      wire.startAt(terminal: terminal);
       net.addWire(wire);
       nets.add(net);
       return wire;

@@ -5,13 +5,13 @@ import 'package:app/providers/circuit_provider.dart';
 import 'package:app/providers/device_providers.dart';
 import 'package:app/models/device.dart';
 import 'package:app/widgets/device_editor/device_editor.dart';
-import 'package:app/widgets/general/shape.dart';
+import 'package:app/widgets/symbol/symbol_widget.dart';
 
-class DeviceBaseWidget extends ConsumerWidget {
+class DeviceWidget extends ConsumerWidget {
   final Device device;
   final bool editable;
 
-  DeviceBaseWidget({super.key, required this.device, required this.editable});
+  DeviceWidget({super.key, required this.device, required this.editable});
 
   void showDeviceEditor(BuildContext context, WidgetRef ref, Device device) {
     ref.read(deviceOpenProvider.notifier).update(device);
@@ -51,16 +51,16 @@ class DeviceBaseWidget extends ConsumerWidget {
     );
   }
 
-  Widget selectShapeWidget(bool editable, WidgetRef ref, BuildContext context) {
+  Widget selectWidget(bool editable, WidgetRef ref, BuildContext context) {
     if (editable) {
-      return ShapeWidget(shape: device.shape);
+      return SymbolWidget(device.symbol);
     } else {
       return GestureDetector(
         behavior: HitTestBehavior.deferToChild,
         onSecondaryTapDown: (details) {
           _showPopupMenu(details.globalPosition, context, ref);
         },
-        child: ShapeWidget(shape: device.shape),
+        child: SymbolWidget(device.symbol),
       );
     }
   }
@@ -71,10 +71,10 @@ class DeviceBaseWidget extends ConsumerWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          selectShapeWidget(editable, ref, context),
+          selectWidget(editable, ref, context),
           Positioned(
             bottom: -20,
-            left: device.shape.bounds().width / 2 - 10,
+            left: device.symbol.width() / 2 - 10,
             child: Text('${device.kind.name}${device.id}'),
           ),
         ],

@@ -3,17 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:app/models/node.dart';
 import 'package:app/models/terminal.dart';
 import 'package:app/models/diagram_symbol.dart';
-import 'package:app/widgets/general/shape.dart';
 
 class Vertex {
   Terminal? terminal;
   Node? node;
-  DiagramSymbol _symbol = DiagramSymbol();
+  DiagramSymbol symbol = DiagramSymbol.vertex();
 
   Vertex({this.terminal, this.node, Offset? position}) {
     if (position != null) {
-      _symbol.position = position;
-      _symbol.shape = Shape.vertex();
+      symbol.position = position;
     }
   }
 
@@ -24,21 +22,16 @@ class Vertex {
   Offset position() {
     if (terminal != null) {
       return terminal!.position() +
-          terminal!.device.position() +
-          terminal!.shape.center() -
-          _symbol.shape.center();
+          terminal!.device.position() -
+          terminal!.symbol.center();
     } else if (node != null) {
-      return node!.position() - _symbol.shape.center();
+      return node!.position() - symbol.shape.center();
     } else {
-      return _symbol.position - _symbol.shape.center();
+      return symbol.position - symbol.shape.center();
     }
   }
 
   void updatePosition(Offset position) {
-    _symbol.position = position;
-  }
-
-  Shape get shape {
-    return _symbol.shape;
+    symbol.position = position;
   }
 }
