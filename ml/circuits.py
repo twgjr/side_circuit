@@ -374,6 +374,7 @@ class Circuit():
     
 class SignalFunction():
     def __init__(self, kind:SignalClass):
+        assert(isinstance(kind,SignalClass))
         self.kind = kind.name
     
     def to_spice(self) -> str:
@@ -440,14 +441,14 @@ class Element():
         self.data:dict[Quantity:dict[float:float]] = {}
 
     @abstractmethod
-    def behavior(self) -> str:
+    def to_spice(self) -> str:
         pass
 
     def to_spice(self)->str:
         id = self.kind.name + str(self.index())
         n_low = str(self.low.index)
         n_high = str(self.high.index)
-        return id+" "+n_high+" "+n_low+" "+self.behavior()
+        return id+" "+n_high+" "+n_low+" "+self.to_spice()
 
     def add_data(self, prop:Quantity, time:float, value:float):
         if(prop not in self.data):
@@ -519,8 +520,14 @@ class IndependentSource(Element):
         self.ac_mag = None
         self.ac_phase = None
         self.sig_func:SignalFunction = None
+    
+    def set_dc(self, dc:float):
+        self.dc = dc
 
-    def behavior(self) -> str:
+    def set_signal(self, signal:SignalFunction):
+        self.sig_func = signal
+
+    def to_spice(self) -> str:
         args = []
         if(self.dc != None):
             args.append("DC")
@@ -555,7 +562,7 @@ class Resistor(Element):
         super().__init__(circuit, high, low, kind)
         self.parameter = None
 
-    def behavior(self) -> str:
+    def to_spice(self) -> str:
         assert(self.parameter != None)
         assert(self.parameter > 0)
         return str(self.parameter)
