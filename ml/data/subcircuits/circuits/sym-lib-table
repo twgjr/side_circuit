@@ -1,4 +1,0 @@
-(sym_lib_table
-  (version 7)
-  (lib (name "side_circuit_subckts")(type "KiCad")(uri "${KIPRJMOD}/side_circuit_subckts.kicad_sym")(options "")(descr ""))
-)

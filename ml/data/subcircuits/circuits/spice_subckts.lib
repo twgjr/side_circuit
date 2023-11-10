@@ -1,7 +1,0 @@
-* Custom two-resistor voltage divider subcircuit
-R1_value = {1m, 10m, 100m, 1, 10, 100, 1k, 10k, 100k, 1meg, 10meg}
-R2_value = {1m, 10m, 100m, 1, 10, 100, 1k, 10k, 100k, 1meg, 10meg}
-.subckt voltage_divider src ref out
-    R1 src out {R1_value}
-    R2 out gnd {R2_value}
-.ends

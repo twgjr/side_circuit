@@ -1,7 +1,0 @@
-Circuit: .title KiCad schematic
-
-Error on line 3 : r1 net-_r1-pad1_ net-_r1-pad2_ r_us
-	 Unable to find definition of model "r_us"
-Error on line 4 : r2 net-_r1-pad2_ 0 r_us
-	 Unable to find definition of model "r_us"
-Fatal Error: No analysis request found.
