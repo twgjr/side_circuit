@@ -1,4 +1,4 @@
-from circuits import System,Kind,Circuit,Element,Quantity,Voltage,Resistor,Pulse,Sin
+from circuits import System,Kind,Circuit,Device,Quantity,Voltage,Resistor,Pulse,Sin
 from ngspice_lib import ngspice_api as ngsp
 from enum import Enum
 import pprint
@@ -69,7 +69,7 @@ if(__name__=="__main__"):
         for qty in element.data:
             if(len(element.data[qty]) > 0):
                 print(f'has {qty}')
-    for node in system.nodes:
+    for node in system.circuit_nodes:
         print(f'node{node}')
         for qty in node.data:
             if(len(node.data[qty]) > 0):
