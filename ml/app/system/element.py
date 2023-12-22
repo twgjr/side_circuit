@@ -1,5 +1,7 @@
 from enum import Enum
-from app.graph import Node
+
+from app.graph.graph import Node, Slot
+from app.system.interface import Terminal
 
 
 class Kind(Enum):
@@ -16,41 +18,52 @@ class Kind(Enum):
     VCCC = "voltage controlled current source"
 
 
-class Terminal(Node):
-    """A terminal is a single node with no ports.  Acts as the interface to
-    elements.  Terminals may connect to other terminals, circuit nodes, or
-    ports"""
-
-    def __init__(self, name: str) -> None:
-        super().__init__(max_edges=1)
-        self.name = name
-
-
 class Element(Node):
-    """An intrinsic circuit element viewed as a single node with ports.
+    """An intrinsic circuit element viewed as a single node with terminals.
     No internal sub-systems, elements, wires, or circuit nodes."""
 
-    def __init__(self, kind: Kind) -> None:
-        super().__init__(max_edges=0)
+    def __init__(self, slots: list[Slot], kind: Kind) -> None:
+        super().__init__(slots)
         assert isinstance(kind, Kind)
         self.kind = kind
-        self.terminals: dict[str, Terminal] = {}
+
+    # def get_terminal(self, name: str) -> Terminal:
+    #     interface = self.get_interface(name)
+    #     if interface is None:
+    #         raise Exception(f"Element has no terminal named {name}")
+    #     if isinstance(interface, Terminal):
+    #         return interface
+    #     else:
+    #         raise TypeError(f"expected Terminal, got {type(interface)}")
 
 
 class TwoTerminalElement(Element):
     def __init__(self, kind: Kind) -> None:
-        super().__init__(kind)
-        self.terminals["p"] = Terminal("p")
-        self.terminals["n"] = Terminal("n")
+        slots = [Terminal("p"), Terminal("n")]
+        super().__init__(slots, kind)
+
+    @property
+    def p(self) -> Terminal:
+        return self.slots[0]
+
+    @property
+    def n(self) -> Terminal:
+        return self.slots[1]
 
 
-class FourTerminalElement(Element):
+class FourTerminalElement(TwoTerminalElement):
     def __init__(self, kind: Kind) -> None:
         super().__init__(kind)
-        self.terminals["p"] = Terminal("p")
-        self.terminals["n"] = Terminal("n")
-        self.terminals["cp"] = Terminal("cp")
-        self.terminals["cn"] = Terminal("cn")
+        self.slots.append(Terminal("cp"))
+        self.slots.append(Terminal("cn"))
+
+    @property
+    def cp(self) -> Terminal:
+        return self.slots[2]
+
+    @property
+    def cn(self) -> Terminal:
+        return self.slots[3]
 
 
 class Voltage(TwoTerminalElement):
