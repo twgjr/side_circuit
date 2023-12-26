@@ -1,5 +1,9 @@
+from typing import Callable
+
+
 class Node:
-    def __init__(self, graph: 'Graph', slots: list['Slot'] = None) -> None:
+    def __init__(self, graph: 'Graph', slots: list['Slot'] = None, name: str = "") -> None:
+        self.name = name
         self.graph: 'Graph' = graph
         self.slots = slots
         if self.slots is None:
@@ -7,6 +11,12 @@ class Node:
         self.edges: list[Edge] = []
         if self.graph is not None:
             self.graph.nodes.append(self)
+
+    def __repr__(self):
+        edges_ids = []
+        for edge in self.edges:
+            edges_ids.append(edge.deep_id())
+        return f"Node(id: {self.deep_id()}, slots: {self.slots}, edges: {edges_ids})"
 
     def remove(self) -> None:
         """Remove this node from the graph and all connected edges."""
@@ -52,16 +62,20 @@ class Edge:
     """An edge is a connection between two nodes. It stores a reference to the nodes it connects, but leaves updating
     the nodes to the graph."""
 
-    def __init__(self, graph: 'Graph', hi: Node, lo: Node, hi_slot: Slot = None, lo_slot: Slot = None) -> None:
+    def __init__(self, graph: 'Graph', hi, lo) -> None:
         self.graph: Graph = graph
         self.hi: Node = hi
+        if isinstance(hi, Slot):
+            self.hi: Node = hi.node
         self.lo: Node = lo
-        if not hi.slot_is_valid(hi_slot):
-            raise ValueError("Invalid slot for node")
-        self.hi_slot: Slot = hi_slot
-        if not lo.slot_is_valid(lo_slot):
-            raise ValueError("Invalid slot for node")
-        self.lo_slot: Slot = lo_slot
+        if isinstance(lo, Slot):
+            self.lo: Node = lo.node
+        self.hi_slot: Slot = None
+        if isinstance(hi, Slot):
+            self.hi_slot: Slot = hi
+        self.lo_slot: Slot = None
+        if isinstance(lo, Slot):
+            self.lo_slot: Slot = lo
         self.graph.edges.append(self)
         self.hi.edges.append(self)
         self.lo.edges.append(self)
@@ -85,3 +99,56 @@ class Graph(Node):
         super().__init__(graph, slots)
         self.nodes: list[Node] = []
         self.edges: list[Edge] = []
+
+    def __repr__(self):
+        nodes_ids = []
+        for node in self.nodes:
+            nodes_ids.append(node.deep_id())
+        edges_ids = []
+        for edge in self.edges:
+            edge_id = edge.deep_id()
+            if edge_id not in edges_ids:
+                edges_ids.append(edge.deep_id())
+        return f"Graph(id: {self.deep_id()}, nodes: {nodes_ids}, edges: {edges_ids})"
+
+    def deep_nodes(self) -> list[Node]:
+        """Return a list of all nodes in the graph regardless of edges."""
+        nodes = []
+        subgraphs = []
+
+        for node in self.nodes:
+            if isinstance(node, Graph):
+                subgraphs.append(node)
+            nodes.append(node)
+
+        while subgraphs:
+            subgraph = subgraphs.pop(0)
+            for node in subgraph.nodes:
+                if isinstance(node, Graph):
+                    subgraphs.append(node)
+                nodes.append(node)
+        return nodes
+
+    def breadth_first_search(self, first_match_only: bool, callback: Callable[[Node], bool]) -> list[Node]:
+        """Return the nodes found by breadth first search that satisfies the callback. If first_match_only is False,
+        return all nodes that satisfy the callback, otherwise return the first node that satisfies the callback."""
+        visited = []
+        queue = [self.nodes[0]]
+        matching = []
+        while queue:
+            node = queue.pop(0)
+            if callback(node):
+                if first_match_only:
+                    return [node]
+                matching.append(node)
+            if node not in visited:
+                visited.append(node)
+                for edge in node.edges:
+                    if edge.hi == node:
+                        if edge.lo not in visited and edge.lo not in queue:
+                            queue.append(edge.lo)
+                    else:
+                        if edge.hi not in visited and edge.hi not in queue:
+                            queue.append(edge.hi)
+        return matching
+

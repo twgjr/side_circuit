@@ -23,3 +23,22 @@ def test_split_wire():
     assert cn1 in system.nodes
     assert cn2 in system.nodes
     assert ckt_node in system.nodes
+
+
+def test_is_complete():
+    system = System()
+    assert not system.is_complete()  # ground is not connected to anything
+    # add a wire to the system
+    ss2 = System(system, [Port(name="p"), Port(name="n")])
+    Wire(system, hi=system.ground, lo=ss2["p"])
+    assert not system.is_complete()
+    # complete the system by adding a second wire
+    Wire(system, hi=system.ground, lo=ss2["n"])
+    assert not system.is_complete()
+    # ss2 is empty, so the system is not truly complete, add nodes and edges to ss2
+    cn3 = CircuitNode(ss2)
+    cn4 = CircuitNode(ss2)
+    Wire(ss2, cn3, cn4)
+    assert not system.is_complete()
+    Wire(ss2, cn3, cn4)
+    assert system.is_complete()
