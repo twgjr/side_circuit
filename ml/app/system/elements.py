@@ -9,12 +9,6 @@ class Kind(Enum):
     R = "resistor"
     L = "inductor"
     C = "capacitor"
-    VCSW = "voltage controlled switch"
-    CCSW = "current controlled switch"
-    VCVS = "voltage controlled voltage source"
-    CCVS = "current controlled voltage source"
-    CCCS = "current controlled current source"
-    VCCC = "voltage controlled current source"
 
 
 class TwoTerminalElement(Element):
@@ -50,52 +44,37 @@ class Voltage(TwoTerminalElement):
     def __init__(self, system) -> None:
         super().__init__(system, Kind.V)
 
+    def __repr__(self) -> str:
+        return f"Voltage({self.deep_id()})"
+
 
 class Current(TwoTerminalElement):
     def __init__(self, system) -> None:
         super().__init__(system, Kind.I)
+
+    def __repr__(self) -> str:
+        return f"Current({self.deep_id()})"
 
 
 class Resistor(TwoTerminalElement):
     def __init__(self, system) -> None:
         super().__init__(system, Kind.R)
 
+    def __repr__(self) -> str:
+        return f"Resistor({self.deep_id()})"
+
 
 class Inductor(TwoTerminalElement):
     def __init__(self, system) -> None:
         super().__init__(system, Kind.L)
+
+    def __repr__(self) -> str:
+        return f"Inductor({self.deep_id()})"
 
 
 class Capacitor(TwoTerminalElement):
     def __init__(self, system) -> None:
         super().__init__(system, Kind.C)
 
-
-class VoltageControlledSwitch(FourTerminalElement):
-    def __init__(self, system) -> None:
-        super().__init__(system, Kind.VCSW)
-
-
-class CurrentControlledSwitch(FourTerminalElement):
-    def __init__(self, system) -> None:
-        super().__init__(system, Kind.CCSW)
-
-
-class VoltageControlledVoltageSource(FourTerminalElement):
-    def __init__(self, system) -> None:
-        super().__init__(system, Kind.VCVS)
-
-
-class CurrentControlledVoltageSource(FourTerminalElement):
-    def __init__(self, system) -> None:
-        super().__init__(system, Kind.CCVS)
-
-
-class CurrentControlledCurrentSource(FourTerminalElement):
-    def __init__(self, system) -> None:
-        super().__init__(system, Kind.CCCS)
-
-
-class VoltageControlledCurrentSource(FourTerminalElement):
-    def __init__(self, system) -> None:
-        super().__init__(system, Kind.VCCC)
+    def __repr__(self) -> str:
+        return f"Capacitor({self.deep_id()})"

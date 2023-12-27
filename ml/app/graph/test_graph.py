@@ -93,9 +93,15 @@ def test_breadth_first_search():
     node_1_0 = Node(subgraph2)
     Edge(subgraph2, node_1_0, subgraph2)
     Edge(subgraph2, node_1_0, subgraph2)
-    assert graph.breadth_first_search(True, lambda node: isinstance(node, Node)) == [node0]
-    assert graph.breadth_first_search(False, lambda node: isinstance(node, Node)) == [node0, node1, subgraph2, node_1_0]
-    assert graph.breadth_first_search(True, lambda node: isinstance(node, Graph)) == [subgraph2]
-    assert graph.breadth_first_search(False, lambda node: isinstance(node, Graph)) == [subgraph2]
-    assert graph.breadth_first_search(True, lambda node: isinstance(node, Edge)) == []
-    assert graph.breadth_first_search(False, lambda node: isinstance(node, Edge)) == []
+    assert graph.breadth_first_search(lambda node: None, lambda node: False) == [node0, node1, subgraph2, node_1_0]
+    assert graph.breadth_first_search(lambda node: None, lambda node: True) == [node0]
+
+    def node_check(node: Node) -> None:
+        if node == node0:
+            raise ValueError("node0")
+
+    try:
+        graph.breadth_first_search(node_check, lambda node: False)
+        assert False
+    except ValueError as e:
+        assert str(e) == "node0"

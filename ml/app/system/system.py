@@ -15,6 +15,17 @@ class System(Graph):
         else:
             self.ground = system.ground
 
+    def __repr__(self) -> str:
+        nodes_ids = []
+        for node in self.nodes:
+            nodes_ids.append(node.deep_id())
+        edges_ids = []
+        for edge in self.edges:
+            edge_id = edge.deep_id()
+            if edge_id not in edges_ids:
+                edges_ids.append(edge.deep_id())
+        return f"System(id: {self.deep_id()})"
+
     # methods to manage connections between system objects
     def split_wire(self, wire: 'Wire') -> 'CircuitNode':
         wire.remove()
@@ -30,25 +41,35 @@ class System(Graph):
             Wire(system=self, hi=ckt_node, lo=wire.lo_slot)
         return ckt_node
 
-    def is_complete(self) -> bool:
+    def check_complete(self) -> None:
         """Return True if the system is complete:
             - All nodes (CircuitNodes, Elements, and Systems) are connected by at least two wires
             - The system is fully connected (no unconnected or isolated nodes)
             - No empty sub-systems
+            - sub-Systems and Elements must not be directly connected with a Wire (need a CircuitNode in between)
             """
         # get the set of all nodes in the system
         nodes = self.deep_nodes()
 
-        def check(node: Node) -> bool:
-            """Check conditions for a node to be complete:"""
-            wires_condition = len(node.edges) > 1
-            subsystem_condition = True
-            if isinstance(node, System):
-                subsystem_condition = len(node.nodes) > 0
-            return wires_condition and subsystem_condition
+        def node_check(node: Node) -> None:
+            """raise ValueErrors for each condition that is not met"""
 
-        connected_nodes = self.breadth_first_search(False, check)
-        return len(nodes) == len(connected_nodes)
+            # node is connected by at least two wires
+            if len(node.edges) < 2:
+                raise ValueError(f"{node} is not connected by at least two wires")
+
+            # System must not be empty
+            if isinstance(node, System) and len(node.nodes) == 0:
+                raise ValueError(f"{node} is empty")
+
+            # nodes must not be neighbors of the same type
+            for neighbor in node.neighbors():
+                if isinstance(node, type(neighbor)):
+                    raise ValueError(f"{node} and {neighbor} are neighbors of the same type")
+
+        connected_nodes = self.breadth_first_search(node_check, lambda node: False)
+        if len(nodes) != len(connected_nodes):
+            raise ValueError("System is not fully connected")
 
 
 class Wire(Edge):
@@ -61,6 +82,9 @@ class Wire(Edge):
         if isinstance(hi, Element):
             raise ValueError("Terminals must be specified for Element")
         super().__init__(graph=system, hi=hi, lo=lo)
+
+    def __repr__(self) -> str:
+        return f"Wire({self.deep_id()})"
 
 
 class Element(Node):
@@ -80,6 +104,9 @@ class CircuitNode(Node):
 
     def __init__(self, system: System) -> None:
         super().__init__(graph=system, slots=[])
+
+    def __repr__(self) -> str:
+        return f"CircuitNode({self.deep_id()})"
 
 
 class Terminal(Slot):

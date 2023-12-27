@@ -44,6 +44,16 @@ class Node:
             return ""
         return self.graph.deep_id() + "_" + str(self.graph.nodes.index(self))
 
+    def neighbors(self) -> list['Node']:
+        """Return a list of all nodes connected to this node."""
+        neighbors = []
+        for edge in self.edges:
+            if edge.hi == self:
+                neighbors.append(edge.lo)
+            else:
+                neighbors.append(edge.hi)
+        return neighbors
+
 
 class Slot:
     def __init__(self, node: Node = None, name: str = "") -> None:
@@ -129,26 +139,30 @@ class Graph(Node):
                 nodes.append(node)
         return nodes
 
-    def breadth_first_search(self, first_match_only: bool, callback: Callable[[Node], bool]) -> list[Node]:
+    def breadth_first_search(self, node_check: Callable[[Node], None],
+                             node_match: Callable[[Node],bool]) -> list[Node]:
         """Return the nodes found by breadth first search that satisfies the callback. If first_match_only is False,
-        return all nodes that satisfy the callback, otherwise return the first node that satisfies the callback."""
+        return all nodes that satisfy the callback, otherwise return the first node that satisfies the callback.
+        node_check is a callback that takes a node as an argument and raises a ValueError if the node does not
+        satisfy"""
+
         visited = []
         queue = [self.nodes[0]]
         matching = []
         while queue:
             node = queue.pop(0)
-            if callback(node):
-                if first_match_only:
-                    return [node]
-                matching.append(node)
+
+            if node_match(node):
+                return [node]
+
+            node_check(node)
+            matching.append(node)
+
             if node not in visited:
                 visited.append(node)
-                for edge in node.edges:
-                    if edge.hi == node:
-                        if edge.lo not in visited and edge.lo not in queue:
-                            queue.append(edge.lo)
-                    else:
-                        if edge.hi not in visited and edge.hi not in queue:
-                            queue.append(edge.hi)
+                for neighbor in node.neighbors():
+                    if neighbor not in visited and neighbor not in queue:
+                        queue.append(neighbor)
+
         return matching
 
