@@ -1,8 +1,8 @@
-from app.graph.graph import Graph, Node, Edge, Slot
+from modules.graph import Graph, Node, Edge, Slot
 
 
 class System(Graph):
-    def __init__(self, system: 'System' = None, ports: list['Port'] = None) -> None:
+    def __init__(self, system: "System" = None, ports: list["Port"] = None) -> None:
         if system is not None and ports is None:
             raise ValueError("Ports must be specified for sub-System")
         if ports is None:
@@ -11,7 +11,9 @@ class System(Graph):
             port.node = self
         super().__init__(system, ports)
         if system is None:
-            self.ground = CircuitNode(self)  # ground node is always 0th node at top level of system
+            self.ground = CircuitNode(
+                self
+            )  # ground node is always 0th node at top level of system
         else:
             self.ground = system.ground
 
@@ -27,7 +29,7 @@ class System(Graph):
         return f"System(id: {self.deep_id()})"
 
     # methods to manage connections between system objects
-    def split_wire(self, wire: 'Wire') -> 'CircuitNode':
+    def split_wire(self, wire: "Wire") -> "CircuitNode":
         wire.remove()
         ckt_node = CircuitNode(self)
         if wire.hi_slot is None:
@@ -43,11 +45,11 @@ class System(Graph):
 
     def check_complete(self) -> None:
         """Return True if the system is complete:
-            - All nodes (CircuitNodes, Elements, and Systems) are connected by at least two wires
-            - The system is fully connected (no unconnected or isolated nodes)
-            - No empty sub-systems
-            - sub-Systems and Elements must not be directly connected with a Wire (need a CircuitNode in between)
-            """
+        - All nodes (CircuitNodes, Elements, and Systems) are connected by at least two wires
+        - The system is fully connected (no unconnected or isolated nodes)
+        - No empty sub-systems
+        - sub-Systems and Elements must not be directly connected with a Wire (need a CircuitNode in between)
+        """
         # get the set of all nodes in the system
         nodes = self.deep_nodes()
 
@@ -65,7 +67,9 @@ class System(Graph):
             # nodes must not be neighbors of the same type
             for neighbor in node.neighbors():
                 if isinstance(node, type(neighbor)):
-                    raise ValueError(f"{node} and {neighbor} are neighbors of the same type")
+                    raise ValueError(
+                        f"{node} and {neighbor} are neighbors of the same type"
+                    )
 
         connected_nodes = self.breadth_first_search(node_check, lambda node: False)
         if len(nodes) != len(connected_nodes):
@@ -77,14 +81,18 @@ class Wire(Edge):
     CircuitNode"""
 
     def __init__(self, system: System, hi, lo) -> None:
-        if isinstance(hi, System):
+        if isinstance(hi, System) or isinstance(lo, System):
             raise ValueError("Ports must be specified for System")
-        if isinstance(hi, Element):
+        if isinstance(hi, Element) or isinstance(lo, Element):
             raise ValueError("Terminals must be specified for Element")
         super().__init__(graph=system, hi=hi, lo=lo)
+        # add a CircuitNode if connecting two Elements/Systems
+        if (not isinstance(hi, CircuitNode)) and (not isinstance(lo, CircuitNode)):
+            if isinstance(self.graph, System):
+                self.graph.split_wire(self)
 
     def __repr__(self) -> str:
-        return f"Wire({self.deep_id()})"
+        return f"Wire({self.hi.deep_id()}->{self.lo.deep_id()})"
 
 
 class Element(Node):
@@ -93,10 +101,14 @@ class Element(Node):
 
     def __init__(self, system: System, slots: list[Slot], kind) -> None:
         super().__init__(system, slots)
-        from app.system.elements import Kind
+        from modules.elements import Kind
+
         if not isinstance(kind, Kind):
             raise ValueError("Invalid kind for element")
         self.kind = kind
+
+    def __str__(self):
+        return f"{self.kind.name}{self.deep_id()}"
 
 
 class CircuitNode(Node):

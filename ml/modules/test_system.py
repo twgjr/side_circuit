@@ -1,5 +1,5 @@
-from app.system.elements import Voltage
-from app.system.system import *
+from modules.elements import Voltage
+from modules.system import *
 
 
 def test_split_wire():
@@ -32,7 +32,7 @@ def test_check_complete():
     Wire(system, hi=system.ground, lo=ss2["p"])
     Wire(system, hi=system.ground, lo=ss2["n"])
     cn3 = CircuitNode(ss2)
-    voltage = Voltage(ss2)
+    voltage = Voltage(ss2, 10)
     Wire(ss2, cn3, voltage.p)
     Wire(ss2, cn3, voltage.n)
     system.check_complete()

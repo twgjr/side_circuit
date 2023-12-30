@@ -1,4 +1,4 @@
-from app.graph.graph import Graph, Node, Edge, Slot
+from modules.graph import Graph, Node, Edge, Slot
 
 
 def test_add_remove_edge_node_with_mixed_slots():
@@ -49,26 +49,11 @@ def test_node_id():
     graph = Graph()
     assert graph.deep_id() == ""
     node0 = Node(graph)
-    assert node0.deep_id() == "_0"
+    assert node0.deep_id() == "0"
     subgraph1 = Graph(graph)
-    assert subgraph1.deep_id() == "_1"
+    assert subgraph1.deep_id() == "1"
     node_1_0 = Node(subgraph1)
-    assert node_1_0.deep_id() == "_1_0"
-
-
-def test_edge_id():
-    graph = Graph()
-    node0 = Node(graph)
-    node1 = Node(graph)
-    edge0 = Edge(graph, node0, node1)
-    assert edge0.deep_id() == "_0"
-    subgraph1 = Graph(graph)
-    node_1_0 = Node(subgraph1)
-    node_1_1 = Node(subgraph1)
-    edge_1_0 = Edge(subgraph1, node_1_0, node_1_1)
-    assert edge_1_0.deep_id() == "_2_0"
-    edge_1_1 = Edge(subgraph1, node_1_0, node_1_1)
-    assert edge_1_1.deep_id() == "_2_1"
+    assert node_1_0.deep_id() == "1_0"
 
 
 def test_deep_nodes():
@@ -105,3 +90,11 @@ def test_breadth_first_search():
         assert False
     except ValueError as e:
         assert str(e) == "node0"
+
+
+def test_slot_neighbor():
+    graph = Graph()
+    node = Node(graph)
+    slotted_node = Node(graph, [Slot(name="p"), Slot(name="n")])
+    Edge(graph, node, slotted_node["p"])
+    assert slotted_node["p"].neighbor() == node

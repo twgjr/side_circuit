@@ -8,15 +8,17 @@ class Node:
         self.slots = slots
         if self.slots is None:
             self.slots = []
+        for slot in self.slots:
+            slot.node = self
         self.edges: list[Edge] = []
         if self.graph is not None:
             self.graph.nodes.append(self)
 
     def __repr__(self):
-        edges_ids = []
-        for edge in self.edges:
-            edges_ids.append(edge.deep_id())
-        return f"Node(id: {self.deep_id()}, slots: {self.slots}, edges: {edges_ids})"
+        return f"Node({self.deep_id()})"
+
+    def __str__(self):
+        return f"{self.deep_id()}"
 
     def remove(self) -> None:
         """Remove this node from the graph and all connected edges."""
@@ -41,8 +43,13 @@ class Node:
         # recursively find the index of the graph this node belongs to
         # append indices as we go
         if self.graph is None:
-            return ""
-        return self.graph.deep_id() + "_" + str(self.graph.nodes.index(self))
+            # stop when we reach the top level graph (node with no parent sub-graph)
+            if isinstance(self, Graph):
+                return ""
+        elif self.graph.graph is None:
+            return f"{self.graph.nodes.index(self)}"
+        else:
+            return f"{self.graph.deep_id()}_{self.graph.nodes.index(self)}"
 
     def neighbors(self) -> list['Node']:
         """Return a list of all nodes connected to this node."""
@@ -66,6 +73,14 @@ class Slot:
             if edge.hi_slot == self or edge.lo_slot == self:
                 return edge
         raise ValueError("No edge connected to slot")
+
+    def neighbor(self) -> Node:
+        """Return the node connected to this slot."""
+        edge = self.edge()
+        if edge.hi_slot == self:
+            return edge.lo
+        else:
+            return edge.hi
 
 
 class Edge:
@@ -96,12 +111,8 @@ class Edge:
         self.hi.edges.remove(self)
         self.lo.edges.remove(self)
 
-    def deep_id(self) -> str:
-        # recursively find the index of the graph this node belongs to
-        # append indices as we go
-        if self.graph is None:
-            return ""
-        return self.graph.deep_id() + "_" + str(self.graph.edges.index(self))
+    def __repr__(self):
+        return f"Edge(hi: {self.hi}, lo: {self.lo})"
 
 
 class Graph(Node):
@@ -111,15 +122,7 @@ class Graph(Node):
         self.edges: list[Edge] = []
 
     def __repr__(self):
-        nodes_ids = []
-        for node in self.nodes:
-            nodes_ids.append(node.deep_id())
-        edges_ids = []
-        for edge in self.edges:
-            edge_id = edge.deep_id()
-            if edge_id not in edges_ids:
-                edges_ids.append(edge.deep_id())
-        return f"Graph(id: {self.deep_id()}, nodes: {nodes_ids}, edges: {edges_ids})"
+        return f"Graph(id: {self.deep_id()}, nodes: {self.nodes}, edges: {self.edges})"
 
     def deep_nodes(self) -> list[Node]:
         """Return a list of all nodes in the graph regardless of edges."""
@@ -140,7 +143,7 @@ class Graph(Node):
         return nodes
 
     def breadth_first_search(self, node_check: Callable[[Node], None],
-                             node_match: Callable[[Node],bool]) -> list[Node]:
+                             node_match: Callable[[Node], bool]) -> list[Node]:
         """Return the nodes found by breadth first search that satisfies the callback. If first_match_only is False,
         return all nodes that satisfy the callback, otherwise return the first node that satisfies the callback.
         node_check is a callback that takes a node as an argument and raises a ValueError if the node does not
@@ -165,4 +168,3 @@ class Graph(Node):
                         queue.append(neighbor)
 
         return matching
-
