@@ -10,20 +10,20 @@ logger = Logging.setup_logging()
 def test_system_to_pyspice():
     # create a voltage resistor circuit
     system = System()
-    voltage = Voltage(system, 10)
+    voltage = Voltage(system).DC(10)
     resistor = Resistor(system, 100)
     Wire(system, voltage.p, resistor.p)
     Wire(system, voltage.n, system.ground)
     Wire(system, resistor.n, system.ground)
     # convert to PySpice
     simulator = Simulator(system)
-    circuit = simulator.system_to_pyspice()
+    circuit = simulator.system_to_pyspice("test")
     assert len(circuit.elements) == 2
 
 
 def test_simulator():
     system = System()
-    voltage = Voltage(system, 10)
+    voltage = Voltage(system).DC(10)
     top_resistor = Resistor(system, 9)
     bottom_resistor = Resistor(system, 1)
     Wire(system, voltage.p, top_resistor.p)
@@ -33,7 +33,7 @@ def test_simulator():
 
     # convert to PySpice
     sim = Simulator(system)
-    circuit = sim.system_to_pyspice()
+    circuit = sim.system_to_pyspice("test")
 
     simulator = circuit.simulator(temperature=25, nominal_temperature=25)
 

@@ -1,4 +1,5 @@
 from modules.graph import Graph, Node, Edge, Slot
+import json
 
 
 class System(Graph):
@@ -28,20 +29,17 @@ class System(Graph):
                 edges_ids.append(edge.deep_id())
         return f"System(id: {self.deep_id()})"
 
-    # methods to manage connections between system objects
-    def split_wire(self, wire: "Wire") -> "CircuitNode":
-        wire.remove()
-        ckt_node = CircuitNode(self)
-        if wire.hi_slot is None:
-            Wire(system=self, hi=wire.hi, lo=ckt_node)
-        else:
-            Wire(system=self, hi=wire.hi_slot, lo=ckt_node)
+    def to_dict(self) -> dict:
+        """Return a dictionary representation of the system"""
+        return {
+            "id": self.deep_id(),
+            "nodes": [node.to_dict() for node in self.nodes],
+            "edges": [edge.to_dict() for edge in self.edges],
+        }
 
-        if wire.lo_slot is None:
-            Wire(system=self, hi=ckt_node, lo=wire.lo)
-        else:
-            Wire(system=self, hi=ckt_node, lo=wire.lo_slot)
-        return ckt_node
+    def to_json(self) -> str:
+        """Return a JSON representation of the system"""
+        return json.dumps(self.to_dict(), indent=4)
 
     def check_complete(self) -> None:
         """Return True if the system is complete:
@@ -85,14 +83,52 @@ class Wire(Edge):
             raise ValueError("Ports must be specified for System")
         if isinstance(hi, Element) or isinstance(lo, Element):
             raise ValueError("Terminals must be specified for Element")
-        super().__init__(graph=system, hi=hi, lo=lo)
+        
+        # merge CircuitNodes if connecting two CircuitNodes
+        if isinstance(hi, CircuitNode) and isinstance(lo, CircuitNode):
+            hi.merge(lo)
+            # but don't create a new Wire as an Edge
+        else:
+            # if not merging, create a new Wire as an Edge
+            super().__init__(graph=system, hi=hi, lo=lo)
+
         # add a CircuitNode if connecting two Elements/Systems
         if (not isinstance(hi, CircuitNode)) and (not isinstance(lo, CircuitNode)):
-            if isinstance(self.graph, System):
-                self.graph.split_wire(self)
+            self.split()
 
+    def to_dict(self) -> dict:
+        """Return a dictionary representation of the wire"""
+        return {
+            "id": self.deep_id(),
+            "hi": self.hi.deep_id(),
+            "lo": self.lo.deep_id(),
+        }
+    
     def __repr__(self) -> str:
         return f"Wire({self.hi.deep_id()}->{self.lo.deep_id()})"
+
+    def deep_id(self) -> str:
+        return f"{self.hi.deep_id()}->{self.lo.deep_id()}"
+
+    def split(self) -> "CircuitNode":
+        """Split the wire into two wires and return the new CircuitNode"""
+        if not isinstance(self.graph, System):
+            raise ValueError("Wire must be part of a System")
+        ckt_node = CircuitNode(self.graph)
+
+        if self.hi_slot is None:
+            Wire(system=self.graph, hi=self.hi, lo=ckt_node)
+        else:
+            Wire(system=self.graph, hi=self.hi_slot, lo=ckt_node)
+
+        if self.lo_slot is None:
+            Wire(system=self.graph, hi=ckt_node, lo=self.lo)
+        else:
+            Wire(system=self.graph, hi=ckt_node, lo=self.lo_slot)
+        
+        self.remove()
+        
+        return ckt_node
 
 
 class Element(Node):
@@ -107,6 +143,14 @@ class Element(Node):
             raise ValueError("Invalid kind for element")
         self.kind = kind
 
+    def to_dict(self) -> dict:
+        """Return a dictionary representation of the element"""
+        return {
+            "id": self.deep_id(),
+            "kind": self.kind.name,
+            "slots": [slot.to_dict() for slot in self.slots],
+        }
+
     def __str__(self):
         return f"{self.kind.name}{self.deep_id()}"
 
@@ -120,6 +164,38 @@ class CircuitNode(Node):
     def __repr__(self) -> str:
         return f"CircuitNode({self.deep_id()})"
 
+    def merge(self, other: "CircuitNode") -> None:
+        '''Replace node with self in all edges and remove node from graph'''
+        if not isinstance(other, CircuitNode):
+            raise ValueError("Must merge CircuitNodes")
+        if other.graph != self.graph and not (isinstance(other.graph, System) and isinstance(self.graph, System)):
+            raise ValueError("CircuitNodes must be part of same System")
+        if other == self:
+            raise ValueError("Cannot merge node with itself")
+
+        if other == self.graph.ground:
+            # merge self into ground (other) node
+            for edge in self.edges:
+                other.edges.append(edge)
+                if edge.hi == self:
+                    edge.hi = other
+                else:
+                    edge.lo = other
+            self.remove()
+        else:
+            # merge other node into self
+            for edge in other.edges:
+                self.edges.append(edge)
+                if edge.hi == other:
+                    edge.hi = self
+                else:
+                    edge.lo = self
+            other.remove()
+
+    def to_dict(self) -> dict:
+        """Return a dictionary representation of the circuit node"""
+        return {"id": self.deep_id()}
+
 
 class Terminal(Slot):
     """A connection point for an Element or CircuitNode"""
@@ -127,9 +203,17 @@ class Terminal(Slot):
     def __init__(self, element: Element = None, name: str = "") -> None:
         super().__init__(element, name)
 
+    def to_dict(self) -> dict:
+        """Return a dictionary representation of the terminal"""
+        return {"id": self.node.slots.index(self), "name": self.name}
+
 
 class Port(Slot):
     """A connection point for a System"""
 
     def __init__(self, system: System = None, name: str = "") -> None:
         super().__init__(system, name)
+
+    def to_dict(self) -> dict:
+        """Return a dictionary representation of the port"""
+        return {"id": self.node.slots.index(self), "name": self.name}
