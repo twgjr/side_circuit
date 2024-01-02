@@ -1,170 +1,104 @@
-from typing import Callable
-
-
 class Node:
-    def __init__(self, graph: 'Graph', slots: list['Slot'] = None, name: str = "") -> None:
-        self.name = name
-        self.graph: 'Graph' = graph
-        self.slots = slots
-        if self.slots is None:
-            self.slots = []
-        for slot in self.slots:
-            slot.node = self
-        self.edges: list[Edge] = []
-        if self.graph is not None:
-            self.graph.nodes.append(self)
+    def __init__(self, slots: list['Slot']) -> None:
+        self.__slots = slots
 
-    def __repr__(self):
-        return f"Node({self.deep_id()})"
-
-    def __str__(self):
-        return f"{self.deep_id()}"
-
-    def remove(self) -> None:
-        """Remove this node from the graph and all connected edges."""
-        for edge in self.edges:
-            edge.remove()
-        self.graph.nodes.remove(self)
-
-    def slot_is_valid(self, slot: 'Slot') -> bool:
-        if slot in self.slots:
-            return True
-        if len(self.slots) == 0 and slot is None:
-            return True
-        return False
+    @property
+    def slots(self) -> list['Slot']:
+        return self.__slots
 
     def __getitem__(self, key: str) -> 'Slot':
         for slot in self.slots:
             if slot.name == key:
                 return slot
-        raise KeyError("Slot not found")
-
-    def deep_id(self) -> str:
-        # recursively find the index of the graph this node belongs to
-        # append indices as we go
-        if self.graph is None:
-            # stop when we reach the top level graph (node with no parent sub-graph)
-            if isinstance(self, Graph):
-                return ""
-        elif self.graph.graph is None:
-            return f"{self.graph.nodes.index(self)}"
-        else:
-            return f"{self.graph.deep_id()}_{self.graph.nodes.index(self)}"
-
-    def neighbors(self) -> list['Node']:
-        """Return a list of all nodes connected to this node."""
-        neighbors = []
-        for edge in self.edges:
-            if edge.hi == self:
-                neighbors.append(edge.lo)
-            else:
-                neighbors.append(edge.hi)
-        return neighbors
+        raise KeyError(key)
 
 
 class Slot:
-    def __init__(self, node: Node = None, name: str = "") -> None:
-        self.node: Node = node
+    def __init__(self, name: str = "") -> None:
         self.name: str = name
-
-    def edge(self) -> 'Edge':
-        """Return the edge connected to this slot."""
-        for edge in self.node.edges:
-            if edge.hi_slot == self or edge.lo_slot == self:
-                return edge
-        raise ValueError("No edge connected to slot")
-
-    def neighbor(self) -> Node:
-        """Return the node connected to this slot."""
-        edge = self.edge()
-        if edge.hi_slot == self:
-            return edge.lo
-        else:
-            return edge.hi
 
 
 class Edge:
-    """An edge is a connection between two nodes. It stores a reference to the nodes it connects, but leaves updating
-    the nodes to the graph."""
-
-    def __init__(self, graph: 'Graph', hi, lo) -> None:
-        self.graph: Graph = graph
-        self.hi: Node = hi
-        if isinstance(hi, Slot):
-            self.hi: Node = hi.node
-        self.lo: Node = lo
-        if isinstance(lo, Slot):
-            self.lo: Node = lo.node
-        self.hi_slot: Slot = None
-        if isinstance(hi, Slot):
-            self.hi_slot: Slot = hi
-        self.lo_slot: Slot = None
-        if isinstance(lo, Slot):
-            self.lo_slot: Slot = lo
-        self.graph.edges.append(self)
-        self.hi.edges.append(self)
-        self.lo.edges.append(self)
-
-    def remove(self) -> None:
-        """Remove this edge from the graph and disconnect it from the nodes it connects."""
-        self.graph.edges.remove(self)
-        self.hi.edges.remove(self)
-        self.lo.edges.remove(self)
-
-    def __repr__(self):
-        return f"Edge(hi: {self.hi}, lo: {self.lo})"
+    def __init__(self) -> None:
+        pass
 
 
 class Graph(Node):
-    def __init__(self, graph: 'Graph' = None, slots: list[Slot] = None) -> None:
-        super().__init__(graph, slots)
-        self.nodes: list[Node] = []
-        self.edges: list[Edge] = []
+    def __init__(self, slots: list[Slot]) -> None:
+        super().__init__(slots)
+        self.__nodes: list[Node] = []
+        self.__edges: list[Edge] = []
+        self.__slot_node_map: dict[Slot, Node] = {}
+        self.__from_edge_map: dict[Edge, list[Slot | Node]] = {}
+        self.__to_edge_map: dict[Slot | Node, Edge] = {}
 
-    def __repr__(self):
-        return f"Graph(id: {self.deep_id()}, nodes: {self.nodes}, edges: {self.edges})"
+    def __contains__(self, item) -> bool:
+        if isinstance(item, Node):
+            if item not in self.__nodes:
+                return False
+            for slot in item.slots:
+                if slot not in self.__slot_node_map:
+                    return False
+                if self.__slot_node_map[slot] != item:
+                    return False
+            return True
 
-    def deep_nodes(self) -> list[Node]:
-        """Return a list of all nodes in the graph regardless of edges."""
-        nodes = []
-        subgraphs = []
+        elif isinstance(item, Edge):
+            if item not in self.__edges:
+                return False
+            if item not in self.__from_edge_map:
+                return False
+            hi, lo = self.__from_edge_map[item]
+            if hi not in self.__to_edge_map:
+                return False
+            if self.__to_edge_map[hi] != item:
+                return False
+            if lo not in self.__to_edge_map:
+                return False
+            if self.__to_edge_map[lo] != item:
+                return False
+            return True
 
-        for node in self.nodes:
-            if isinstance(node, Graph):
-                subgraphs.append(node)
-            nodes.append(node)
+        return False
 
-        while subgraphs:
-            subgraph = subgraphs.pop(0)
-            for node in subgraph.nodes:
-                if isinstance(node, Graph):
-                    subgraphs.append(node)
-                nodes.append(node)
-        return nodes
+    def add_node(self, node: Node) -> None:
+        self.__nodes.append(node)
+        for slot in node.slots:
+            self.__slot_node_map[slot] = node
 
-    def breadth_first_search(self, node_check: Callable[[Node], None],
-                             node_match: Callable[[Node], bool]) -> list[Node]:
-        """Return the nodes found by breadth first search that satisfies the callback. If first_match_only is False,
-        return all nodes that satisfy the callback, otherwise return the first node that satisfies the callback.
-        node_check is a callback that takes a node as an argument and raises a ValueError if the node does not
-        satisfy"""
+    def remove_node(self, node: Node) -> None:
+        # remove the node from the graph
+        self.__nodes.remove(node)
 
-        visited = []
-        queue = [self.nodes[0]]
-        matching = []
-        while queue:
-            node = queue.pop(0)
+        # remove slot mappings
+        for slot in node.slots:
+            del self.__slot_node_map[slot]
 
-            if node_match(node):
-                return [node]
+        # remove edges
+        if node in self.__to_edge_map:
+            self.remove_edge(self.__to_edge_map[node])
+        for slot in node.slots:
+            if slot in self.__to_edge_map:
+                self.remove_edge(self.__to_edge_map[slot])
 
-            node_check(node)
-            matching.append(node)
 
-            if node not in visited:
-                visited.append(node)
-                for neighbor in node.neighbors():
-                    if neighbor not in visited and neighbor not in queue:
-                        queue.append(neighbor)
+    def num_nodes(self) -> int:
+        return len(self.__nodes)
 
-        return matching
+    def add_edge(self, edge: Edge, hi: Slot | Node, lo: Slot | Node) -> None:
+        if hi == lo:
+            raise ValueError("hi and lo cannot be the same")
+        self.__edges.append(edge)
+        self.__from_edge_map[edge] = [hi, lo]
+        self.__to_edge_map[hi] = edge
+        self.__to_edge_map[lo] = edge
+
+    def remove_edge(self, edge: Edge) -> None:
+        self.__edges.remove(edge)
+        hi, lo = self.__from_edge_map[edge]
+        del self.__from_edge_map[edge]
+        del self.__to_edge_map[hi]
+        del self.__to_edge_map[lo]
+
+    def num_edges(self) -> int:
+        return len(self.__edges)
