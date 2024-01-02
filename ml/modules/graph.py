@@ -1,12 +1,12 @@
 class Node:
-    def __init__(self, slots: list['Slot']) -> None:
+    def __init__(self, slots: list["Slot"]) -> None:
         self.__slots = slots
 
     @property
-    def slots(self) -> list['Slot']:
+    def slots(self) -> list["Slot"]:
         return self.__slots
 
-    def __getitem__(self, key: str) -> 'Slot':
+    def __getitem__(self, key: str) -> "Slot":
         for slot in self.slots:
             if slot.name == key:
                 return slot
@@ -23,9 +23,8 @@ class Edge:
         pass
 
 
-class Graph(Node):
-    def __init__(self, slots: list[Slot]) -> None:
-        super().__init__(slots)
+class Graph:
+    def __init__(self) -> None:
         self.__nodes: list[Node] = []
         self.__edges: list[Edge] = []
         self.__slot_node_map: dict[Slot, Node] = {}
@@ -61,6 +60,11 @@ class Graph(Node):
 
         return False
 
+    # node methods
+
+    def node_id(self, node: Node) -> str:
+        return str(self.__nodes.index(node))
+    
     def add_node(self, node: Node) -> None:
         self.__nodes.append(node)
         for slot in node.slots:
@@ -81,9 +85,10 @@ class Graph(Node):
             if slot in self.__to_edge_map:
                 self.remove_edge(self.__to_edge_map[slot])
 
-
     def num_nodes(self) -> int:
         return len(self.__nodes)
+
+    # edge methods
 
     def add_edge(self, edge: Edge, hi: Slot | Node, lo: Slot | Node) -> None:
         if hi == lo:
