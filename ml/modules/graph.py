@@ -26,10 +26,14 @@ class Edge:
 class Graph:
     def __init__(self) -> None:
         self.__nodes: list[Node] = []
-        self.__edges: list[Edge] = []
+        # provides a link from a slot to the node it belongs to
         self.__slot_node_map: dict[Slot, Node] = {}
-        self.__from_edge_map: dict[Edge, list[Slot | Node]] = {}
-        self.__to_edge_map: dict[Slot | Node, Edge] = {}
+
+        # maps edges to their hi and lo nodes/slots
+        # both dicts are always updated together, no unpaired edges
+        # always directed as in:  hi -> edge -> lo
+        self.__hi_edge_map: dict[Slot | Node, Edge] = {}
+        self.__edge_lo_map: dict[Edge, list[Slot | Node]] = {}
 
     def __contains__(self, item) -> bool:
         if isinstance(item, Node):
@@ -43,18 +47,16 @@ class Graph:
             return True
 
         elif isinstance(item, Edge):
-            if item not in self.__edges:
+            if item not in self.__edge_lo_map:
                 return False
-            if item not in self.__from_edge_map:
+            hi, lo = self.__edge_lo_map[item]
+            if hi not in self.__hi_edge_map:
                 return False
-            hi, lo = self.__from_edge_map[item]
-            if hi not in self.__to_edge_map:
+            if self.__hi_edge_map[hi] != item:
                 return False
-            if self.__to_edge_map[hi] != item:
+            if lo not in self.__hi_edge_map:
                 return False
-            if lo not in self.__to_edge_map:
-                return False
-            if self.__to_edge_map[lo] != item:
+            if self.__hi_edge_map[lo] != item:
                 return False
             return True
 
@@ -79,11 +81,11 @@ class Graph:
             del self.__slot_node_map[slot]
 
         # remove edges
-        if node in self.__to_edge_map:
-            self.remove_edge(self.__to_edge_map[node])
+        if node in self.__hi_edge_map:
+            self.remove_edge(self.__hi_edge_map[node])
         for slot in node.slots:
-            if slot in self.__to_edge_map:
-                self.remove_edge(self.__to_edge_map[slot])
+            if slot in self.__hi_edge_map:
+                self.remove_edge(self.__hi_edge_map[slot])
 
     def num_nodes(self) -> int:
         return len(self.__nodes)
@@ -93,17 +95,15 @@ class Graph:
     def add_edge(self, edge: Edge, hi: Slot | Node, lo: Slot | Node) -> None:
         if hi == lo:
             raise ValueError("hi and lo cannot be the same")
-        self.__edges.append(edge)
-        self.__from_edge_map[edge] = [hi, lo]
-        self.__to_edge_map[hi] = edge
-        self.__to_edge_map[lo] = edge
+        self.__edge_lo_map[edge] = [hi, lo]
+        self.__hi_edge_map[hi] = edge
+        self.__hi_edge_map[lo] = edge
 
     def remove_edge(self, edge: Edge) -> None:
-        self.__edges.remove(edge)
-        hi, lo = self.__from_edge_map[edge]
-        del self.__from_edge_map[edge]
-        del self.__to_edge_map[hi]
-        del self.__to_edge_map[lo]
+        hi, lo = self.__edge_lo_map[edge]
+        del self.__edge_lo_map[edge]
+        del self.__hi_edge_map[hi]
+        del self.__hi_edge_map[lo]
 
     def num_edges(self) -> int:
-        return len(self.__edges)
+        return len(self.__edge_lo_map)
