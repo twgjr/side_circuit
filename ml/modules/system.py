@@ -4,14 +4,14 @@ from graph import Graph, Node, Edge
 class System(Graph):
     def __init__(self) -> None:
         super().__init__()
-        self.__subsystem = SubSystem(self)
-        super().set_node(self.__subsystem)
+        self.__root = SubSystem(self)
+        super().set_node(self.__root)
         self.__ground = CircuitNode()
         super().set_node(self.__ground)
 
     @property
-    def subsystem(self) -> "SubSystem":
-        return self.__subsystem
+    def root(self) -> "SubSystem":
+        return self.__root
 
     @property
     def gnd(self) -> "CircuitNode":
@@ -57,6 +57,8 @@ class SubSystem(Node):
     def add_wire(self, item1: "Node | Slot", item2: "Node | Slot") -> "Wire":
         if isinstance(item1, CircuitNode) and isinstance(item2, CircuitNode):
             raise ValueError("Cannot connect two CircuitNodes")
+        if not isinstance(item1, CircuitNode) and not isinstance(item2, CircuitNode):
+            raise ValueError("Cannot connect two non-CircuitNodes")
         edge = Wire(None, None)  # type: ignore
         if isinstance(item1, Slot) and isinstance(item2, Slot):
             edge = Wire(item1, item2)
@@ -83,7 +85,24 @@ class SubSystem(Node):
         self.__system.set_node(node)
         self.__subsystems.append(node)
         return node
+    
+    def get_subsystem(self, index: int) -> "SubSystem":
+        return self.__subsystems[index]
+    
+    def num_subsystems(self) -> int:
+        return len(self.__subsystems)
 
+    def num_circuit_nodes(self) -> int:
+        return len(self.__circuit_nodes)
+    
+    def num_ports(self) -> int:
+        return len(self.__ports)
+    
+    def num_elements(self) -> int:
+        return len(self.__elements)
+    
+    def num_wires(self) -> int:
+        return len(self.__wires)
 
 class Wire(Edge):
     """graph edge connecting CircuitNodes, Elements and SubSystems.
@@ -109,7 +128,20 @@ class Element(Node):
 
     def __init__(self, terminals: list["Terminal"]) -> None:
         super().__init__()
-        self.terminals = terminals
+        self.__terminals = terminals
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+    
+    def __eq__(self, o: object) -> bool:
+        return hash(self) == hash(o)
+    
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}{id(self)})"
+    
+    @property
+    def terminals(self) -> list["Terminal"]:
+        return self.__terminals
 
 
 class CircuitNode(Node):

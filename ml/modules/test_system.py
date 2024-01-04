@@ -7,55 +7,73 @@ from system import *
 class TestSystem(unittest.TestCase):
     def test_merge_circuit_nodes(self):
         system = System()
-        assert system.num_edges() == 0
-        assert system.num_nodes() == 2  # grund and top level subsystem
-        cn1 = system.subsystem.add_circuit_node()
-        cn2 = system.subsystem.add_circuit_node()
+        self.assertEqual(system.num_nodes(), 2) # grund and top level subsystem
+        self.assertEqual(system.root.num_circuit_nodes(), 0)
+        cn1 = system.root.add_circuit_node()
+        cn2 = system.root.add_circuit_node()
         try:
-            system.subsystem.add_wire(cn1, cn2)
-            assert False
+            system.root.add_wire(cn1, cn2)
+            self.assertTrue(False)
         except ValueError:
             pass
 
-    # def test_split_wire(self):
-    #     system = System()
-    #     assert len(system.edges) == 0
-    #     assert len(system.__circuit_nodes) == 1  # 1 ground
-    #     voltage = Voltage(system).DC(10)
-    #     resistor = Resistor(system, 1)
-
-    #     wire1 = Wire(system, voltage.p, resistor.p)
-    #     wire2 = Wire(system, voltage.n, resistor.n)
-    #     assert len(system.edges) == 4
-    #     assert wire1 not in system.edges
-    #     assert wire2 not in system.edges
-    #     assert voltage.p.edge() in system.edges
-    #     assert voltage.n.edge() in system.edges
-    #     assert resistor.p.edge() in system.edges
-    #     assert resistor.n.edge() in system.edges
-    #     assert resistor.p.edge() != voltage.p.edge()
-    #     assert resistor.n.edge() != voltage.n.edge()
-    #     assert len(system.__circuit_nodes) == 5  # 1 ground + 2 elements + 2 circuit node in between
-    #     assert voltage in system.__circuit_nodes
-    #     assert resistor in system.__circuit_nodes
-    #     assert voltage.p.edge().lo in system.__circuit_nodes
-    #     assert voltage.n.edge().lo in system.__circuit_nodes
-    #     assert system.ground in system.__circuit_nodes
-    #     assert isinstance(voltage.p.edge().lo, CircuitNode)
-    #     assert isinstance(voltage.n.edge().lo, CircuitNode)
-    #     assert voltage.p.edge().lo == resistor.p.edge().hi
-    #     assert voltage.n.edge().lo == resistor.n.edge().hi
+    def test_subsystem_tree(self):
+        """make a tree that looks like:
+                         root
+                        /    \
+                     sub1    sub2
+                            /   
+                         sub21  """
+        system = System()
+        self.assertEqual(system.num_edges(), 0)
+        self.assertEqual(system.num_nodes(), 2)
+        self.assertEqual(system.root.num_subsystems(), 0)
+        sub1 = system.root.add_subsystem()
+        sub2 = system.root.add_subsystem()
+        sub21 = sub2.add_subsystem()
+        self.assertEqual(system.num_edges(), 0)
+        self.assertEqual(system.num_nodes(), 5)
+        self.assertEqual(system.root.num_subsystems(), 2)
+        self.assertEqual(sub1.num_subsystems(), 0)
+        self.assertEqual(sub2.num_subsystems(), 1)
+        self.assertEqual(sub21.num_subsystems(), 0)
 
 
+    def test_make_system_with_elements(self):
+        """make a system that looks like:
+            system
+               |   
+               root-----------------
+                    |              |
+                voltage -> cn -> resistor
+                    |______gnd_____|
+        """        
+        system = System()
+        voltage = Voltage().DC(10)
+        system.root.add_element(voltage)
+        resistor = Resistor(10)
+        system.root.add_element(resistor)
+        try:
+            system.root.add_wire(resistor.p, voltage.p)
+            self.assertTrue(False)
+        except ValueError:
+            pass
+        self.assertEqual(system.num_edges(), 0)
+        cn = system.root.add_circuit_node()
+        try:
+            system.root.add_wire(cn, system.gnd)
+            self.assertTrue(False)
+        except ValueError:
+            pass
+        system.root.add_wire(resistor.p, cn)
+        system.root.add_wire(voltage.p, cn)
+        system.root.add_wire(resistor.n, system.gnd)
+        system.root.add_wire(voltage.n, system.gnd)
+        self.assertEqual(system.num_edges(), 4)
+        self.assertEqual(system.num_nodes(), 5)
+        self.assertEqual(system.root.num_elements(), 2)
+        self.assertEqual(system.root.num_circuit_nodes(), 1)
+        self.assertEqual(system.root.num_ports(), 0)
+        self.assertEqual(system.root.num_wires(), 4)
+        self.assertEqual(system.root.num_subsystems(), 0)
 
-
-    # def test_check_complete(self):
-    #     system = System()
-    #     ss2 = System(system, [Port(name="p"), Port(name="n")])
-    #     Wire(system, hi=system.ground, lo=ss2["p"])
-    #     Wire(system, hi=system.ground, lo=ss2["n"])
-    #     cn3 = CircuitNode(ss2)
-    #     voltage = Voltage(ss2).DC(10)
-    #     Wire(ss2, cn3, voltage.p)
-    #     Wire(ss2, cn3, voltage.n)
-    #     system.check_complete()
