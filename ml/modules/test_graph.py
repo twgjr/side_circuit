@@ -1,59 +1,61 @@
 import unittest
-from modules.graph import Graph, Node, Edge, Slot
+from graph import Graph, Node, Edge
+
+class TestEdge(Edge):
+    def __init__(self, value: int) -> None:
+        self.value = value
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+    
+    def __eq__(self, o: object) -> bool:
+        return hash(self) == hash(o)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}{self.value})"    
+    
+class TestNode(Node):
+    def __init__(self, value: int) -> None:
+        self.value = value
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+    
+    def __eq__(self, o: object) -> bool:
+        return hash(self) == hash(o)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}{self.value})"
 
 
 class TestGraph(unittest.TestCase):
     def test_add_remove_edge_node_with_mixed_slots(self):
         graph = Graph()
         # add a node to the graph with two slots
-        node = Node([])
-        graph.add_node(node)
-        slot0 = Slot("p")
-        slot1 = Slot("n")
-        slot_node = Node([slot0, slot1])
-        graph.add_node(slot_node)
+        n0 = TestNode(10)
+        graph.set_node(n0)
+        assert graph.num_nodes() == 1
+        n1 = TestNode(20)
+        graph.set_node(n1)
         assert graph.num_nodes() == 2
-        assert node in graph
-        assert slot_node in graph
 
-        # create an edge from the node to itself using slots, then add it to the graph
-        edge = Edge()
-        graph.add_edge(edge, node, slot_node["p"])
+        # add an edge to the graph
+        edge = TestEdge(30)
+        graph.set_edge(edge, n0, n1)
         assert graph.num_nodes() == 2
         assert graph.num_edges() == 1
-        assert node in graph
-        assert slot_node in graph
-        assert edge in graph
 
         # remove edge from graph, which should disconnect it from the node
-        graph.remove_edge(edge)
+        graph.delete_edge(str(edge))
         assert graph.num_nodes() == 2
         assert graph.num_edges() == 0
-        assert node in graph
-        assert slot_node in graph
-        assert edge not in graph
 
         # add edge back to graph
-        graph.add_edge(edge, node, slot_node["p"])
+        graph.set_edge(edge, n0, n1)
         assert graph.num_nodes() == 2
         assert graph.num_edges() == 1
-        assert node in graph
-        assert slot_node in graph
-        assert edge in graph
 
         # remove the node from the graph, which should remove the edge
-        graph.remove_node(slot_node)
+        graph.delete_node(str(n1))
         assert graph.num_nodes() == 1
         assert graph.num_edges() == 0
-        assert node in graph
-        assert slot_node not in graph
-        assert edge not in graph
-
-    def test_node_id(self):
-        graph = Graph()
-        node0 = Node([])
-        graph.add_node(node0)
-        assert graph.node_id(node0) == "0"
-        node1 = Node([])
-        graph.add_node(node1)
-        assert graph.node_id(node1) == "1"

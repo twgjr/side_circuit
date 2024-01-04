@@ -1,109 +1,93 @@
-class Node:
-    def __init__(self, slots: list["Slot"]) -> None:
-        self.__slots = slots
-
-    @property
-    def slots(self) -> list["Slot"]:
-        return self.__slots
-
-    def __getitem__(self, key: str) -> "Slot":
-        for slot in self.slots:
-            if slot.name == key:
-                return slot
-        raise KeyError(key)
+from abc import ABC, abstractmethod
 
 
-class Slot:
-    def __init__(self, name: str = "") -> None:
-        self.name: str = name
+class Node(ABC):
+    @abstractmethod
+    def __hash__(self) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def __eq__(self, o: object) -> bool:
+        raise NotImplementedError
 
 
-class Edge:
-    def __init__(self) -> None:
-        pass
+class Edge(ABC):
+    @abstractmethod
+    def __hash__(self) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def __eq__(self, o: object) -> bool:
+        raise NotImplementedError
 
 
 class Graph:
     def __init__(self) -> None:
-        self.__nodes: list[Node] = []
-        # provides a link from a slot to the node it belongs to
-        self.__slot_node_map: dict[Slot, Node] = {}
+        self.__nodes: dict[str, Node] = {}
+        self.__edges: dict[str, Edge] = {}
+        self.__node_edge_map: dict[str, list[str]] = {}
+        self.__edge_node_map: dict[str, tuple[str, str]] = {}
 
-        # maps edges to their hi and lo nodes/slots
-        # both dicts are always updated together, no unpaired edges
-        # always directed as in:  hi -> edge -> lo
-        self.__hi_edge_map: dict[Slot | Node, Edge] = {}
-        self.__edge_lo_map: dict[Edge, list[Slot | Node]] = {}
+    def __get_node_edge_map(self, node: str) -> list[str]:
+        try:
+            return self.__node_edge_map[node]
+        except KeyError:
+            raise KeyError(f"{node} not in node edge map")
 
-    def __contains__(self, item) -> bool:
-        if isinstance(item, Node):
-            if item not in self.__nodes:
-                return False
-            for slot in item.slots:
-                if slot not in self.__slot_node_map:
-                    return False
-                if self.__slot_node_map[slot] != item:
-                    return False
-            return True
+    def __get_edge_node_map(self, edge: str) -> tuple[str, str]:
+        try:
+            return self.__edge_node_map[edge]
+        except KeyError:
+            raise KeyError(f"{edge} not in edge node map")
 
-        elif isinstance(item, Edge):
-            if item not in self.__edge_lo_map:
-                return False
-            hi, lo = self.__edge_lo_map[item]
-            if hi not in self.__hi_edge_map:
-                return False
-            if self.__hi_edge_map[hi] != item:
-                return False
-            if lo not in self.__hi_edge_map:
-                return False
-            if self.__hi_edge_map[lo] != item:
-                return False
-            return True
+    def get_node(self, node: str) -> Node:
+        try:
+            return self.__nodes[node]
+        except KeyError:
+            raise KeyError(f"{node} not in nodes")
 
-        return False
+    def get_edge(self, edge: str) -> Edge:
+        try:
+            return self.__edges[edge]
+        except KeyError:
+            raise KeyError(f"{edge} not in edges")
 
-    # node methods
+    def neighbors(self, node: str) -> list[Node]:
+        return [self.get_node(node) for node in self.__get_node_edge_map(node)]
 
-    def node_id(self, node: Node) -> str:
-        return str(self.__nodes.index(node))
-    
-    def add_node(self, node: Node) -> None:
-        self.__nodes.append(node)
-        for slot in node.slots:
-            self.__slot_node_map[slot] = node
+    def set_node(self, node: Node) -> None:
+        node_str = str(node)
+        self.__nodes[node_str] = node
+        self.__node_edge_map[node_str] = []
 
-    def remove_node(self, node: Node) -> None:
-        # remove the node from the graph
-        self.__nodes.remove(node)
+    def set_edge(self, edge: Edge, node1: Node, node2: Node) -> None:
+        edge_str = str(edge)
+        node1_str = str(node1)
+        node2_str = str(node2)
+        self.__edges[edge_str] = edge
+        self.__node_edge_map[node1_str].append(edge_str)
+        self.__node_edge_map[node2_str].append(edge_str)
+        self.__edge_node_map[edge_str] = (node1_str, node2_str)
 
-        # remove slot mappings
-        for slot in node.slots:
-            del self.__slot_node_map[slot]
+    def delete_node(self, node: str) -> None:
+        for edge in self.__get_node_edge_map(node):
+            self.delete_edge(edge)
+        if node in self.__nodes:
+            del self.__nodes[node]
+        if node in self.__node_edge_map:
+            del self.__node_edge_map[node]
 
-        # remove edges
-        if node in self.__hi_edge_map:
-            self.remove_edge(self.__hi_edge_map[node])
-        for slot in node.slots:
-            if slot in self.__hi_edge_map:
-                self.remove_edge(self.__hi_edge_map[slot])
+    def delete_edge(self, edge: str) -> None:
+        nodes = self.__edge_node_map[edge]
+        for node in nodes:
+            self.__node_edge_map[node].remove(edge)
+        if edge in self.__edge_node_map:
+            del self.__edge_node_map[edge]
+        if edge in self.__edges:
+            del self.__edges[edge]
 
     def num_nodes(self) -> int:
         return len(self.__nodes)
 
-    # edge methods
-
-    def add_edge(self, edge: Edge, hi: Slot | Node, lo: Slot | Node) -> None:
-        if hi == lo:
-            raise ValueError("hi and lo cannot be the same")
-        self.__edge_lo_map[edge] = [hi, lo]
-        self.__hi_edge_map[hi] = edge
-        self.__hi_edge_map[lo] = edge
-
-    def remove_edge(self, edge: Edge) -> None:
-        hi, lo = self.__edge_lo_map[edge]
-        del self.__edge_lo_map[edge]
-        del self.__hi_edge_map[hi]
-        del self.__hi_edge_map[lo]
-
     def num_edges(self) -> int:
-        return len(self.__edge_lo_map)
+        return len(self.__edges)
