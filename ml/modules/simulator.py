@@ -20,9 +20,9 @@ class Simulator:
         for node in self.system.nodes:
             if isinstance(node, System):
                 continue
-            if isinstance(node, CircuitNode):
+            if isinstance(node, Node):
                 continue
-            if isinstance(node, Voltage):
+            if isinstance(node, V):
                 if isinstance(node.config, DC):
                     circuit.V(
                         node.deep_id(),
@@ -40,15 +40,15 @@ class Simulator:
                         pulse_width=node.config.duty / node.config.freq,
                         period=1 / node.config.freq,
                     )
-            elif isinstance(node, Resistor):
+            elif isinstance(node, R):
                 circuit.R(
                     node.deep_id(), node.p.neighbor(), node.n.neighbor(), node.value
                 )
-            elif isinstance(node, Capacitor):
+            elif isinstance(node, C):
                 circuit.C(
                     node.deep_id(), node.p.neighbor(), node.n.neighbor(), node.value
                 )
-            elif isinstance(node, Inductor):
+            elif isinstance(node, L):
                 circuit.L(
                     node.deep_id(), node.p.neighbor(), node.n.neighbor(), node.value
                 )

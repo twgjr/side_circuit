@@ -1,79 +1,96 @@
 import unittest
 
-from elements import Voltage, Resistor
+from elements import V, R, DC
 from system import *
 
 
 class TestSystem(unittest.TestCase):
-    def test_merge_circuit_nodes(self):
-        system = System()
-        self.assertEqual(system.num_nodes(), 2) # grund and top level subsystem
-        self.assertEqual(system.root.num_circuit_nodes(), 0)
-        cn1 = system.root.add_circuit_node()
-        cn2 = system.root.add_circuit_node()
-        try:
-            system.root.add_wire(cn1, cn2)
-            self.assertTrue(False)
-        except ValueError:
-            pass
+    def test_wiring(self):
+        # create a basic system
+        s = System("wiring", ["in", "out"], [V("1", DC(10)), R("1", 1e3)])
+        # make wires
+        _ = s["in"] >> s.e.v["1"]["p"]
+        _ = s.e.v["1"]["n"] >> s.e.r["1"]["p"]
+        _ = s.e.r["1"]["n"] >> s["out"]
 
-    def test_subsystem_tree(self):
-        """make a tree that looks like:
-                         root
-                        /    \
-                     sub1    sub2
-                            /   
-                         sub21  """
-        system = System()
-        self.assertEqual(system.num_edges(), 0)
-        self.assertEqual(system.num_nodes(), 2)
-        self.assertEqual(system.root.num_subsystems(), 0)
-        sub1 = system.root.add_subsystem()
-        sub2 = system.root.add_subsystem()
-        sub21 = sub2.add_subsystem()
-        self.assertEqual(system.num_edges(), 0)
-        self.assertEqual(system.num_nodes(), 5)
-        self.assertEqual(system.root.num_subsystems(), 2)
-        self.assertEqual(sub1.num_subsystems(), 0)
-        self.assertEqual(sub2.num_subsystems(), 1)
-        self.assertEqual(sub21.num_subsystems(), 0)
+        # test number of components
+        self.assertEqual(s.num_subsystems(), 0)
+        self.assertEqual(s.num_elements(), 2)
+        self.assertEqual(s.num_interfaces(), 2)
+        self.assertEqual(s.num_wires(), 3)
 
+    def test_resistor_subsystem(self):
+        # create a resistor series subsystem template
+        rr = System(
+            "series resistors",
+            ["in", "out", "ref"],
+            [
+                R("1", 1e3),
+                R("2", 1e3),
+            ],
+        )
 
-    def test_make_system_with_elements(self):
-        """make a system that looks like:
-            system
-               |   
-               root-----------------
-                    |              |
-                voltage -> cn -> resistor
-                    |______gnd_____|
-        """        
-        system = System()
-        voltage = Voltage().DC(10)
-        system.root.add_element(voltage)
-        resistor = Resistor(10)
-        system.root.add_element(resistor)
-        try:
-            system.root.add_wire(resistor.p, voltage.p)
-            self.assertTrue(False)
-        except ValueError:
-            pass
-        self.assertEqual(system.num_edges(), 0)
-        cn = system.root.add_circuit_node()
-        try:
-            system.root.add_wire(cn, system.gnd)
-            self.assertTrue(False)
-        except ValueError:
-            pass
-        system.root.add_wire(resistor.p, cn)
-        system.root.add_wire(voltage.p, cn)
-        system.root.add_wire(resistor.n, system.gnd)
-        system.root.add_wire(voltage.n, system.gnd)
-        self.assertEqual(system.num_edges(), 4)
-        self.assertEqual(system.num_nodes(), 5)
-        self.assertEqual(system.root.num_elements(), 2)
-        self.assertEqual(system.root.num_circuit_nodes(), 1)
-        self.assertEqual(system.root.num_ports(), 0)
-        self.assertEqual(system.root.num_wires(), 4)
-        self.assertEqual(system.root.num_subsystems(), 0)
+        # make wires in the subsystem
+        _ = rr["in"] >> rr.e.r["1"]["p"]
+        _ = rr.e.r["1"]["n"] >> rr.e.r["2"]["p"]
+        _ = rr.e.r["2"]["n"] >> rr["out"]
 
+        # make two copies of the subsystem
+        rr1 = rr("resistors1")
+
+        # test that they are unique
+        self.assertNotEqual(id(rr), id(rr1))
+
+        # test that r1 is unique but has same attributes as rr
+        self.assertNotEqual(id(rr.e.r["1"]), id(rr1.e.r["1"]))
+        self.assertEqual(rr.e.r["1"].value, rr1.e.r["1"].value)
+
+    def test_voltage_divider(self):
+        # create a resistor series subsystem template
+        rr = System(
+            "series resistors",
+            ["in", "out", "ref"],
+            [
+                R("1", 1e3),
+                R("2", 1e3),
+            ],
+        )
+
+        # make wires in the subsystem
+        _ = rr["in"] >> rr.e.r["1"]["p"]
+        _ = rr.e.r["1"]["n"] >> rr.e.r["2"]["p"]
+        _ = rr.e.r["2"]["n"] >> rr["out"]
+
+        # voltage divider system definition
+        vd = System(
+            "voltage divider",
+            [],
+            [
+                V("1", DC(10)),
+                rr("bank1"),
+                rr("bank2"),
+            ],
+        )
+
+        # voltage divider top system wiring
+        _ = vd.e.v["1"]["p"] >> vd.s["bank1"]["in"]  # terminal to interface
+        _ = vd.s["bank1"]["out"] >> vd.s["bank2"]["in"]
+        _ = vd.s["bank2"]["out"] >> vd.e.v["1"]["n"]
+
+        # test number of components in divider system
+        self.assertEqual(vd.num_subsystems(), 2)
+        self.assertEqual(vd.num_elements(), 1)
+        self.assertEqual(vd.num_interfaces(), 0)
+        self.assertEqual(vd.num_wires(), 3)
+
+        # test number of components in bank1
+        self.assertEqual(vd.s["bank1"].num_subsystems(), 0)
+        self.assertEqual(vd.s["bank1"].num_elements(), 2)
+        self.assertEqual(vd.s["bank1"].num_interfaces(), 3)
+        self.assertEqual(vd.s["bank1"].num_wires(), 5)
+
+        # test number of components in bank2
+        self.assertEqual(vd.s["bank2"].num_subsystems(), 0)
+        self.assertEqual(vd.s["bank2"].num_elements(), 2)
+        self.assertEqual(vd.s["bank2"].num_interfaces(), 3)
+        self.assertEqual(vd.s["bank2"].num_wires(), 5)

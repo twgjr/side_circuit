@@ -1,183 +1,165 @@
-from graph import Graph, Node, Edge
+from common import SystemObject, Wire, Interface
+from elements import Element, ElementDict
 
 
-class System(Graph):
-    def __init__(self) -> None:
-        super().__init__()
-        self.__root = SubSystem(self)
-        super().set_node(self.__root)
-        self.__ground = CircuitNode()
-        super().set_node(self.__ground)
+class System(SystemObject):
+    """create a system by defining wires between nodes
+    and elements and subsystems in the constructor.
+    """
 
-    @property
-    def root(self) -> "SubSystem":
-        return self.__root
+    def __init__(
+        self,
+        idx: str = "",
+        interfaces: list[str] = [],
+        objects: list = [],
+    ) -> None:
+        super().__init__(idx)
+        self.__interfaces: InterfaceDict = None  # type: ignore
+        self.__elementdict: ElementDict = None  # type: ignore
+        self.__subsystemdict: SystemDict = None  # type: ignore
+        self.__wires: dict[str, Wire] = {}
+        self.__process_init(interfaces, objects)
 
-    @property
-    def gnd(self) -> "CircuitNode":
-        return self.__ground
+    def __process_init(
+        self, interfaces: list[str], objects: list["SystemObject"]
+    ) -> None:
+        elements = []
+        subsystems = []
+        for item in objects:
+            if isinstance(item, System):
+                subsystems.append(item)
+                item.parent = self
+            elif isinstance(item, Element):
+                elements.append(item)
+                item.parent = self
+            else:
+                raise ValueError(f"invalid object type {type(item)}")
 
-
-class SubSystem(Node):
-    """graph node that acts as interface for a cluster of nodes and edges"""
-
-    def __init__(self, system: System) -> None:
-        super().__init__()
-        self.__system: System = system
-        self.__circuit_nodes: list[CircuitNode] = []
-        self.__ports: list[Port] = []
-        self.__elements: list[Element] = []
-        self.__wires: list[Wire] = []
-        self.__subsystems: list[SubSystem] = []
-
-    def __hash__(self) -> int:
-        return hash(str(self))
-    
-    def __eq__(self, o: object) -> bool:
-        return hash(self) == hash(o)
-    
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}{id(self)}"
+        self.__interfaces = InterfaceDict(self, interfaces)
+        self.__elementdict = ElementDict(self, elements)
+        self.__subsystemdict = SystemDict(self, subsystems)
 
     def __contains__(self, item) -> bool:
-        return (
-            item in self.__circuit_nodes
-            or item in self.__ports
-            or item in self.__elements
-            or item in self.__wires
-            or item in self.__subsystems
+        if isinstance(item, Interface):
+            return item in self.__interfaces
+
+        if isinstance(item, Element):
+            return item in self.__elementdict
+
+        if isinstance(item, System):
+            return item in self.__subsystemdict
+
+        if isinstance(item, Wire):
+            return item in self.__wires
+
+        return False
+
+    def __getitem__(self, key: str) -> "Interface":
+        return self.__interfaces[key]
+
+    def __call__(self, idx: str) -> "System":
+        system_copy = self.copy()
+        system_copy.idx = idx
+        return system_copy
+
+    def copy(self) -> "System":
+        sys = System(
+            self.idx,
+            [str(interface) for interface in self.__interfaces.interfaces],
+            [element.copy() for element in self.__elementdict.elements]
+            + [subsystem.copy() for subsystem in self.__subsystemdict.subsystems],
         )
+        sys.copy_wires(self.__wires)
+        return sys
 
-    def add_circuit_node(self) -> "CircuitNode":
-        node = CircuitNode()
-        self.__system.set_node(node)
-        self.__circuit_nodes.append(node)
-        return node
+    def __get_wire_arg(self, old: Interface) -> Interface:
+        if isinstance(old, Interface):
+            return self.__interfaces[str(old)]
+        elif isinstance(old, Interface):
+            elements = self.__elementdict.elements
+            for element in elements:
+                if old in element:
+                    return element[str(old)]
 
-    def add_wire(self, item1: "Node | Slot", item2: "Node | Slot") -> "Wire":
-        if isinstance(item1, CircuitNode) and isinstance(item2, CircuitNode):
-            raise ValueError("Cannot connect two CircuitNodes")
-        if not isinstance(item1, CircuitNode) and not isinstance(item2, CircuitNode):
-            raise ValueError("Cannot connect two non-CircuitNodes")
-        edge = Wire(None, None)  # type: ignore
-        if isinstance(item1, Slot) and isinstance(item2, Slot):
-            edge = Wire(item1, item2)
-            self.__system.set_edge(edge, item1.parent, item2.parent)
-        elif isinstance(item1, Slot) and isinstance(item2, Node):
-            edge = Wire(item1, None)  # type: ignore
-            self.__system.set_edge(edge, item1.parent, item2)
-        elif isinstance(item1, Node) and isinstance(item2, Slot):
-            edge = Wire(None, item2)  # type: ignore
-            self.__system.set_edge(edge, item1, item2.parent)
-        elif isinstance(item1, Node) and isinstance(item2, Node):
-            self.__system.set_edge(edge, item1, item2)
+        raise ValueError(f"{old} not in system")
 
-        self.__wires.append(edge)
-        return edge
+    def copy_wires(self, wires: dict[str, Wire]) -> None:
+        for key, wire in wires.items():
+            hi = self.__get_wire_arg(wire.hi)
+            lo = self.__get_wire_arg(wire.lo)
 
-    def add_element(self, element: "Element") -> "Element":
-        self.__system.set_node(element)
-        self.__elements.append(element)
-        return element
+            self.__wires[key] = hi >> lo
 
-    def add_subsystem(self) -> "SubSystem":
-        node = SubSystem(self.__system)
-        self.__system.set_node(node)
-        self.__subsystems.append(node)
-        return node
-    
-    def get_subsystem(self, index: int) -> "SubSystem":
-        return self.__subsystems[index]
-    
+    @property
+    def s(self) -> "SystemDict":
+        return self.__subsystemdict
+
+    @property
+    def e(self) -> "ElementDict":
+        return self.__elementdict
+
+    def add_wire(self, wire: Wire) -> None:
+        self.__wires[str(wire)] = wire
+
     def num_subsystems(self) -> int:
-        return len(self.__subsystems)
+        return len(self.__subsystemdict)
 
-    def num_circuit_nodes(self) -> int:
-        return len(self.__circuit_nodes)
-    
-    def num_ports(self) -> int:
-        return len(self.__ports)
-    
     def num_elements(self) -> int:
-        return len(self.__elements)
-    
+        return len(self.__elementdict)
+
     def num_wires(self) -> int:
         return len(self.__wires)
 
-class Wire(Edge):
-    """graph edge connecting CircuitNodes, Elements and SubSystems.
-    Wires hold references to connected Ports of SubSystems or"""
-
-    def __init__(self, slot_a: "Slot", slot_b: "Slot") -> None:
-        super().__init__()
-        self.__slots = (slot_a, slot_b)
-
-    def __hash__(self) -> int:
-        return hash(str(self))
-    
-    def __eq__(self, o: object) -> bool:
-        return hash(self) == hash(o)
-    
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}{id(self)})"
-        
+    def num_interfaces(self) -> int:
+        return len(self.__interfaces)
 
 
-class Element(Node):
-    """graph node that only connects to Terminal nodes"""
+class SystemDict:
+    def __init__(self, system: System, subsystems: list["System"]) -> None:
+        self.__subsystems: dict[str, "System"] = {}
+        for subsystem in subsystems:
+            self.__subsystems[str(subsystem)] = subsystem
+            subsystem.parent = system
 
-    def __init__(self, terminals: list["Terminal"]) -> None:
-        super().__init__()
-        self.__terminals = terminals
+    def __getitem__(self, key: str) -> "System":
+        return self.__subsystems[key]
 
-    def __hash__(self) -> int:
-        return hash(str(self))
-    
-    def __eq__(self, o: object) -> bool:
-        return hash(self) == hash(o)
-    
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}{id(self)})"
-    
-    @property
-    def terminals(self) -> list["Terminal"]:
-        return self.__terminals
+    def __contains__(self, item) -> bool:
+        return item in self.__subsystems
 
+    def __iter__(self):
+        return iter(self.__subsystems.keys())
 
-class CircuitNode(Node):
-    """graph node that connects directly with only Wire edges"""
-
-    def __hash__(self) -> int:
-        return hash(str(self))
-    
-    def __eq__(self, o: object) -> bool:
-        return hash(self) == hash(o)
-    
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}{id(self)})"
-
-class Slot:
-    """graph node that acts as interface for a Wire edge"""
-
-    def __init__(self, parent) -> None:
-        self.__parent: SubSystem | Element = parent
+    def __len__(self):
+        return len(self.__subsystems)
 
     @property
-    def parent(self) -> SubSystem | Element:
-        return self.__parent
+    def subsystems(self) -> list["System"]:
+        return list(self.__subsystems.values())
 
 
-class Terminal(Slot):
-    """graph node that acts as the label for incoming/outgoing edges of an Element node"""
+class InterfaceDict:
+    def __init__(self, system: System, interfaces: list[str]) -> None:
+        self.__interfaces: dict[str, Interface] = {}
+        for interface in interfaces:
+            self.__interfaces[interface] = Interface(interface)
+            self.__interfaces[interface].parent = system
 
-    def __init__(self, parent: Element, name: str) -> None:
-        super().__init__(parent)
-        self.name = name
+    def __getitem__(self, key: str) -> Interface:
+        return self.__interfaces[key]
 
+    def __contains__(self, item) -> bool:
+        if isinstance(item, Interface):
+            return str(item) in self.__interfaces
 
-class Port(Slot):
-    """graph node that acts as the label for incoming/outgoing edges of an SubSystem node"""
+        if isinstance(item, str):
+            return item in self.__interfaces
 
-    def __init__(self, parent: SubSystem, name: str) -> None:
-        super().__init__(parent)
-        self.name = name
+        return False
+
+    def __len__(self) -> int:
+        return len(self.__interfaces)
+
+    @property
+    def interfaces(self) -> list[Interface]:
+        return list(self.__interfaces.values())
