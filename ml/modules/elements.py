@@ -1,7 +1,8 @@
-from common import SystemObject, Interface, Wire
+from abc import abstractmethod
+from common import CommonObject, Interface, Wire
 
 
-class Element(SystemObject):
+class Element(CommonObject):
     """node that only connects to Terminal nodes"""
 
     def __init__(self, idx: str, interfaces: list[Interface]) -> None:
@@ -17,59 +18,27 @@ class Element(SystemObject):
     def __contains__(self, item: Interface) -> bool:
         return str(item) in self.__interfaces
 
-    def add_wire(self, wire: "Wire") -> None:
+    def add_wire(self, wire: Wire) -> None:
         parent = self.parent
         from system import System
         if isinstance(parent, System):
             parent.add_wire(wire)
-
-
-class ElementDict:
-    def __init__(self, parent, elements: list["Element"]) -> None:
-        self.__v: dict[str, "V"] = {}
-        self.__r: dict[str, "R"] = {}
-        for element in elements:
-            from system import System
-
-            if not isinstance(parent, System):
-                raise ValueError(f"invalid parent type {type(parent)}")
-            element.parent = parent
-            if isinstance(element, V):
-                self.__v[str(element)] = element
-            elif isinstance(element, R):
-                self.__r[str(element)] = element
-
-    def __contains__(self, item) -> bool:
-        if isinstance(item, V):
-            return item in self.__v
-        if isinstance(item, R):
-            return item in self.__r
-        return False
-
-    def __len__(self) -> int:
-        return len(self.__v) + len(self.__r)
-
-    @property
-    def v(self) -> dict[str, "V"]:
-        return self.__v
-
-    @property
-    def r(self) -> dict[str, "R"]:
-        return self.__r
-
-    @property
-    def elements(self) -> list["V | R"]:
-        list_v = list(self.__v.values())
-        list_r = list(self.__r.values())
-        return list_v + list_r
+    
+    @abstractmethod
+    def copy(self):
+        raise NotImplementedError
 
 
 class TwoTerminal(Element):
     def __init__(self, id: str):
         super().__init__(id, [Interface("p"), Interface("n")])
 
+    @abstractmethod
+    def copy(self) -> "TwoTerminal":
+        raise NotImplementedError
 
 class SourceConfig:
+    @abstractmethod
     def copy(self) -> "SourceConfig":
         raise NotImplementedError
 
@@ -114,7 +83,7 @@ class Source(TwoTerminal):
         return self.__config
 
     def copy(self) -> "Source":
-        raise NotImplementedError
+        return Source(self.idx, self.config)
 
 
 class V(Source):

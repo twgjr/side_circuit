@@ -1,7 +1,9 @@
-class SystemObject:
+from abc import ABC, abstractmethod
+
+class CommonObject(ABC):
     def __init__(self, idx: str) -> None:
         self.__idx = idx
-        self.__parent: SystemObject | None = None
+        self.__parent: CommonObject | None = None
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.idx})"
@@ -18,40 +20,35 @@ class SystemObject:
         self.__idx = idx
 
     @property
-    def parent(self) -> "SystemObject | None":
+    def parent(self) -> "CommonObject | None":
         return self.__parent
 
     @parent.setter
-    def parent(self, parent: "SystemObject | None") -> None:
+    def parent(self, parent: "CommonObject | None") -> None:
         self.__parent = parent
 
+    @abstractmethod
+    def copy(self):
+        raise NotImplementedError
+    
+    def cls(self) -> str:
+        return self.__class__.__name__
 
-class Interface(SystemObject):
+
+class Interface(CommonObject):
     def __init__(self, idx: str) -> None:
         super().__init__(idx)
         self.__wires: list["Wire"] = []
 
-    def __rshift__(self, other: "Interface") -> "Wire":
-        parent = self.parent
-
-        from system import System
-        from elements import Element
-
-        if not isinstance(parent, System) and not isinstance(parent, Element):
-            raise ValueError(f"invalid parent type {type(parent)}")
-
-        wire = Wire(self, other)
-        wire.parent = parent
-        self.add_wire(wire)
-        other.add_wire(wire)
-        parent.add_wire(wire)
-        return wire
-
     def add_wire(self, wire: "Wire") -> None:
         self.__wires.append(wire)
 
+    def copy(self) -> "Interface":
+        copy = Interface(self.idx)
+        return copy
 
-class Wire(SystemObject):
+
+class Wire(CommonObject):
     def __init__(
         self,
         hi: Interface | None = None,
@@ -81,7 +78,7 @@ class Wire(SystemObject):
             raise ValueError(f"lo not connected")
         return self.__lo
 
-    def copy(
-        self,
-    ) -> "Wire":
-        return Wire(self.hi, self.lo)
+    def copy(self) -> "Wire":
+        copy = Wire(self.hi.copy(), self.lo.copy())
+        copy.idx = self.idx
+        return copy

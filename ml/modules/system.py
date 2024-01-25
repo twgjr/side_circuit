@@ -1,8 +1,8 @@
-from common import SystemObject, Wire, Interface
-from elements import Element, ElementDict
+from common import CommonObject, Wire, Interface
+from elements import *
 
 
-class System(SystemObject):
+class System(CommonObject):
     """create a system by defining wires between nodes
     and elements and subsystems in the constructor.
     """
@@ -11,51 +11,54 @@ class System(SystemObject):
         self,
         idx: str = "",
         interfaces: list[str] = [],
-        objects: list = [],
+        objects: list[CommonObject] = [],
     ) -> None:
         super().__init__(idx)
-        self.__interfaces: InterfaceDict = None  # type: ignore
-        self.__elementdict: ElementDict = None  # type: ignore
-        self.__subsystemdict: SystemDict = None  # type: ignore
-        self.__wires: dict[str, Wire] = {}
-        self.__process_init(interfaces, objects)
 
-    def __process_init(
-        self, interfaces: list[str], objects: list["SystemObject"]
-    ) -> None:
-        elements = []
-        subsystems = []
-        for item in objects:
-            if isinstance(item, System):
-                subsystems.append(item)
-                item.parent = self
-            elif isinstance(item, Element):
-                elements.append(item)
-                item.parent = self
+        self.__interfaces: dict[str, Interface] = {}
+        for interface in interfaces:
+            self.__interfaces[interface] = Interface(interface)
+            self.__interfaces[interface].parent = self
+        self.__v_dict: dict[str, V] = {}
+        self.__r_dict: dict[str, R] = {}
+        self.__x_dict: dict[str, "System"] = {}
+        for obj in objects:
+            obj.parent = self
+            if isinstance(obj, V):
+                self.__v_dict[str(obj)] = obj
+            elif isinstance(obj, R):
+                self.__r_dict[str(obj)] = obj
+            elif isinstance(obj, System):
+                self.__x_dict[str(obj)] = obj
             else:
-                raise ValueError(f"invalid object type {type(item)}")
-
-        self.__interfaces = InterfaceDict(self, interfaces)
-        self.__elementdict = ElementDict(self, elements)
-        self.__subsystemdict = SystemDict(self, subsystems)
+                raise TypeError(f"invalid object type {type(obj)}")
+        self.__wires: dict[str, Wire] = {}
 
     def __contains__(self, item) -> bool:
         if isinstance(item, Interface):
             return item in self.__interfaces
 
-        if isinstance(item, Element):
-            return item in self.__elementdict
+        if isinstance(item, V):
+            return item in self.__v_dict
+        
+        if isinstance(item, R):
+            return item in self.__r_dict
 
         if isinstance(item, System):
-            return item in self.__subsystemdict
+            return item in self.__x_dict
 
         if isinstance(item, Wire):
             return item in self.__wires
 
         return False
 
-    def __getitem__(self, key: str) -> "Interface":
-        return self.__interfaces[key]
+    def __getitem__(self, item) -> "Interface":
+        if item in self.__interfaces:
+            intx = self.__interfaces[item]
+            if isinstance(intx, Interface):
+                return intx
+            raise TypeError(f"invalid interface {item}")
+        raise KeyError(f"invalid interface {item}")
 
     def __call__(self, idx: str) -> "System":
         system_copy = self.copy()
@@ -63,49 +66,66 @@ class System(SystemObject):
         return system_copy
 
     def copy(self) -> "System":
-        sys = System(
-            self.idx,
-            [str(interface) for interface in self.__interfaces.interfaces],
-            [element.copy() for element in self.__elementdict.elements]
-            + [subsystem.copy() for subsystem in self.__subsystemdict.subsystems],
-        )
+        elements = []
+        for v in self.__v_dict.values():
+            elements.append(v.copy())
+        for r in self.__r_dict.values():
+            elements.append(r.copy())
+        sys = System(self.idx, list(self.__interfaces.keys()), elements)
         sys.copy_wires(self.__wires)
         return sys
 
-    def __get_wire_arg(self, old: Interface) -> Interface:
-        if isinstance(old, Interface):
-            return self.__interfaces[str(old)]
-        elif isinstance(old, Interface):
-            elements = self.__elementdict.elements
-            for element in elements:
-                if old in element:
-                    return element[str(old)]
+    def __get_matching(self, interface: Interface) -> Interface:
+        parent = interface.parent
+        if isinstance(parent, System):
+            return self[interface.idx]
 
-        raise ValueError(f"{old} not in system")
+        if isinstance(parent, V):
+            v = self.V[str(parent)]
+            if isinstance(v, V):
+                return v[str(interface)]
+            
+        if isinstance(parent, R):
+            r = self.R[str(parent)]
+            if isinstance(r, R):
+                return r[str(interface)]
+
+        raise TypeError(f"invalid interface {interface}")
 
     def copy_wires(self, wires: dict[str, Wire]) -> None:
         for key, wire in wires.items():
-            hi = self.__get_wire_arg(wire.hi)
-            lo = self.__get_wire_arg(wire.lo)
-
-            self.__wires[key] = hi >> lo
+            # get matching interfaces
+            hi = self.__get_matching(wire.hi)
+            lo = self.__get_matching(wire.lo)
+            # create new wire
+            new_wire = self.link(hi, lo)
+            new_wire.idx = wire.idx
+            # add new wire to system
+            self.add_wire(new_wire)
 
     @property
-    def s(self) -> "SystemDict":
-        return self.__subsystemdict
+    def X(self) -> dict[str, "System"]:
+        return self.__x_dict
 
     @property
-    def e(self) -> "ElementDict":
-        return self.__elementdict
+    def V(self) -> dict[str, V]:
+        return self.__v_dict
+    
+    @property
+    def R(self) -> dict[str, R]:
+        return self.__r_dict
 
     def add_wire(self, wire: Wire) -> None:
         self.__wires[str(wire)] = wire
 
     def num_subsystems(self) -> int:
-        return len(self.__subsystemdict)
+        return len(self.__x_dict)
 
-    def num_elements(self) -> int:
-        return len(self.__elementdict)
+    def num_v(self) -> int:
+        return len(self.__v_dict)
+    
+    def num_r(self) -> int:
+        return len(self.__r_dict)
 
     def num_wires(self) -> int:
         return len(self.__wires)
@@ -113,53 +133,9 @@ class System(SystemObject):
     def num_interfaces(self) -> int:
         return len(self.__interfaces)
 
-
-class SystemDict:
-    def __init__(self, system: System, subsystems: list["System"]) -> None:
-        self.__subsystems: dict[str, "System"] = {}
-        for subsystem in subsystems:
-            self.__subsystems[str(subsystem)] = subsystem
-            subsystem.parent = system
-
-    def __getitem__(self, key: str) -> "System":
-        return self.__subsystems[key]
-
-    def __contains__(self, item) -> bool:
-        return item in self.__subsystems
-
-    def __iter__(self):
-        return iter(self.__subsystems.keys())
-
-    def __len__(self):
-        return len(self.__subsystems)
-
-    @property
-    def subsystems(self) -> list["System"]:
-        return list(self.__subsystems.values())
-
-
-class InterfaceDict:
-    def __init__(self, system: System, interfaces: list[str]) -> None:
-        self.__interfaces: dict[str, Interface] = {}
-        for interface in interfaces:
-            self.__interfaces[interface] = Interface(interface)
-            self.__interfaces[interface].parent = system
-
-    def __getitem__(self, key: str) -> Interface:
-        return self.__interfaces[key]
-
-    def __contains__(self, item) -> bool:
-        if isinstance(item, Interface):
-            return str(item) in self.__interfaces
-
-        if isinstance(item, str):
-            return item in self.__interfaces
-
-        return False
-
-    def __len__(self) -> int:
-        return len(self.__interfaces)
-
-    @property
-    def interfaces(self) -> list[Interface]:
-        return list(self.__interfaces.values())
+    def link(self, hi: Interface, lo: Interface) -> Wire:
+        wire = Wire(hi, lo)
+        hi.add_wire(wire)
+        lo.add_wire(wire)
+        self.add_wire(wire)
+        return wire
