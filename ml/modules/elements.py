@@ -18,12 +18,6 @@ class Element(CommonObject):
     def __contains__(self, item: Interface) -> bool:
         return str(item) in self.__interfaces
 
-    def add_wire(self, wire: Wire) -> None:
-        parent = self.parent
-        from system import System
-        if isinstance(parent, System):
-            parent.add_wire(wire)
-    
     @abstractmethod
     def copy(self):
         raise NotImplementedError
