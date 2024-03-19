@@ -1,0 +1,14 @@
+name: side_circuit
+channels:
+  - pytorch
+  - nvidia
+  - pip
+  - conda
+  - conda-forge
+dependencies:
+  - jupyter=1.0.0=pyhd8ed1ab_10
+  - pyspice=1.5=py310h5588dad_1
+  - pytorch=2.1.1=py3.10_cuda12.1_cudnn8_0
+  - pytorch-cuda=12.1=hde6ce7c_5
+  - pip:
+      - torch-geometric==2.4.0
