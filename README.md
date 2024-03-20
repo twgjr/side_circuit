@@ -16,7 +16,7 @@ The primary focus of the project is on the machine learning model.  The model mu
 # Early Attempt: Directly Model a Circuit Simulator as an Optimizer
 An early attempt was made at directly modeling a circuit simulator as in an optimizer (pytorch was used with gradient descent).  
 
-The progress made for the direct approach was branched off under "direct-circuit-optimizer" and is not currently being developed.  The code is still available for reference.
+The progress made for the direct approach was branched off under "circuit-optimizer-v0" and is not currently being developed.  The code is still available for reference.
 
 The learned parameters being optimized in the direct optimizer were all voltage and current signals and circuit element parameters (such as resistance).  Any known values had there optimizer parameters frozenThis was a good exercise for my linear algebra and pytorch skills.  However, it had some shortcomings:
    - the model was very sensitive to large differences in values very typical of electronic circuits and signal processing.  For example, 1M ohm resistor and 5 V voltage source attemping to find the a tiny current of 5 uA.  It was difficult to get the model to converge to a solution without some sort of normalization.  Dynamically normalizing as the model optimized was unpredictable.  This will less of a problem with a pretrained model due to having predetermined base values from the dataset for normalization.
@@ -29,7 +29,7 @@ The current approach is to pretrain a model to predict values of a circuit.  Thi
 - preprocessing the dataset to be compatible with the model
   - this will involve normalizing the data and creating a graph representation of the circuit
 - selecting an appropriate model architecture
-  -The model will need to to condider all elements of the circuit simultaneously.  A Graph Transformer may be a good first try.
+  - The model will need to to consider all elements of the circuit simultaneously.  A Graph Transformer may be a good first try.
 - training the model on the dataset
 - evaluating the model on a test set
 
