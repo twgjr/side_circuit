@@ -16,7 +16,7 @@ The primary focus of the project is on the machine learning model.  The model mu
 # Modeling a Circuit Simulator as an Optimizer
 An early attempt was made at directly modeling a circuit simulator in an optimizer (pytorch was used with gradient descent).
 
-The learned parameters being optimized in the direct optimizer were all voltage and current signals and circuit element parameters (such as resistance).  Any known values had there optimizer parameters frozenThis was a good exercise for my linear algebra and pytorch skills.  However, it had some shortcomings:
+The learned parameters being optimized in the direct optimizer were all voltage and current signals and circuit element parameters (such as resistance).  Any known values had there optimizer parameters frozen.  This was a good exercise for my linear algebra and pytorch skills.  However, it had some shortcomings:
    - the model is very sensitive to large differences in values very typical of electronic circuits and signal processing.  For example, 1M ohm resistor and 5 V voltage source attemping to find the a tiny current of 5 uA.  It was difficult to get the model to converge to a solution without some sort of normalization.  Dynamically normalizing as the model optimized was unpredictable.  This will less of a problem with a pretrained model due to having predetermined base values from the dataset for normalization.
    - the model was very slow to train (aka reach a circuit solution)
 
